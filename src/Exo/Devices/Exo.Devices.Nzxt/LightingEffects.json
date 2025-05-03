@@ -18,5 +18,17 @@
 	// Starry Night
 	"9460fd35-6933-42c5-a8c6-9a6b34ee3f3e": {
 		"nameStringId": "975431b8-b26b-40dc-84fb-a4c017a8ccce"
+	},
+	// Color Cycle (Fade)
+	"a66fce58-4256-4746-8a86-6533f6ae3efb": {
+		"nameStringId": "dd4b72a6-9cbd-431a-9468-869d5df17fa9"
+	},
+	// Pulse
+	"ddedb156-d897-4ad5-9566-721af1ad46b0": {
+		"nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197"
+	},
+	// Breathing
+	"6d01ab73-37af-4a1a-8ff4-efc3940f7bf9": {
+		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd"
 	}
 }

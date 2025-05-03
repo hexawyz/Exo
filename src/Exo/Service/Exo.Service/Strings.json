@@ -1,3043 +1,3051 @@
 {
-    // Common use strings
-    "4d2b3404-1cb1-4536-918c-80facc124cf9": {
-        "en": "On",
-        "fr": "Allumé",
-        "ja": "オン"
-    },
-    "a9f9a2e6-2091-4bd9-b135-a4a5d6d4009e": {
-        "en": "Off",
-        "fr": "Éteint",
-        "ja": "オフ"
-    },
-    "5c65f531-fceb-477b-97ef-b762bc358396": {
-        "en": "Enabled",
-        "fr": "Activé",
-        "ja": "有効"
-    },
-    "da23bf28-6572-4e00-83a1-be68bf7cf749": {
-        "en": "Disabled",
-        "fr": "Désactivé",
-        "ja": "無効"
-    },
-    "16ac1b8f-cb3f-4910-9af4-bd966aa16279": {
-        "en": "Standard",
-        "fr": "Standard",
-        "ja": "標準"
-    },
-    "e677ce93-816f-44c7-ad7e-b1042f61f2fd": {
-        "en": "Advanced",
-        "fr": "Avancé",
-        "ja": "詳細"
-    },
-    "c88a634b-9621-4108-91b8-b2f74208421f": {
-        "en": "Normal",
-        "fr": "Normal",
-        "ja": "普通"
-    },
-    "76e54863-cd4a-4690-bcc1-ae566b534cef": {
-        "en": "Fast",
-        "fr": "Rapide"
-    },
-    "e383e29e-60c3-44a5-a761-b08f96a200a7": {
-        "en": "Faster",
-        "fr": "Plus rapide"
-    },
-    // Sensors
-    "d5db037c-caa7-4a40-937f-ec2ec64b1b96": {
-        "en": "Fan Speed",
-        "fr": "Vitesse du ventilateur",
-        "ja": "ファンの回転数"
-    },
-    "d9608d42-6ba3-4ffd-a4a9-905ba063b445": {
-        "en": "Fan 1 Speed",
-        "fr": "Vitesse ventilateur 1",
-        "ja": "ファン１の回転数"
-    },
-    "8b280e41-5c23-4c45-9088-65dd4b67fccc": {
-        "en": "Fan 2 Speed",
-        "fr": "Vitesse ventilateur 2",
-        "ja": "ファン２の回転数"
-    },
-    "80acb355-040e-4789-96c9-8ed249964b08": {
-        "en": "Pump Speed",
-        "fr": "Vitesse de la pompe",
-        "ja": "ポンプの回転数"
-    },
-    "a16abea5-5e05-40a0-861e-b948f3bc7084": {
-        "en": "Temperature",
-        "fr": "Température",
-        "ja": "温度"
-    },
-    "5553c264-35bf-44ba-bd23-5a1bf611f5e1": {
-        "en": "Liquid Temperature",
-        "fr": "Température du liquide",
-        "ja": "液体の温度"
-    },
-    "4458560b-d509-4368-9181-9f66faaa65bf": {
-        "en": "Input Voltage",
-        "fr": "Tension d'entrée",
-        "ja": "入力電圧"
-    },
-    "d29d5844-6fc3-4e76-bd70-b158b584c5de": {
-        "en": "Output Voltage",
-        "fr": "Tension de sortie",
-        "ja": "出力電圧"
-    },
-    "c5f09e52-98c0-48ec-ab4a-19766755fb78": {
-        "en": "Output Power",
-        "fr": "Puissance de sortie",
-        "ja": "出力電力"
-    },
-    "7a074c26-621c-4539-9c45-d1e7050f7bfb": {
-        "en": "Power Load",
-        "fr": "% de puissance"
-    },
-    "ff58ccbd-f377-481a-94eb-57e8aabb3fb7": {
-        "en": "Graphics Load",
-        "fr": "% Graphismes"
-    },
-    "d25c1838-3959-4e29-8aec-b99347a66b3f": {
-        "en": "Frame Buffer Load",
-        "fr": "% Frame buffer"
-    },
-    "33b3eec9-a302-47ab-abb9-007ec068830a": {
-        "en": "Video Load",
-        "fr": "% Vidéo"
-    },
-    "a2e5471f-7d3c-432c-88f8-c9f16e2456f5": {
-        "en": "Bus Load",
-        "fr": "% Bus"
-    },
-    "830f4e78-71b0-459c-9ade-a001d6f1ae10": {
-        "en": "GPU Temperature",
-        "fr": "Température GPU"
-    },
-    "304c3571-9070-4aad-b9ac-36d3e16008de": {
-        "en": "Memory Temperature",
-        "fr": "Température mémoire"
-    },
-    "80a6a818-b3bf-498a-a9dc-e91e0eeb9287": {
-        "en": "Power Supply Temperature",
-        "fr": "Température de l'alimentation"
-    },
-    "b143636c-58cc-4e08-9a1e-c13eb9457f7e": {
-        "en": "Board Temperature",
-        "fr": "Température carte"
-    },
-    "4dc9d432-8be8-4358-b08f-c1c6b2810692": {
-        "en": "Graphics Frequency",
-        "fr": "Fréquence graphismes"
-    },
-    "775c66e1-a4af-492d-a1fd-fa0d4601a121": {
-        "en": "Memory Frequency",
-        "fr": "Fréquence mémoire"
-    },
-    "dfc64831-9fd0-4f41-a91e-00fd7476aff7": {
-        "en": "Processor Frequency",
-        "fr": "Fréquence processeur"
-    },
-    "451592a3-c6b4-407f-826f-dda5bd9eead7": {
-        "en": "Video Frequency",
-        "fr": "Fréquence vidéo"
-    },
-    // Coolers
-    "58dbe372-3c18-4059-8f53-0bc56ded725c": {
-        "en": "Fan",
-        "fr": "Ventilateur",
-        "ja": "ファン"
-    },
-    "96248f2b-3504-4feb-80df-8b49f2f1ebe0": {
-        "en": "Fan 1",
-        "fr": "Ventilateur 1",
-        "ja": "ファン１"
-    },
-    "f3a31701-859b-4eff-8ae8-65af35aaca69": {
-        "en": "Fan 2",
-        "fr": "Ventilateur 2",
-        "ja": "ファン２"
-    },
-    "78986262-eeb6-4d90-88b2-cc2ce44f1874": {
-        "en": "Pump",
-        "fr": "Pompe",
-        "ja": "ポンプ"
-    },
-    // Lighting Zone Names
-    "43e202d9-1322-4508-aeb3-ebfa7c3cbf93": {
-        "en": "Memory Module 1",
-        "fr": "Module mémoire 1"
-    },
-    "f13178da-3309-4992-bea9-70a02da3afc9": {
-        "en": "Memory Module 2",
-        "fr": "Module mémoire 2"
-    },
-    "8ff13cab-b313-4bc6-83b7-60932ff1b0bf": {
-        "en": "Memory Module 3",
-        "fr": "Module mémoire 3"
-    },
-    "90c74ed6-fe35-450e-960e-951100998fd2": {
-        "en": "Memory Module 4",
-        "fr": "Module mémoire 4"
-    },
-    "76f1ab82-757c-4e83-8e70-6ce2ff970352": {
-        "en": "Memory Module 5",
-        "fr": "Module mémoire 5"
-    },
-    "09779d85-985f-4a1b-a3d0-3fd666d01841": {
-        "en": "Memory Module 6",
-        "fr": "Module mémoire 6"
-    },
-    "3d29c33f-f5bc-4a54-80aa-1d4111b21694": {
-        "en": "Memory Module 7",
-        "fr": "Module mémoire 7"
-    },
-    "76ffbca1-8fa9-4d79-9e07-af863a006b02": {
-        "en": "Memory Module 8",
-        "fr": "Module mémoire 8"
-    },
-    "014ef66f-12c2-48eb-8350-7bbcd7efab1f": {
-        "en": "Mouse wheel",
-        "fr": "Molette de la souris"
-    },
-    "179c675c-f48b-4a95-885e-542ddb4e3412": {
-        "en": "Logo",
-        "fr": "Logo",
-        "ja": "ロゴ"
-    },
-    // Lighting Effect Names
-    "72324394-b58d-41e3-a4fe-aa17342b0036": {
-        "en": "(Not Applicable)",
-        "fr": "(Non applicable)"
-    },
-    "36218033-ff96-41f1-b01c-f9fbefa4bcc3": {
-        "en": "Disabled",
-        "fr": "Désactivé",
-        "ja": "無効"
-    },
-    "e965c6f5-3d24-42ed-9182-31f48b5248a6": {
-        "en": "Enabled",
-        "fr": "Activé",
-        "ja": "有効"
-    },
-    "bfa5b721-db96-47a5-9e69-5dd0ae943275": {
-        "en": "Static",
-        "fr": "Statique"
-    },
-    "f49c1855-5583-4a4f-8272-7f0326a23197": {
-        "en": "Pulse",
-        "fr": "Pulsation"
-    },
-    "d30ddfeb-9337-4fde-a303-b63db3a64c2b": {
-        "en": "Pulse (Speed)",
-        "fr": "Pulsation (Vitesse)"
-    },
-    "965a4868-b74e-4674-b43f-2086daf37906": {
-        "en": "Blink",
-        "fr": "Clignottement"
-    },
-    "419e70ee-8355-4cf5-9d18-54835008cdb0": {
-        "en": "Flash",
-        "fr": "Flashs"
-    },
-    "ad36bbab-eb53-4610-957a-07ff72d5fc94": {
-        "en": "Flash (Speed)",
-        "fr": "Flashs (Vitesse)"
-    },
-    "597bbd76-be6e-4c8f-8e48-cc45cd1c5a30": {
-        "en": "Double Flash",
-        "fr": "Double flashs"
-    },
-    "5a22c2a6-ff28-4a99-985c-f027cefc305b": {
-        "en": "Chase",
-        "fr": "Chasse"
-    },
-    "8f32de3a-b7c5-459c-9678-5e247af86056": {
-        "en": "Chase (Speed)",
-        "fr": "Chasse (Vitesse)"
-    },
-    "c1dc1388-3864-4db9-bffb-40bc78b34442": {
-        "en": "Wave",
-        "fr": "Vague"
-    },
-    "2c0f5ddb-f374-497b-a873-e8fd7bf6db77": {
-        "en": "Wave (Speed)",
-        "fr": "Vague (Vitesse)"
-    },
-    "5ba5b8c5-3fd9-40c5-830a-68f775a9f27b": {
-        "en": "Spectrum Cycle",
-        "fr": "Cycle spectral"
-    },
-    "a1c25516-29ca-4e76-9210-6c9afadde4da": {
-        "en": "Spectrum Cycle (Speed)",
-        "fr": "Cycle spectral (Vitesse)"
-    },
-    "1dbeeeb3-5738-4503-b3a4-c25a4c519de1": {
-        "en": "Spectrum Cycle (Brightness)",
-        "fr": "Cycle spectral (Luminosité)"
-    },
-    "454153c6-7231-4677-9007-d0f75f4432b6": {
-        "en": "Spectrum Wave",
-        "fr": "Vague spectrale"
-    },
-    "621e5d5b-7eb5-4953-b338-3a00a65ea350": {
-        "en": "Spectrum Wave (Speed)",
-        "fr": "Vague spectrale (Vitesse)"
-    },
-    "60e315f9-c41c-4d3e-a813-5031dd0b39ef": {
-        "en": "Reactive",
-        "fr": "Réactif"
-    },
-    // Embedded monitor graphics
-    "2f538961-daf9-4664-87fa-22b848df0eec": {
-        "en": "Image",
-        "fr": "Image",
-        "ja": "画像"
-    },
-    // Language names
-    "3d7555d0-345a-49f1-903e-a15d35b0f5ec": {
-        "en": "English",
-        "fr": "Anglais",
-        "ja": "英語"
-    },
-    "cc5d6fb5-0653-49bb-85cc-4ae2ca82f487": {
-        "en": "French",
-        "fr": "Français",
-        "ja": "フランス語"
-    },
-    "1af16a76-e293-4096-a9d7-9e9eff68b591": {
-        "en": "German",
-        "fr": "Allemand",
-        "ja": "ドイツ語"
-    },
-    "f12057bc-08ce-446d-9d25-b5965b6136ab": {
-        "en": "Italian",
-        "fr": "Italien",
-        "ja": "イタリア語"
-    },
-    "9ef9c042-bfbb-4b72-9c24-4da56e1f56be": {
-        "en": "Japanese",
-        "fr": "Japonais",
-        "ja": "日本語"
-    },
-    "12df152a-1065-4200-966f-2be77410fd13": {
-        "en": "Korean",
-        "fr": "Coréen",
-        "ja": "韓国語"
-    },
-    "e9d6e301-de10-4f5a-910e-5aa80cf057d1": {
-        "en": "Chinese (Traditional)",
-        "fr": "Chinois (Traditionnel)",
-        "ja": "中国語（繁体字）"
-    },
-    "4b0f748a-cc4a-41ea-a59b-9549dd619e76": {
-        "en": "Chinese (Simplified)",
-        "fr": "Chinois (Simplifié)",
-        "ja": "中国語（簡体字）"
-    },
-    "e3e65711-aae3-4f2d-aa95-092cfc105872": {
-        "en": "Portuguese (Portugal)",
-        "fr": "Portugais (Portugal)",
-        "ja": "ポルトガル語（ポルトガル）"
-    },
-    "9318646f-67aa-4fae-95fc-3618c2f2777b": {
-        "en": "Portuguese (Brazil)",
-        "fr": "Portugais (Brésil)",
-        "ja": "ポルトガル語（ブラジル）"
-    },
-    "5ad769bf-3aa1-49a1-a9f9-6f0ec1b43dd2": {
-        "en": "Russian",
-        "fr": "Russe",
-        "ja": "ロシア語"
-    },
-    "f4bcb574-a61d-4b25-824b-6e865d7427fe": {
-        "en": "Spanish",
-        "fr": "Espagnol",
-        "ja": "スペイン語"
-    },
-    "88307c6f-da3e-424b-bef0-23a252e5b26d": {
-        "en": "Swedish",
-        "fr": "Suédois",
-        "ja": "スウェーデン語"
-    },
-    "f2fc7a26-b392-4c13-a86e-47b2e390caf8": {
-        "en": "Turkish",
-        "fr": "Turque",
-        "ja": "トルコ語"
-    },
-    "ac934765-0eb0-4ac6-b085-88177b1e2d84": {
-        "en": "Arabic",
-        "fr": "Arabe",
-        "ja": "アラビア語"
-    },
-    "49a21314-8315-47a5-b01b-6c7e50403921": {
-        "en": "Bulgarian",
-        "fr": "Bulgare",
-        "ja": "ブルガリア語"
-    },
-    "5506a84a-4ebf-46f5-b611-047cb8631ab9": {
-        "en": "Croatian",
-        "fr": "Croate",
-        "ja": "クロアチア語"
-    },
-    "f73a11cb-ec92-42a2-83b9-5d89a811d36e": {
-        "en": "Czech",
-        "fr": "Tchèque",
-        "ja": "チェコ語"
-    },
-    "ed6ef567-b80a-40d0-9551-38f39955c4c1": {
-        "en": "Danish",
-        "fr": "Danois",
-        "ja": "デンマーク語"
-    },
-    "c42dd145-2882-4b31-90d0-a47a822ed1cd": {
-        "en": "Dutch",
-        "fr": "Néerlandais",
-        "ja": "オランダ語"
-    },
-    "3ee2c2c1-1da2-434b-80d2-2463a52273f5": {
-        "en": "Estonian",
-        "fr": "Estonien",
-        "ja": "エストニア語"
-    },
-    "42177650-1189-414e-9f67-15a0a484a1f2": {
-        "en": "Finnish",
-        "fr": "Finnois",
-        "ja": "フィンランド語"
-    },
-    "9342a747-f7e4-4f79-b0ce-5fb0c8040126": {
-        "en": "Greek",
-        "fr": "Grec",
-        "ja": "ギリシャ語"
-    },
-    "7bed3e7d-9df4-41a9-94ea-4bde84db23a2": {
-        "en": "Hebrew",
-        "fr": "Hébreu",
-        "ja": "ヘブライ語"
-    },
-    "3f31973d-899a-46f3-a249-db6b9c895f4a": {
-        "en": "Hindi",
-        "fr": "Hindi",
-        "ja": "ヒンディー語"
-    },
-    "e3720708-932f-478f-9c7f-59fd4d3e46bf": {
-        "en": "Hungarian",
-        "fr": "Hongrois",
-        "ja": "ハンガリー語"
-    },
-    "3d1908b1-95d4-4ab4-9b56-c8662e0e9ad1": {
-        "en": "Latvian",
-        "fr": "Letton",
-        "ja": "ラトビア語"
-    },
-    "fdb186f3-4dd1-44fd-9bfa-c7237d035a09": {
-        "en": "Lithuanian",
-        "fr": "Lituanien",
-        "ja": "リトアニア語"
-    },
-    "f550eb5b-c345-44db-a341-26fb3d50c04b": {
-        "en": "Norwegian",
-        "fr": "Norvégien",
-        "ja": "ノルウェー語"
-    },
-    "11801b1c-2084-49ce-a965-19a5c3b37a9e": {
-        "en": "Polish",
-        "fr": "Polonais",
-        "ja": "ポーランド語"
-    },
-    "8a812b6b-9d8c-4281-bc9c-a79fce736366": {
-        "en": "Romanian",
-        "fr": "Roumain",
-        "ja": "ルーマニア語"
-    },
-    "8912b5e0-119d-49dc-9f33-872e7e37e729": {
-        "en": "Serbian",
-        "fr": "Serbe",
-        "ja": "セルビア語"
-    },
-    "5317048d-64dd-4240-ae2a-d0787c04e633": {
-        "en": "Slovak",
-        "fr": "Slovaque",
-        "ja": "スロバキア語"
-    },
-    "78632023-055c-4447-8e94-6319c9fded96": {
-        "en": "Slovenian",
-        "fr": "Slovénien",
-        "ja": "スロベニア語"
-    },
-    "e64bd133-b3a1-4d51-bf9c-63c0c4d0d9a8": {
-        "en": "Thai",
-        "fr": "Thailandais",
-        "ja": "タイ語"
-    },
-    "5a78cc6c-bf97-424e-b520-fb004d1009e9": {
-        "en": "Ukranian",
-        "fr": "Ukrainien",
-        "ja": "ウクライナ語"
-    },
-    "6a8fbd37-8ed5-4ade-af15-ccf2e62fc8b7": {
-        "en": "Vietnamese",
-        "fr": "Vietnamien",
-        "ja": "ベトナム語"
-    },
-    // 512 CPU Core Temperatures
-    "b49babfa-4d96-4ebb-ab00-9aace2a33e82": {
-        "en": "Temperature - Core #1",
-        "fr": "Température - Cœur 1",
-        "ja": "コア１の温度"
-    },
-    "c3ce4962-98d7-46cb-8249-e436dc0e5a7d": {
-        "en": "Temperature - Core #2",
-        "fr": "Température - Cœur 2",
-        "ja": "コア２の温度"
-    },
-    "96745f77-7e42-48a0-8df5-b29c8375beca": {
-        "en": "Temperature - Core #3",
-        "fr": "Température - Cœur 3",
-        "ja": "コア３の温度"
-    },
-    "20753a06-eb00-4479-839e-7c16d393a6b1": {
-        "en": "Temperature - Core #4",
-        "fr": "Température - Cœur 4",
-        "ja": "コア４の温度"
-    },
-    "e4f1cbcc-150b-401d-8c50-314664c070c6": {
-        "en": "Temperature - Core #5",
-        "fr": "Température - Cœur 5",
-        "ja": "コア５の温度"
-    },
-    "016c3265-9c01-4efb-bb34-1f150a9ffe01": {
-        "en": "Temperature - Core #6",
-        "fr": "Température - Cœur 6",
-        "ja": "コア６の温度"
-    },
-    "25103f04-82ad-43ab-8d53-4b187ded0116": {
-        "en": "Temperature - Core #7",
-        "fr": "Température - Cœur 7",
-        "ja": "コア７の温度"
-    },
-    "f7261bc1-2c10-40b0-9a8c-b9bf3f3a943b": {
-        "en": "Temperature - Core #8",
-        "fr": "Température - Cœur 8",
-        "ja": "コア８の温度"
-    },
-    "b39b2857-ee8b-4896-a487-ed7c770f1d39": {
-        "en": "Temperature - Core #9",
-        "fr": "Température - Cœur 9",
-        "ja": "コア９の温度"
-    },
-    "2b4d6bf6-2da6-4f79-8b12-68e9c56f60a4": {
-        "en": "Temperature - Core #10",
-        "fr": "Température - Cœur 10",
-        "ja": "コア１０の温度"
-    },
-    "46fc8b63-6e50-49ff-8c93-50d7584ff0b1": {
-        "en": "Temperature - Core #11",
-        "fr": "Température - Cœur 11",
-        "ja": "コア１１の温度"
-    },
-    "c37fd8e1-4cf3-4442-bf26-d7445cd6a05d": {
-        "en": "Temperature - Core #12",
-        "fr": "Température - Cœur 12",
-        "ja": "コア１２の温度"
-    },
-    "0f28c6fd-6fa6-4964-81b3-3860f22ad824": {
-        "en": "Temperature - Core #13",
-        "fr": "Température - Cœur 13",
-        "ja": "コア１３の温度"
-    },
-    "7cb8015c-99a2-4d28-a10d-9a000f426955": {
-        "en": "Temperature - Core #14",
-        "fr": "Température - Cœur 14",
-        "ja": "コア１４の温度"
-    },
-    "de749ed6-3181-4426-b6ce-d7f34385a4de": {
-        "en": "Temperature - Core #15",
-        "fr": "Température - Cœur 15",
-        "ja": "コア１５の温度"
-    },
-    "b0a9f262-929a-4163-973d-f4216b8aa28f": {
-        "en": "Temperature - Core #16",
-        "fr": "Température - Cœur 16",
-        "ja": "コア１６の温度"
-    },
-    "5849d46f-5100-4919-b2d1-f28ea7f83872": {
-        "en": "Temperature - Core #17",
-        "fr": "Température - Cœur 17",
-        "ja": "コア１７の温度"
-    },
-    "c814201f-c6f3-443e-bbef-58d0a8dc5a44": {
-        "en": "Temperature - Core #18",
-        "fr": "Température - Cœur 18",
-        "ja": "コア１８の温度"
-    },
-    "f3b56fa3-daa7-498e-aaa9-71e7dac7c62a": {
-        "en": "Temperature - Core #19",
-        "fr": "Température - Cœur 19",
-        "ja": "コア１９の温度"
-    },
-    "2d9650bb-e5de-42bd-8476-18e43549de51": {
-        "en": "Temperature - Core #20",
-        "fr": "Température - Cœur 20",
-        "ja": "コア２０の温度"
-    },
-    "550af3c1-8fed-426d-b5b9-624cce4c87fc": {
-        "en": "Temperature - Core #21",
-        "fr": "Température - Cœur 21",
-        "ja": "コア２１の温度"
-    },
-    "cdeec73e-247a-4da2-a7cb-c55ddcf5a4e5": {
-        "en": "Temperature - Core #22",
-        "fr": "Température - Cœur 22",
-        "ja": "コア２２の温度"
-    },
-    "406685ee-8948-4c8b-b17d-e2a86f5a8766": {
-        "en": "Temperature - Core #23",
-        "fr": "Température - Cœur 23",
-        "ja": "コア２３の温度"
-    },
-    "5647bd7a-48bc-43bc-abc4-cfee16fb333c": {
-        "en": "Temperature - Core #24",
-        "fr": "Température - Cœur 24",
-        "ja": "コア２４の温度"
-    },
-    "272d9a4f-1e65-4175-b438-03bf604da3a4": {
-        "en": "Temperature - Core #25",
-        "fr": "Température - Cœur 25",
-        "ja": "コア２５の温度"
-    },
-    "afa4e4f6-baaa-40ce-946d-a7b0bc79bfd2": {
-        "en": "Temperature - Core #26",
-        "fr": "Température - Cœur 26",
-        "ja": "コア２６の温度"
-    },
-    "7eb1c1e9-c27c-4e78-a7dd-3431c6048e67": {
-        "en": "Temperature - Core #27",
-        "fr": "Température - Cœur 27",
-        "ja": "コア２７の温度"
-    },
-    "00bbd593-4f26-466a-864f-b11f3d946f42": {
-        "en": "Temperature - Core #28",
-        "fr": "Température - Cœur 28",
-        "ja": "コア２８の温度"
-    },
-    "07fa337e-40cd-47fd-907c-5ea479c051b8": {
-        "en": "Temperature - Core #29",
-        "fr": "Température - Cœur 29",
-        "ja": "コア２９の温度"
-    },
-    "eebf2eaa-a9c9-474b-a912-9f6cb3d0740c": {
-        "en": "Temperature - Core #30",
-        "fr": "Température - Cœur 30",
-        "ja": "コア３０の温度"
-    },
-    "580dd2a6-28e1-4bbd-b319-b415926e2931": {
-        "en": "Temperature - Core #31",
-        "fr": "Température - Cœur 31",
-        "ja": "コア３１の温度"
-    },
-    "6ab849dd-f121-4c67-9830-da05c465e8a4": {
-        "en": "Temperature - Core #32",
-        "fr": "Température - Cœur 32",
-        "ja": "コア３２の温度"
-    },
-    "fb3d8238-deae-480c-a744-8f438c8535d3": {
-        "en": "Temperature - Core #33",
-        "fr": "Température - Cœur 33",
-        "ja": "コア３３の温度"
-    },
-    "4763be63-369b-4c9c-80f0-67944c5be936": {
-        "en": "Temperature - Core #34",
-        "fr": "Température - Cœur 34",
-        "ja": "コア３４の温度"
-    },
-    "eea5b15b-0039-48cc-8a06-1b4df5283929": {
-        "en": "Temperature - Core #35",
-        "fr": "Température - Cœur 35",
-        "ja": "コア３５の温度"
-    },
-    "9936d85d-ecde-45dd-90f6-b02af8a59324": {
-        "en": "Temperature - Core #36",
-        "fr": "Température - Cœur 36",
-        "ja": "コア３６の温度"
-    },
-    "1e1db876-cf86-482c-971f-5209a3a28f65": {
-        "en": "Temperature - Core #37",
-        "fr": "Température - Cœur 37",
-        "ja": "コア３７の温度"
-    },
-    "f4feeafc-5992-442d-b22d-fffd564572bd": {
-        "en": "Temperature - Core #38",
-        "fr": "Température - Cœur 38",
-        "ja": "コア３８の温度"
-    },
-    "f167d431-442d-410b-b0d9-1bb798b707d0": {
-        "en": "Temperature - Core #39",
-        "fr": "Température - Cœur 39",
-        "ja": "コア３９の温度"
-    },
-    "fc851fbf-6b2e-4c67-b3fc-37049a350b4b": {
-        "en": "Temperature - Core #40",
-        "fr": "Température - Cœur 40",
-        "ja": "コア４０の温度"
-    },
-    "fc3d30f8-bac0-4daa-81bd-49d488c7fb68": {
-        "en": "Temperature - Core #41",
-        "fr": "Température - Cœur 41",
-        "ja": "コア４１の温度"
-    },
-    "e9bf62aa-ee58-4fb0-99d1-d0aca4cf64eb": {
-        "en": "Temperature - Core #42",
-        "fr": "Température - Cœur 42",
-        "ja": "コア４２の温度"
-    },
-    "5ae0e7f0-001a-4585-9ac6-2e8bb820e2b4": {
-        "en": "Temperature - Core #43",
-        "fr": "Température - Cœur 43",
-        "ja": "コア４３の温度"
-    },
-    "f5bd36f2-7b94-4de4-98cd-27a2ba2f7824": {
-        "en": "Temperature - Core #44",
-        "fr": "Température - Cœur 44",
-        "ja": "コア４４の温度"
-    },
-    "8cceca1f-95d2-492e-b656-ec99473d0c3c": {
-        "en": "Temperature - Core #45",
-        "fr": "Température - Cœur 45",
-        "ja": "コア４５の温度"
-    },
-    "abd86ab5-d13e-4b93-9e72-b0acfabbcff7": {
-        "en": "Temperature - Core #46",
-        "fr": "Température - Cœur 46",
-        "ja": "コア４６の温度"
-    },
-    "faf99045-e68c-4e8d-ab73-d7dd141fec29": {
-        "en": "Temperature - Core #47",
-        "fr": "Température - Cœur 47",
-        "ja": "コア４７の温度"
-    },
-    "7df97687-15b0-4351-81f8-fc50e1887542": {
-        "en": "Temperature - Core #48",
-        "fr": "Température - Cœur 48",
-        "ja": "コア４８の温度"
-    },
-    "38c7cb5c-6b6b-47a5-90ea-6e3b13395d50": {
-        "en": "Temperature - Core #49",
-        "fr": "Température - Cœur 49",
-        "ja": "コア４９の温度"
-    },
-    "186bfdcb-7cdf-4fe4-bbcb-92b10e05d113": {
-        "en": "Temperature - Core #50",
-        "fr": "Température - Cœur 50",
-        "ja": "コア５０の温度"
-    },
-    "37f97bee-8915-4af2-aa5e-77ae5c95db29": {
-        "en": "Temperature - Core #51",
-        "fr": "Température - Cœur 51",
-        "ja": "コア５１の温度"
-    },
-    "1caf3ea9-6680-4b9e-8c6a-4bca5188101c": {
-        "en": "Temperature - Core #52",
-        "fr": "Température - Cœur 52",
-        "ja": "コア５２の温度"
-    },
-    "ebbbe5f2-f9af-4921-a028-2a6c29d87b7f": {
-        "en": "Temperature - Core #53",
-        "fr": "Température - Cœur 53",
-        "ja": "コア５３の温度"
-    },
-    "27750071-daee-4fba-949b-eceb376eccd6": {
-        "en": "Temperature - Core #54",
-        "fr": "Température - Cœur 54",
-        "ja": "コア５４の温度"
-    },
-    "be1dcaea-82a3-4584-ad72-d4dc7ba31cf0": {
-        "en": "Temperature - Core #55",
-        "fr": "Température - Cœur 55",
-        "ja": "コア５５の温度"
-    },
-    "d79db5f7-3a63-4e13-aa7c-4d9a99b7bf18": {
-        "en": "Temperature - Core #56",
-        "fr": "Température - Cœur 56",
-        "ja": "コア５６の温度"
-    },
-    "c20be363-d213-4d1e-8dea-585c88dd95e7": {
-        "en": "Temperature - Core #57",
-        "fr": "Température - Cœur 57",
-        "ja": "コア５７の温度"
-    },
-    "cb3e307d-7186-4294-a0ec-1196d96b844b": {
-        "en": "Temperature - Core #58",
-        "fr": "Température - Cœur 58",
-        "ja": "コア５８の温度"
-    },
-    "3feaa671-e5c5-46b3-a323-15391d6a22d6": {
-        "en": "Temperature - Core #59",
-        "fr": "Température - Cœur 59",
-        "ja": "コア５９の温度"
-    },
-    "fae2d7d3-b632-45b9-b31c-4c39d57df02a": {
-        "en": "Temperature - Core #60",
-        "fr": "Température - Cœur 60",
-        "ja": "コア６０の温度"
-    },
-    "f07002f4-4f81-480c-9f2a-41fc93cbc0fc": {
-        "en": "Temperature - Core #61",
-        "fr": "Température - Cœur 61",
-        "ja": "コア６１の温度"
-    },
-    "397fe8c8-9e67-48b3-9aa3-0b491ea9037c": {
-        "en": "Temperature - Core #62",
-        "fr": "Température - Cœur 62",
-        "ja": "コア６２の温度"
-    },
-    "140f7319-c663-4fe5-af22-6f91c33c89ed": {
-        "en": "Temperature - Core #63",
-        "fr": "Température - Cœur 63",
-        "ja": "コア６３の温度"
-    },
-    "49802d69-5ec3-4db8-b474-dc3366cacea6": {
-        "en": "Temperature - Core #64",
-        "fr": "Température - Cœur 64",
-        "ja": "コア６４の温度"
-    },
-    "2b603249-df37-41c6-8ecf-27c95cfac339": {
-        "en": "Temperature - Core #65",
-        "fr": "Température - Cœur 65",
-        "ja": "コア６５の温度"
-    },
-    "5ee62f43-67ad-446a-837c-85804634f6f6": {
-        "en": "Temperature - Core #66",
-        "fr": "Température - Cœur 66",
-        "ja": "コア６６の温度"
-    },
-    "22dc7f32-6394-49bb-8f5d-740128625892": {
-        "en": "Temperature - Core #67",
-        "fr": "Température - Cœur 67",
-        "ja": "コア６７の温度"
-    },
-    "394c7fff-3f1a-463e-9016-9dda5c61addc": {
-        "en": "Temperature - Core #68",
-        "fr": "Température - Cœur 68",
-        "ja": "コア６８の温度"
-    },
-    "4c905ffd-cb72-4653-bd8a-6e3166845dc2": {
-        "en": "Temperature - Core #69",
-        "fr": "Température - Cœur 69",
-        "ja": "コア６９の温度"
-    },
-    "71497642-34ac-4cdb-a93a-9fc0c0ffe11a": {
-        "en": "Temperature - Core #70",
-        "fr": "Température - Cœur 70",
-        "ja": "コア７０の温度"
-    },
-    "f0dc13fd-b0fa-4578-882d-6c8a251374d3": {
-        "en": "Temperature - Core #71",
-        "fr": "Température - Cœur 71",
-        "ja": "コア７１の温度"
-    },
-    "b1be4416-9a08-4f3b-b5a9-514acd597055": {
-        "en": "Temperature - Core #72",
-        "fr": "Température - Cœur 72",
-        "ja": "コア７２の温度"
-    },
-    "3fb034a2-4fa5-4413-8872-675fa455623a": {
-        "en": "Temperature - Core #73",
-        "fr": "Température - Cœur 73",
-        "ja": "コア７３の温度"
-    },
-    "aa48991e-0ee4-405d-a33e-618b9fe7374c": {
-        "en": "Temperature - Core #74",
-        "fr": "Température - Cœur 74",
-        "ja": "コア７４の温度"
-    },
-    "d2106213-5ae5-4fc6-a24e-9a70e34e11a6": {
-        "en": "Temperature - Core #75",
-        "fr": "Température - Cœur 75",
-        "ja": "コア７５の温度"
-    },
-    "d4416f67-f957-4511-8fb7-57bb2ebdf1e1": {
-        "en": "Temperature - Core #76",
-        "fr": "Température - Cœur 76",
-        "ja": "コア７６の温度"
-    },
-    "ab676d64-0a7b-4aa8-91aa-1f239a254059": {
-        "en": "Temperature - Core #77",
-        "fr": "Température - Cœur 77",
-        "ja": "コア７７の温度"
-    },
-    "1694b4f4-f998-47e4-b524-16dc9178cc80": {
-        "en": "Temperature - Core #78",
-        "fr": "Température - Cœur 78",
-        "ja": "コア７８の温度"
-    },
-    "80e94904-dfd6-4d6c-a3f5-aee6f5cf98e5": {
-        "en": "Temperature - Core #79",
-        "fr": "Température - Cœur 79",
-        "ja": "コア７９の温度"
-    },
-    "bcae7199-681a-47c7-9d55-cae6c1b68f0a": {
-        "en": "Temperature - Core #80",
-        "fr": "Température - Cœur 80",
-        "ja": "コア８０の温度"
-    },
-    "9a338de8-3b33-4e57-9caf-31aa6db53c56": {
-        "en": "Temperature - Core #81",
-        "fr": "Température - Cœur 81",
-        "ja": "コア８１の温度"
-    },
-    "4912e0f9-16fd-485b-b13b-c9acb0e01d6a": {
-        "en": "Temperature - Core #82",
-        "fr": "Température - Cœur 82",
-        "ja": "コア８２の温度"
-    },
-    "92fc7459-b37f-4436-b638-02d416399a7c": {
-        "en": "Temperature - Core #83",
-        "fr": "Température - Cœur 83",
-        "ja": "コア８３の温度"
-    },
-    "0a06c425-a437-4bc7-989c-343b614491b1": {
-        "en": "Temperature - Core #84",
-        "fr": "Température - Cœur 84",
-        "ja": "コア８４の温度"
-    },
-    "1d0c3c10-906a-491d-a474-ce8ba2936157": {
-        "en": "Temperature - Core #85",
-        "fr": "Température - Cœur 85",
-        "ja": "コア８５の温度"
-    },
-    "7a42d502-3c0f-48ea-b600-442cfcae669b": {
-        "en": "Temperature - Core #86",
-        "fr": "Température - Cœur 86",
-        "ja": "コア８６の温度"
-    },
-    "c6c52147-0727-481c-adec-2d6af7de3792": {
-        "en": "Temperature - Core #87",
-        "fr": "Température - Cœur 87",
-        "ja": "コア８７の温度"
-    },
-    "f22e9100-f1a0-4312-aef8-0ddab0b0e8e9": {
-        "en": "Temperature - Core #88",
-        "fr": "Température - Cœur 88",
-        "ja": "コア８８の温度"
-    },
-    "0b467f67-4362-4977-be27-4f480855b27f": {
-        "en": "Temperature - Core #89",
-        "fr": "Température - Cœur 89",
-        "ja": "コア８９の温度"
-    },
-    "aa56580f-abd6-48de-bcae-c82d107cd2d7": {
-        "en": "Temperature - Core #90",
-        "fr": "Température - Cœur 90",
-        "ja": "コア９０の温度"
-    },
-    "cc431b81-6277-40b0-a5e2-d2bf53ba7565": {
-        "en": "Temperature - Core #91",
-        "fr": "Température - Cœur 91",
-        "ja": "コア９１の温度"
-    },
-    "62dccea4-f56d-4323-baaf-eba8199e2268": {
-        "en": "Temperature - Core #92",
-        "fr": "Température - Cœur 92",
-        "ja": "コア９２の温度"
-    },
-    "0d7cdf1e-978c-4465-88c8-b4b8b5a955d6": {
-        "en": "Temperature - Core #93",
-        "fr": "Température - Cœur 93",
-        "ja": "コア９３の温度"
-    },
-    "07e6ed5a-8df4-4ef4-a618-a7c3169b5f3d": {
-        "en": "Temperature - Core #94",
-        "fr": "Température - Cœur 94",
-        "ja": "コア９４の温度"
-    },
-    "4a1c8b6b-89fe-4dcc-9ef7-5d2ef73b17db": {
-        "en": "Temperature - Core #95",
-        "fr": "Température - Cœur 95",
-        "ja": "コア９５の温度"
-    },
-    "94470633-deac-4a11-89ff-6ebe533ea497": {
-        "en": "Temperature - Core #96",
-        "fr": "Température - Cœur 96",
-        "ja": "コア９６の温度"
-    },
-    "57abc147-b884-45c2-acf7-a8849b196ec4": {
-        "en": "Temperature - Core #97",
-        "fr": "Température - Cœur 97",
-        "ja": "コア９７の温度"
-    },
-    "e55ae00f-0bbe-44da-8e6c-ab6cb41285df": {
-        "en": "Temperature - Core #98",
-        "fr": "Température - Cœur 98",
-        "ja": "コア９８の温度"
-    },
-    "37531266-bfbf-4bcf-a143-34d19c9daa0b": {
-        "en": "Temperature - Core #99",
-        "fr": "Température - Cœur 99",
-        "ja": "コア９９の温度"
-    },
-    "0bcdc138-19f0-44eb-82a2-93f2540c4baf": {
-        "en": "Temperature - Core #100",
-        "fr": "Température - Cœur 100",
-        "ja": "コア１００の温度"
-    },
-    "397a1d38-c5de-4a93-8744-fa5483679bb3": {
-        "en": "Temperature - Core #101",
-        "fr": "Température - Cœur 101",
-        "ja": "コア１０１の温度"
-    },
-    "a26e8011-8c17-4c9e-ae0d-9dffb3274f4b": {
-        "en": "Temperature - Core #102",
-        "fr": "Température - Cœur 102",
-        "ja": "コア１０２の温度"
-    },
-    "e07493f9-29ac-4d0a-99ac-66e859cf799d": {
-        "en": "Temperature - Core #103",
-        "fr": "Température - Cœur 103",
-        "ja": "コア１０３の温度"
-    },
-    "48a12a1c-175f-40bb-b2b8-733c91f54cb2": {
-        "en": "Temperature - Core #104",
-        "fr": "Température - Cœur 104",
-        "ja": "コア１０４の温度"
-    },
-    "40f44157-ec03-425d-952b-2b9d225b1ad6": {
-        "en": "Temperature - Core #105",
-        "fr": "Température - Cœur 105",
-        "ja": "コア１０５の温度"
-    },
-    "0660b551-b956-4951-a30d-395dfdba5580": {
-        "en": "Temperature - Core #106",
-        "fr": "Température - Cœur 106",
-        "ja": "コア１０６の温度"
-    },
-    "36dbf88c-c7e5-46f2-a862-06193a50856e": {
-        "en": "Temperature - Core #107",
-        "fr": "Température - Cœur 107",
-        "ja": "コア１０７の温度"
-    },
-    "8cb0e917-3a03-4186-aac0-c7496b0053f0": {
-        "en": "Temperature - Core #108",
-        "fr": "Température - Cœur 108",
-        "ja": "コア１０８の温度"
-    },
-    "c12bfe10-324f-4290-9202-be425479b20e": {
-        "en": "Temperature - Core #109",
-        "fr": "Température - Cœur 109",
-        "ja": "コア１０９の温度"
-    },
-    "57324a24-53ca-4236-b1ca-d9d49016f68c": {
-        "en": "Temperature - Core #110",
-        "fr": "Température - Cœur 110",
-        "ja": "コア１１０の温度"
-    },
-    "fa540744-56b6-427e-a487-4c690b4290ce": {
-        "en": "Temperature - Core #111",
-        "fr": "Température - Cœur 111",
-        "ja": "コア１１１の温度"
-    },
-    "791a3119-78f5-4d73-a67b-5b4ddf8fe6b1": {
-        "en": "Temperature - Core #112",
-        "fr": "Température - Cœur 112",
-        "ja": "コア１１２の温度"
-    },
-    "f94787a9-622f-45da-8014-e2d8fb122198": {
-        "en": "Temperature - Core #113",
-        "fr": "Température - Cœur 113",
-        "ja": "コア１１３の温度"
-    },
-    "dbdfda16-8527-45da-86e7-c3603ea65553": {
-        "en": "Temperature - Core #114",
-        "fr": "Température - Cœur 114",
-        "ja": "コア１１４の温度"
-    },
-    "c34c4bc3-c3fb-4beb-a607-6585a50008ce": {
-        "en": "Temperature - Core #115",
-        "fr": "Température - Cœur 115",
-        "ja": "コア１１５の温度"
-    },
-    "2b369beb-afe8-4149-a74a-528f809d1a44": {
-        "en": "Temperature - Core #116",
-        "fr": "Température - Cœur 116",
-        "ja": "コア１１６の温度"
-    },
-    "79a8ea76-b0b8-4e6f-a0cb-3fb3d4617c4d": {
-        "en": "Temperature - Core #117",
-        "fr": "Température - Cœur 117",
-        "ja": "コア１１７の温度"
-    },
-    "ca90db06-ffde-457e-a013-877ee88c34a8": {
-        "en": "Temperature - Core #118",
-        "fr": "Température - Cœur 118",
-        "ja": "コア１１８の温度"
-    },
-    "0f202fe4-45b0-4691-a530-766fddae568c": {
-        "en": "Temperature - Core #119",
-        "fr": "Température - Cœur 119",
-        "ja": "コア１１９の温度"
-    },
-    "643b463d-3ddf-41fe-ac0b-2d61ae3a0c88": {
-        "en": "Temperature - Core #120",
-        "fr": "Température - Cœur 120",
-        "ja": "コア１２０の温度"
-    },
-    "147f75c1-ad7f-4355-bbc4-77b072d79d01": {
-        "en": "Temperature - Core #121",
-        "fr": "Température - Cœur 121",
-        "ja": "コア１２１の温度"
-    },
-    "64b857cf-1289-48b7-babd-d6d9cd55e7bb": {
-        "en": "Temperature - Core #122",
-        "fr": "Température - Cœur 122",
-        "ja": "コア１２２の温度"
-    },
-    "e2017776-cf8e-425f-b581-a65f4db87cc2": {
-        "en": "Temperature - Core #123",
-        "fr": "Température - Cœur 123",
-        "ja": "コア１２３の温度"
-    },
-    "bbc50cbb-5b8c-4145-8ba9-d4983e6312a2": {
-        "en": "Temperature - Core #124",
-        "fr": "Température - Cœur 124",
-        "ja": "コア１２４の温度"
-    },
-    "fc650eac-d1c7-40d6-9126-2d6b2f97d8e3": {
-        "en": "Temperature - Core #125",
-        "fr": "Température - Cœur 125",
-        "ja": "コア１２５の温度"
-    },
-    "695966d1-051c-460e-9fd1-e9955f8aebea": {
-        "en": "Temperature - Core #126",
-        "fr": "Température - Cœur 126",
-        "ja": "コア１２６の温度"
-    },
-    "7abb0302-c002-40b1-8846-6acfbcd81c02": {
-        "en": "Temperature - Core #127",
-        "fr": "Température - Cœur 127",
-        "ja": "コア１２７の温度"
-    },
-    "8a9067bc-2681-4222-b5e3-7c0614c8ddfb": {
-        "en": "Temperature - Core #128",
-        "fr": "Température - Cœur 128",
-        "ja": "コア１２８の温度"
-    },
-    "4ddae6b7-53ff-450d-892c-45fcd2210de1": {
-        "en": "Temperature - Core #129",
-        "fr": "Température - Cœur 129",
-        "ja": "コア１２９の温度"
-    },
-    "67fd78b5-ba8c-4161-859e-16dcc1623212": {
-        "en": "Temperature - Core #130",
-        "fr": "Température - Cœur 130",
-        "ja": "コア１３０の温度"
-    },
-    "8dd012eb-eeeb-4844-b865-e62d6b9fae4f": {
-        "en": "Temperature - Core #131",
-        "fr": "Température - Cœur 131",
-        "ja": "コア１３１の温度"
-    },
-    "c4af0389-9467-4973-b291-f055fb743f79": {
-        "en": "Temperature - Core #132",
-        "fr": "Température - Cœur 132",
-        "ja": "コア１３２の温度"
-    },
-    "6885e975-1d41-4a4b-a629-fd6a999f8e82": {
-        "en": "Temperature - Core #133",
-        "fr": "Température - Cœur 133",
-        "ja": "コア１３３の温度"
-    },
-    "7167a8b7-7659-4114-9f59-b9684d88e749": {
-        "en": "Temperature - Core #134",
-        "fr": "Température - Cœur 134",
-        "ja": "コア１３４の温度"
-    },
-    "c6aab2a4-cb90-41dc-91e2-2f0c99bb0d8b": {
-        "en": "Temperature - Core #135",
-        "fr": "Température - Cœur 135",
-        "ja": "コア１３５の温度"
-    },
-    "0e10675e-e047-48b6-ae77-eca23551af4c": {
-        "en": "Temperature - Core #136",
-        "fr": "Température - Cœur 136",
-        "ja": "コア１３６の温度"
-    },
-    "246662ea-2968-4187-a1d5-4814313cff90": {
-        "en": "Temperature - Core #137",
-        "fr": "Température - Cœur 137",
-        "ja": "コア１３７の温度"
-    },
-    "d7d6b1d1-bdfa-4e9e-bbd6-8dbc9e3c8ada": {
-        "en": "Temperature - Core #138",
-        "fr": "Température - Cœur 138",
-        "ja": "コア１３８の温度"
-    },
-    "36e55ee8-781a-48ef-ae90-3568b67eff98": {
-        "en": "Temperature - Core #139",
-        "fr": "Température - Cœur 139",
-        "ja": "コア１３９の温度"
-    },
-    "15f9c059-b648-4596-9ef6-35e17fbfc543": {
-        "en": "Temperature - Core #140",
-        "fr": "Température - Cœur 140",
-        "ja": "コア１４０の温度"
-    },
-    "808a0eb7-8e55-4077-bfad-61a122617810": {
-        "en": "Temperature - Core #141",
-        "fr": "Température - Cœur 141",
-        "ja": "コア１４１の温度"
-    },
-    "02eeee19-5c6f-4f2e-b013-65c1ca63a6e2": {
-        "en": "Temperature - Core #142",
-        "fr": "Température - Cœur 142",
-        "ja": "コア１４２の温度"
-    },
-    "4c06555f-c248-42c5-9324-c7b785d67785": {
-        "en": "Temperature - Core #143",
-        "fr": "Température - Cœur 143",
-        "ja": "コア１４３の温度"
-    },
-    "4017c0d8-4fe3-4afc-b2ae-3b86c4108dc4": {
-        "en": "Temperature - Core #144",
-        "fr": "Température - Cœur 144",
-        "ja": "コア１４４の温度"
-    },
-    "059f6f71-7d60-41fa-bd30-882d3107b1bb": {
-        "en": "Temperature - Core #145",
-        "fr": "Température - Cœur 145",
-        "ja": "コア１４５の温度"
-    },
-    "a67704bd-6c8d-4a45-a45c-3ff3a85029a2": {
-        "en": "Temperature - Core #146",
-        "fr": "Température - Cœur 146",
-        "ja": "コア１４６の温度"
-    },
-    "fc2cd299-7922-40c9-b155-1e91202d32d1": {
-        "en": "Temperature - Core #147",
-        "fr": "Température - Cœur 147",
-        "ja": "コア１４７の温度"
-    },
-    "f589269a-3fa9-4fb2-9b80-400244e1c762": {
-        "en": "Temperature - Core #148",
-        "fr": "Température - Cœur 148",
-        "ja": "コア１４８の温度"
-    },
-    "56a50ce1-1172-4224-9d26-29e48ecc92c8": {
-        "en": "Temperature - Core #149",
-        "fr": "Température - Cœur 149",
-        "ja": "コア１４９の温度"
-    },
-    "1276d718-ef20-4304-92ab-bb2c7a43c476": {
-        "en": "Temperature - Core #150",
-        "fr": "Température - Cœur 150",
-        "ja": "コア１５０の温度"
-    },
-    "ff613867-c039-4551-98c1-b253e80de410": {
-        "en": "Temperature - Core #151",
-        "fr": "Température - Cœur 151",
-        "ja": "コア１５１の温度"
-    },
-    "45279a69-cbc7-46ce-add6-6fcad8f59a79": {
-        "en": "Temperature - Core #152",
-        "fr": "Température - Cœur 152",
-        "ja": "コア１５２の温度"
-    },
-    "f1ad5f66-2260-481e-9e1e-7b8e0fdc9814": {
-        "en": "Temperature - Core #153",
-        "fr": "Température - Cœur 153",
-        "ja": "コア１５３の温度"
-    },
-    "38da0d97-b69d-4077-b44c-19a64860e8fc": {
-        "en": "Temperature - Core #154",
-        "fr": "Température - Cœur 154",
-        "ja": "コア１５４の温度"
-    },
-    "516891f9-01d5-41a3-8fa2-b6c907c8053a": {
-        "en": "Temperature - Core #155",
-        "fr": "Température - Cœur 155",
-        "ja": "コア１５５の温度"
-    },
-    "c31a86ae-ade3-4e95-9b20-a84b02155645": {
-        "en": "Temperature - Core #156",
-        "fr": "Température - Cœur 156",
-        "ja": "コア１５６の温度"
-    },
-    "dcf00024-34be-472f-bca4-08b8efc66e4b": {
-        "en": "Temperature - Core #157",
-        "fr": "Température - Cœur 157",
-        "ja": "コア１５７の温度"
-    },
-    "b55b956c-01fd-4562-905a-b4a1cfae8c24": {
-        "en": "Temperature - Core #158",
-        "fr": "Température - Cœur 158",
-        "ja": "コア１５８の温度"
-    },
-    "d6194e6b-6a83-4f3c-9177-16cf164b67f7": {
-        "en": "Temperature - Core #159",
-        "fr": "Température - Cœur 159",
-        "ja": "コア１５９の温度"
-    },
-    "ab1dbc1a-1781-4d0d-8dcf-498f8f429eb3": {
-        "en": "Temperature - Core #160",
-        "fr": "Température - Cœur 160",
-        "ja": "コア１６０の温度"
-    },
-    "91ce3bb5-9647-48c2-863d-84370d3b5652": {
-        "en": "Temperature - Core #161",
-        "fr": "Température - Cœur 161",
-        "ja": "コア１６１の温度"
-    },
-    "cc117342-01c3-4288-8393-49ceb55f820e": {
-        "en": "Temperature - Core #162",
-        "fr": "Température - Cœur 162",
-        "ja": "コア１６２の温度"
-    },
-    "2254c98d-ea18-419e-a3c8-49924bfdcb16": {
-        "en": "Temperature - Core #163",
-        "fr": "Température - Cœur 163",
-        "ja": "コア１６３の温度"
-    },
-    "657f3ba3-5d39-46fb-8da3-424a1b10b3b8": {
-        "en": "Temperature - Core #164",
-        "fr": "Température - Cœur 164",
-        "ja": "コア１６４の温度"
-    },
-    "f9ff4a71-4c77-4fd3-b724-d456aa176f70": {
-        "en": "Temperature - Core #165",
-        "fr": "Température - Cœur 165",
-        "ja": "コア１６５の温度"
-    },
-    "f739126a-250c-40d7-841f-eab88f6a8e46": {
-        "en": "Temperature - Core #166",
-        "fr": "Température - Cœur 166",
-        "ja": "コア１６６の温度"
-    },
-    "e70facd5-42db-451c-b3ca-8a1a15251965": {
-        "en": "Temperature - Core #167",
-        "fr": "Température - Cœur 167",
-        "ja": "コア１６７の温度"
-    },
-    "c1123258-8f4b-4efd-a1e6-55b347844856": {
-        "en": "Temperature - Core #168",
-        "fr": "Température - Cœur 168",
-        "ja": "コア１６８の温度"
-    },
-    "bd535b33-aedc-41c3-97a5-a4c04abe58c3": {
-        "en": "Temperature - Core #169",
-        "fr": "Température - Cœur 169",
-        "ja": "コア１６９の温度"
-    },
-    "f070471e-8b95-4d52-8520-612297a71170": {
-        "en": "Temperature - Core #170",
-        "fr": "Température - Cœur 170",
-        "ja": "コア１７０の温度"
-    },
-    "fd53d63e-fe4c-46d9-9126-386423548368": {
-        "en": "Temperature - Core #171",
-        "fr": "Température - Cœur 171",
-        "ja": "コア１７１の温度"
-    },
-    "2880cb90-4f1b-48a5-bbca-5d6b1a0b07db": {
-        "en": "Temperature - Core #172",
-        "fr": "Température - Cœur 172",
-        "ja": "コア１７２の温度"
-    },
-    "abffd600-d0c7-4614-bf86-9d96f6488095": {
-        "en": "Temperature - Core #173",
-        "fr": "Température - Cœur 173",
-        "ja": "コア１７３の温度"
-    },
-    "b299e862-2c07-4240-9e5c-adf7b3328b61": {
-        "en": "Temperature - Core #174",
-        "fr": "Température - Cœur 174",
-        "ja": "コア１７４の温度"
-    },
-    "25c0d5e5-a0a2-40db-a117-6d21a899c646": {
-        "en": "Temperature - Core #175",
-        "fr": "Température - Cœur 175",
-        "ja": "コア１７５の温度"
-    },
-    "0cb8250f-5369-4f97-b00b-3bed32bb4d32": {
-        "en": "Temperature - Core #176",
-        "fr": "Température - Cœur 176",
-        "ja": "コア１７６の温度"
-    },
-    "9b27f2a7-eb32-4c0d-89e0-449908964651": {
-        "en": "Temperature - Core #177",
-        "fr": "Température - Cœur 177",
-        "ja": "コア１７７の温度"
-    },
-    "c6a992f4-877f-40ba-95c4-b4887041de50": {
-        "en": "Temperature - Core #178",
-        "fr": "Température - Cœur 178",
-        "ja": "コア１７８の温度"
-    },
-    "c1f44f26-12e4-4f5c-a7df-e7f02df9799e": {
-        "en": "Temperature - Core #179",
-        "fr": "Température - Cœur 179",
-        "ja": "コア１７９の温度"
-    },
-    "37251d82-b45b-4934-af65-d5da4abba180": {
-        "en": "Temperature - Core #180",
-        "fr": "Température - Cœur 180",
-        "ja": "コア１８０の温度"
-    },
-    "2e31b8a5-2154-43fa-abcf-3bf7355c2c14": {
-        "en": "Temperature - Core #181",
-        "fr": "Température - Cœur 181",
-        "ja": "コア１８１の温度"
-    },
-    "53217f06-5fe3-4b74-a091-32a07cb88662": {
-        "en": "Temperature - Core #182",
-        "fr": "Température - Cœur 182",
-        "ja": "コア１８２の温度"
-    },
-    "1da11a3b-17ce-4f7d-ae05-4d57f29fe1a6": {
-        "en": "Temperature - Core #183",
-        "fr": "Température - Cœur 183",
-        "ja": "コア１８３の温度"
-    },
-    "4166d173-b5cb-4fc9-b2e0-9d961f0c449a": {
-        "en": "Temperature - Core #184",
-        "fr": "Température - Cœur 184",
-        "ja": "コア１８４の温度"
-    },
-    "16970f4f-ca90-4323-bccf-e5b5a22fab01": {
-        "en": "Temperature - Core #185",
-        "fr": "Température - Cœur 185",
-        "ja": "コア１８５の温度"
-    },
-    "887778ba-9029-458a-9d59-0e344c78afb5": {
-        "en": "Temperature - Core #186",
-        "fr": "Température - Cœur 186",
-        "ja": "コア１８６の温度"
-    },
-    "054feeaa-fc21-4efd-ae7a-b6c6282bf19c": {
-        "en": "Temperature - Core #187",
-        "fr": "Température - Cœur 187",
-        "ja": "コア１８７の温度"
-    },
-    "2d49c85c-f085-45ef-984a-4a8c1f1a07d0": {
-        "en": "Temperature - Core #188",
-        "fr": "Température - Cœur 188",
-        "ja": "コア１８８の温度"
-    },
-    "9c8c6788-9388-4936-b19d-a26e15cee80f": {
-        "en": "Temperature - Core #189",
-        "fr": "Température - Cœur 189",
-        "ja": "コア１８９の温度"
-    },
-    "c2984700-4813-4925-92a0-841146e56317": {
-        "en": "Temperature - Core #190",
-        "fr": "Température - Cœur 190",
-        "ja": "コア１９０の温度"
-    },
-    "632262fc-9666-4b88-a653-fa2e349ac117": {
-        "en": "Temperature - Core #191",
-        "fr": "Température - Cœur 191",
-        "ja": "コア１９１の温度"
-    },
-    "b61ea0b1-207a-400c-8c43-ed7cd72feb88": {
-        "en": "Temperature - Core #192",
-        "fr": "Température - Cœur 192",
-        "ja": "コア１９２の温度"
-    },
-    "a4e136ce-1668-4508-8956-d44efe6baf88": {
-        "en": "Temperature - Core #193",
-        "fr": "Température - Cœur 193",
-        "ja": "コア１９３の温度"
-    },
-    "3a67a10f-7bf1-4cb0-85d8-82f1d1566883": {
-        "en": "Temperature - Core #194",
-        "fr": "Température - Cœur 194",
-        "ja": "コア１９４の温度"
-    },
-    "5b731a26-6ebf-450a-ae0e-2bf5372b97fb": {
-        "en": "Temperature - Core #195",
-        "fr": "Température - Cœur 195",
-        "ja": "コア１９５の温度"
-    },
-    "56aab0c6-dad6-414f-b698-7fed1efb4973": {
-        "en": "Temperature - Core #196",
-        "fr": "Température - Cœur 196",
-        "ja": "コア１９６の温度"
-    },
-    "963760e6-4739-4f17-b261-f4997627dfa6": {
-        "en": "Temperature - Core #197",
-        "fr": "Température - Cœur 197",
-        "ja": "コア１９７の温度"
-    },
-    "c87aab20-045c-49a1-a8e3-9bcf819cd015": {
-        "en": "Temperature - Core #198",
-        "fr": "Température - Cœur 198",
-        "ja": "コア１９８の温度"
-    },
-    "42182f78-98c3-46be-bbb6-8456828d6163": {
-        "en": "Temperature - Core #199",
-        "fr": "Température - Cœur 199",
-        "ja": "コア１９９の温度"
-    },
-    "29552dbe-d9a8-48a7-a7bd-a85dfe345e7d": {
-        "en": "Temperature - Core #200",
-        "fr": "Température - Cœur 200",
-        "ja": "コア２００の温度"
-    },
-    "e83e127c-aa43-485f-a96c-3bbedeedae2e": {
-        "en": "Temperature - Core #201",
-        "fr": "Température - Cœur 201",
-        "ja": "コア２０１の温度"
-    },
-    "6f58ad47-f0f9-4dd7-9cd7-834bdec7f0ee": {
-        "en": "Temperature - Core #202",
-        "fr": "Température - Cœur 202",
-        "ja": "コア２０２の温度"
-    },
-    "30196b35-5e3b-4590-89e6-1130e6ad129e": {
-        "en": "Temperature - Core #203",
-        "fr": "Température - Cœur 203",
-        "ja": "コア２０３の温度"
-    },
-    "d856efdd-d767-4af1-8113-2076b787b8ad": {
-        "en": "Temperature - Core #204",
-        "fr": "Température - Cœur 204",
-        "ja": "コア２０４の温度"
-    },
-    "b6c726ce-608a-4362-bbdb-2d5f527cd3eb": {
-        "en": "Temperature - Core #205",
-        "fr": "Température - Cœur 205",
-        "ja": "コア２０５の温度"
-    },
-    "7a5e8718-4c73-48b2-9d27-10229d65d44e": {
-        "en": "Temperature - Core #206",
-        "fr": "Température - Cœur 206",
-        "ja": "コア２０６の温度"
-    },
-    "1d08f3ba-982d-4af8-a9c5-31d0bba56f09": {
-        "en": "Temperature - Core #207",
-        "fr": "Température - Cœur 207",
-        "ja": "コア２０７の温度"
-    },
-    "0d0c12a2-2ae7-49e3-8de1-b9a3ead31baf": {
-        "en": "Temperature - Core #208",
-        "fr": "Température - Cœur 208",
-        "ja": "コア２０８の温度"
-    },
-    "1e8a7914-f7cf-4560-b27a-3e0e1766ce7b": {
-        "en": "Temperature - Core #209",
-        "fr": "Température - Cœur 209",
-        "ja": "コア２０９の温度"
-    },
-    "63bcb6e9-7a7d-492b-a677-b61d925500a3": {
-        "en": "Temperature - Core #210",
-        "fr": "Température - Cœur 210",
-        "ja": "コア２１０の温度"
-    },
-    "0dc62a8b-d195-4a1d-ba72-b890711ef3f4": {
-        "en": "Temperature - Core #211",
-        "fr": "Température - Cœur 211",
-        "ja": "コア２１１の温度"
-    },
-    "b08ccf0b-692e-40d4-bf4b-d0cbc48a4ff0": {
-        "en": "Temperature - Core #212",
-        "fr": "Température - Cœur 212",
-        "ja": "コア２１２の温度"
-    },
-    "bcda9943-c5ea-4097-baab-d085ffad4582": {
-        "en": "Temperature - Core #213",
-        "fr": "Température - Cœur 213",
-        "ja": "コア２１３の温度"
-    },
-    "db36c11c-1972-4aad-b542-01f057ad763f": {
-        "en": "Temperature - Core #214",
-        "fr": "Température - Cœur 214",
-        "ja": "コア２１４の温度"
-    },
-    "604b90b0-4fb7-4afb-a03c-2a167a5ecb1e": {
-        "en": "Temperature - Core #215",
-        "fr": "Température - Cœur 215",
-        "ja": "コア２１５の温度"
-    },
-    "12aa20b0-f2f2-412d-94c2-e44d43cd3ee0": {
-        "en": "Temperature - Core #216",
-        "fr": "Température - Cœur 216",
-        "ja": "コア２１６の温度"
-    },
-    "4d441a23-7679-437d-91d1-a00e20bff212": {
-        "en": "Temperature - Core #217",
-        "fr": "Température - Cœur 217",
-        "ja": "コア２１７の温度"
-    },
-    "0ed233f7-a4ea-4f0b-800f-b91db592af65": {
-        "en": "Temperature - Core #218",
-        "fr": "Température - Cœur 218",
-        "ja": "コア２１８の温度"
-    },
-    "be8864c7-8f6d-48f0-9e63-166fe696b22a": {
-        "en": "Temperature - Core #219",
-        "fr": "Température - Cœur 219",
-        "ja": "コア２１９の温度"
-    },
-    "73e1b689-61ea-41d4-8ad8-af9f1f5b0d34": {
-        "en": "Temperature - Core #220",
-        "fr": "Température - Cœur 220",
-        "ja": "コア２２０の温度"
-    },
-    "46917a5a-c7d3-4231-930f-7a4577123dc3": {
-        "en": "Temperature - Core #221",
-        "fr": "Température - Cœur 221",
-        "ja": "コア２２１の温度"
-    },
-    "197a4a58-8b8f-4ae0-ac3d-1e553a3169ef": {
-        "en": "Temperature - Core #222",
-        "fr": "Température - Cœur 222",
-        "ja": "コア２２２の温度"
-    },
-    "9cacfab3-c2ac-442a-a393-aa93fc32993c": {
-        "en": "Temperature - Core #223",
-        "fr": "Température - Cœur 223",
-        "ja": "コア２２３の温度"
-    },
-    "86d503c9-4ba3-4aeb-bcc7-42bd792e95e5": {
-        "en": "Temperature - Core #224",
-        "fr": "Température - Cœur 224",
-        "ja": "コア２２４の温度"
-    },
-    "f6630172-168c-41d9-9422-74c76c01d354": {
-        "en": "Temperature - Core #225",
-        "fr": "Température - Cœur 225",
-        "ja": "コア２２５の温度"
-    },
-    "d9962f48-2b02-44f5-a3d4-b2944ef747ce": {
-        "en": "Temperature - Core #226",
-        "fr": "Température - Cœur 226",
-        "ja": "コア２２６の温度"
-    },
-    "07f3fa76-7036-4750-a720-abd145e27b0a": {
-        "en": "Temperature - Core #227",
-        "fr": "Température - Cœur 227",
-        "ja": "コア２２７の温度"
-    },
-    "e9aaeb2a-aeea-49d5-b827-cc8eeea4c4f8": {
-        "en": "Temperature - Core #228",
-        "fr": "Température - Cœur 228",
-        "ja": "コア２２８の温度"
-    },
-    "246702eb-e59c-4bdf-a9e5-6dae0054b567": {
-        "en": "Temperature - Core #229",
-        "fr": "Température - Cœur 229",
-        "ja": "コア２２９の温度"
-    },
-    "5c0a558f-0954-4cfb-a9d7-8dc7a39313d2": {
-        "en": "Temperature - Core #230",
-        "fr": "Température - Cœur 230",
-        "ja": "コア２３０の温度"
-    },
-    "16a8765b-0e36-4b0e-8fb7-d9d65d8bf6d6": {
-        "en": "Temperature - Core #231",
-        "fr": "Température - Cœur 231",
-        "ja": "コア２３１の温度"
-    },
-    "c78af907-7aa3-4358-8ef6-a1c9fb448000": {
-        "en": "Temperature - Core #232",
-        "fr": "Température - Cœur 232",
-        "ja": "コア２３２の温度"
-    },
-    "5f1a27dd-59d7-420e-8a55-3407d6ca423b": {
-        "en": "Temperature - Core #233",
-        "fr": "Température - Cœur 233",
-        "ja": "コア２３３の温度"
-    },
-    "858a7066-489b-4aa6-9b20-bb405b9bfd79": {
-        "en": "Temperature - Core #234",
-        "fr": "Température - Cœur 234",
-        "ja": "コア２３４の温度"
-    },
-    "f5df6adb-39d2-4c4d-b6af-c525203cbcbf": {
-        "en": "Temperature - Core #235",
-        "fr": "Température - Cœur 235",
-        "ja": "コア２３５の温度"
-    },
-    "9aa1afb0-3a71-4807-8e02-99446c40ae70": {
-        "en": "Temperature - Core #236",
-        "fr": "Température - Cœur 236",
-        "ja": "コア２３６の温度"
-    },
-    "054fe6ce-4435-462e-91ff-05fe9cd1d45d": {
-        "en": "Temperature - Core #237",
-        "fr": "Température - Cœur 237",
-        "ja": "コア２３７の温度"
-    },
-    "3209dcd4-0bce-409c-8a6d-249690798dfc": {
-        "en": "Temperature - Core #238",
-        "fr": "Température - Cœur 238",
-        "ja": "コア２３８の温度"
-    },
-    "9cc82ba3-7ab2-40af-bf90-ffd978908a64": {
-        "en": "Temperature - Core #239",
-        "fr": "Température - Cœur 239",
-        "ja": "コア２３９の温度"
-    },
-    "7bdb21d7-8ec4-40e1-85b8-53bd548ed476": {
-        "en": "Temperature - Core #240",
-        "fr": "Température - Cœur 240",
-        "ja": "コア２４０の温度"
-    },
-    "179101c9-21a0-4ac8-ae3c-2744e7cf7c3a": {
-        "en": "Temperature - Core #241",
-        "fr": "Température - Cœur 241",
-        "ja": "コア２４１の温度"
-    },
-    "5a5b1954-9cd0-4292-b2e9-b0143252958b": {
-        "en": "Temperature - Core #242",
-        "fr": "Température - Cœur 242",
-        "ja": "コア２４２の温度"
-    },
-    "a072541b-e9c6-4258-9b3f-99b8388115c7": {
-        "en": "Temperature - Core #243",
-        "fr": "Température - Cœur 243",
-        "ja": "コア２４３の温度"
-    },
-    "3fc86942-c7d3-48d7-b94f-7c25d21236e4": {
-        "en": "Temperature - Core #244",
-        "fr": "Température - Cœur 244",
-        "ja": "コア２４４の温度"
-    },
-    "e481edcc-092e-4c9a-b3c9-375f5d0f3ac7": {
-        "en": "Temperature - Core #245",
-        "fr": "Température - Cœur 245",
-        "ja": "コア２４５の温度"
-    },
-    "fc9ac632-a383-4bed-8617-e62d8a37e2cd": {
-        "en": "Temperature - Core #246",
-        "fr": "Température - Cœur 246",
-        "ja": "コア２４６の温度"
-    },
-    "4c32190e-9187-4676-9fdf-4cad4fbdecb1": {
-        "en": "Temperature - Core #247",
-        "fr": "Température - Cœur 247",
-        "ja": "コア２４７の温度"
-    },
-    "47922774-802d-4ee2-8f20-193ec0b2512e": {
-        "en": "Temperature - Core #248",
-        "fr": "Température - Cœur 248",
-        "ja": "コア２４８の温度"
-    },
-    "76f29e3d-15b3-4bd7-9428-d03a4d286f94": {
-        "en": "Temperature - Core #249",
-        "fr": "Température - Cœur 249",
-        "ja": "コア２４９の温度"
-    },
-    "1ce4662a-7e4a-4163-b85c-5be8c2c25fae": {
-        "en": "Temperature - Core #250",
-        "fr": "Température - Cœur 250",
-        "ja": "コア２５０の温度"
-    },
-    "058b3e72-204e-4692-9806-5b6bf418f598": {
-        "en": "Temperature - Core #251",
-        "fr": "Température - Cœur 251",
-        "ja": "コア２５１の温度"
-    },
-    "2b221162-2c8f-4129-8ed0-8a276ebfb461": {
-        "en": "Temperature - Core #252",
-        "fr": "Température - Cœur 252",
-        "ja": "コア２５２の温度"
-    },
-    "99ee99ba-ee4a-4b44-bb17-9be601eef37d": {
-        "en": "Temperature - Core #253",
-        "fr": "Température - Cœur 253",
-        "ja": "コア２５３の温度"
-    },
-    "df363314-7034-4099-8942-001b61631f03": {
-        "en": "Temperature - Core #254",
-        "fr": "Température - Cœur 254",
-        "ja": "コア２５４の温度"
-    },
-    "1fbfa2e1-a3e0-4050-a9b7-a74e9d44b199": {
-        "en": "Temperature - Core #255",
-        "fr": "Température - Cœur 255",
-        "ja": "コア２５５の温度"
-    },
-    "a864d3d2-51f9-4082-bf76-e27e8fd6b888": {
-        "en": "Temperature - Core #256",
-        "fr": "Température - Cœur 256",
-        "ja": "コア２５６の温度"
-    },
-    "e32e73f0-f108-4203-9178-2d08711848d6": {
-        "en": "Temperature - Core #257",
-        "fr": "Température - Cœur 257",
-        "ja": "コア２５７の温度"
-    },
-    "b32355f9-3c32-4d28-b156-ce1dbf2c6fef": {
-        "en": "Temperature - Core #258",
-        "fr": "Température - Cœur 258",
-        "ja": "コア２５８の温度"
-    },
-    "5ec71be7-1beb-4072-90c6-0303d88c75ed": {
-        "en": "Temperature - Core #259",
-        "fr": "Température - Cœur 259",
-        "ja": "コア２５９の温度"
-    },
-    "2f972879-fc41-45cc-b246-350b0796390b": {
-        "en": "Temperature - Core #260",
-        "fr": "Température - Cœur 260",
-        "ja": "コア２６０の温度"
-    },
-    "00fabc03-2c30-489a-8f50-1ae68546d0fc": {
-        "en": "Temperature - Core #261",
-        "fr": "Température - Cœur 261",
-        "ja": "コア２６１の温度"
-    },
-    "7499ae45-802c-473b-bc34-373bca2074b7": {
-        "en": "Temperature - Core #262",
-        "fr": "Température - Cœur 262",
-        "ja": "コア２６２の温度"
-    },
-    "8fea2dd0-be66-4a2f-84c8-3a72cdaf553a": {
-        "en": "Temperature - Core #263",
-        "fr": "Température - Cœur 263",
-        "ja": "コア２６３の温度"
-    },
-    "7870dbdd-b36d-4a04-bf46-752b6c680584": {
-        "en": "Temperature - Core #264",
-        "fr": "Température - Cœur 264",
-        "ja": "コア２６４の温度"
-    },
-    "a9061c70-fbe7-416b-846d-0ec0a72b96fe": {
-        "en": "Temperature - Core #265",
-        "fr": "Température - Cœur 265",
-        "ja": "コア２６５の温度"
-    },
-    "5a7b5407-2b30-4c12-9c14-280764de150a": {
-        "en": "Temperature - Core #266",
-        "fr": "Température - Cœur 266",
-        "ja": "コア２６６の温度"
-    },
-    "c3aba590-e877-45fe-82c9-221d43656056": {
-        "en": "Temperature - Core #267",
-        "fr": "Température - Cœur 267",
-        "ja": "コア２６７の温度"
-    },
-    "2976ff9a-7a06-493a-92dd-b6b0432aa993": {
-        "en": "Temperature - Core #268",
-        "fr": "Température - Cœur 268",
-        "ja": "コア２６８の温度"
-    },
-    "6b1cd161-ad66-4a46-8c2f-a0a6a5ebcfee": {
-        "en": "Temperature - Core #269",
-        "fr": "Température - Cœur 269",
-        "ja": "コア２６９の温度"
-    },
-    "5d223209-8e3d-43e3-af99-480cd2577036": {
-        "en": "Temperature - Core #270",
-        "fr": "Température - Cœur 270",
-        "ja": "コア２７０の温度"
-    },
-    "fc220529-9aa4-4f27-9fb2-40a99dabdf3d": {
-        "en": "Temperature - Core #271",
-        "fr": "Température - Cœur 271",
-        "ja": "コア２７１の温度"
-    },
-    "c0c0ae45-bb81-46a3-a9d6-71611ec2606d": {
-        "en": "Temperature - Core #272",
-        "fr": "Température - Cœur 272",
-        "ja": "コア２７２の温度"
-    },
-    "68756549-5feb-4dcb-b8a6-26c0615f739a": {
-        "en": "Temperature - Core #273",
-        "fr": "Température - Cœur 273",
-        "ja": "コア２７３の温度"
-    },
-    "2ce44348-bdc7-4ce9-997e-082769e7370e": {
-        "en": "Temperature - Core #274",
-        "fr": "Température - Cœur 274",
-        "ja": "コア２７４の温度"
-    },
-    "05c0ec45-da2a-4e8c-b91b-fb9f8dd83e03": {
-        "en": "Temperature - Core #275",
-        "fr": "Température - Cœur 275",
-        "ja": "コア２７５の温度"
-    },
-    "e111389b-1bc2-4cfd-b71a-a0114c235967": {
-        "en": "Temperature - Core #276",
-        "fr": "Température - Cœur 276",
-        "ja": "コア２７６の温度"
-    },
-    "503c8c53-8340-44ff-9c66-477fb53e7251": {
-        "en": "Temperature - Core #277",
-        "fr": "Température - Cœur 277",
-        "ja": "コア２７７の温度"
-    },
-    "7c789751-6d21-41d6-9108-85b6b920ac45": {
-        "en": "Temperature - Core #278",
-        "fr": "Température - Cœur 278",
-        "ja": "コア２７８の温度"
-    },
-    "89f3628d-bc58-4d2d-9231-0f2f86b16723": {
-        "en": "Temperature - Core #279",
-        "fr": "Température - Cœur 279",
-        "ja": "コア２７９の温度"
-    },
-    "8b9d45c5-ebcd-4c81-b05a-992cac1eafa2": {
-        "en": "Temperature - Core #280",
-        "fr": "Température - Cœur 280",
-        "ja": "コア２８０の温度"
-    },
-    "21387902-4af4-4eb6-8bb0-f5e441c1a955": {
-        "en": "Temperature - Core #281",
-        "fr": "Température - Cœur 281",
-        "ja": "コア２８１の温度"
-    },
-    "ea3f03d8-7403-4806-afcf-40e18ee1e4a3": {
-        "en": "Temperature - Core #282",
-        "fr": "Température - Cœur 282",
-        "ja": "コア２８２の温度"
-    },
-    "ec8a3c0f-1dff-4836-852d-57d5385d9b2d": {
-        "en": "Temperature - Core #283",
-        "fr": "Température - Cœur 283",
-        "ja": "コア２８３の温度"
-    },
-    "c7a3415a-1c90-403e-8cdf-10113d731a80": {
-        "en": "Temperature - Core #284",
-        "fr": "Température - Cœur 284",
-        "ja": "コア２８４の温度"
-    },
-    "bebca509-45ed-4c90-9920-876144ed9344": {
-        "en": "Temperature - Core #285",
-        "fr": "Température - Cœur 285",
-        "ja": "コア２８５の温度"
-    },
-    "28702bbf-2987-42e8-96ff-2cb624cbfe10": {
-        "en": "Temperature - Core #286",
-        "fr": "Température - Cœur 286",
-        "ja": "コア２８６の温度"
-    },
-    "1c61e1c2-d9f7-4ac8-a337-9c2f647a9655": {
-        "en": "Temperature - Core #287",
-        "fr": "Température - Cœur 287",
-        "ja": "コア２８７の温度"
-    },
-    "2e39e855-1531-4a6d-a2b0-11260e576209": {
-        "en": "Temperature - Core #288",
-        "fr": "Température - Cœur 288",
-        "ja": "コア２８８の温度"
-    },
-    "17804e46-a96d-4ffc-8f47-d9df7609bfb7": {
-        "en": "Temperature - Core #289",
-        "fr": "Température - Cœur 289",
-        "ja": "コア２８９の温度"
-    },
-    "39e5f223-a2a2-4af1-b943-d44d21a7fe1b": {
-        "en": "Temperature - Core #290",
-        "fr": "Température - Cœur 290",
-        "ja": "コア２９０の温度"
-    },
-    "9ed94f0a-9b5b-417b-891e-e3dd546f3de3": {
-        "en": "Temperature - Core #291",
-        "fr": "Température - Cœur 291",
-        "ja": "コア２９１の温度"
-    },
-    "fd12794e-e9c5-4447-856d-76296100373f": {
-        "en": "Temperature - Core #292",
-        "fr": "Température - Cœur 292",
-        "ja": "コア２９２の温度"
-    },
-    "35d89832-df0c-41a5-ad66-adb79234e194": {
-        "en": "Temperature - Core #293",
-        "fr": "Température - Cœur 293",
-        "ja": "コア２９３の温度"
-    },
-    "9ea37dcb-f89a-48f7-b70e-51a0d2a6f07d": {
-        "en": "Temperature - Core #294",
-        "fr": "Température - Cœur 294",
-        "ja": "コア２９４の温度"
-    },
-    "3b2f4b5e-ef93-4bb2-9f9b-316a82785875": {
-        "en": "Temperature - Core #295",
-        "fr": "Température - Cœur 295",
-        "ja": "コア２９５の温度"
-    },
-    "cbbd18b8-b294-4f0e-9dfc-086ee44feecf": {
-        "en": "Temperature - Core #296",
-        "fr": "Température - Cœur 296",
-        "ja": "コア２９６の温度"
-    },
-    "7b191c90-6cf6-4137-873f-96f4bfb0e159": {
-        "en": "Temperature - Core #297",
-        "fr": "Température - Cœur 297",
-        "ja": "コア２９７の温度"
-    },
-    "d1701dcf-4b3c-40b4-aaa5-e90765e5cef0": {
-        "en": "Temperature - Core #298",
-        "fr": "Température - Cœur 298",
-        "ja": "コア２９８の温度"
-    },
-    "c9f51457-c559-4c8a-a7d2-df25989465b9": {
-        "en": "Temperature - Core #299",
-        "fr": "Température - Cœur 299",
-        "ja": "コア２９９の温度"
-    },
-    "d2147c1a-c6f1-4f05-87fe-7beafd850a91": {
-        "en": "Temperature - Core #300",
-        "fr": "Température - Cœur 300",
-        "ja": "コア３００の温度"
-    },
-    "cd0e263c-289d-48e7-a9a3-3c9888b84ccf": {
-        "en": "Temperature - Core #301",
-        "fr": "Température - Cœur 301",
-        "ja": "コア３０１の温度"
-    },
-    "04b055b7-5b52-4f4b-8a39-4104dd1375d2": {
-        "en": "Temperature - Core #302",
-        "fr": "Température - Cœur 302",
-        "ja": "コア３０２の温度"
-    },
-    "04baa224-9f6d-4350-9c11-197639376938": {
-        "en": "Temperature - Core #303",
-        "fr": "Température - Cœur 303",
-        "ja": "コア３０３の温度"
-    },
-    "ad5e2d81-ef68-4095-8507-a82c24bb8224": {
-        "en": "Temperature - Core #304",
-        "fr": "Température - Cœur 304",
-        "ja": "コア３０４の温度"
-    },
-    "39ffc4e6-9e2d-4168-a779-731e4ebf8387": {
-        "en": "Temperature - Core #305",
-        "fr": "Température - Cœur 305",
-        "ja": "コア３０５の温度"
-    },
-    "f92f2874-9038-4af7-82a2-90daf40f6759": {
-        "en": "Temperature - Core #306",
-        "fr": "Température - Cœur 306",
-        "ja": "コア３０６の温度"
-    },
-    "cc4338d7-56b2-454a-8690-a53ddb4c7427": {
-        "en": "Temperature - Core #307",
-        "fr": "Température - Cœur 307",
-        "ja": "コア３０７の温度"
-    },
-    "7a5bc269-ff4d-47b9-806d-f96a36dea5dd": {
-        "en": "Temperature - Core #308",
-        "fr": "Température - Cœur 308",
-        "ja": "コア３０８の温度"
-    },
-    "c552123f-ea31-4dd7-975f-48f6ee5db7f0": {
-        "en": "Temperature - Core #309",
-        "fr": "Température - Cœur 309",
-        "ja": "コア３０９の温度"
-    },
-    "8919db4a-3e17-4e9b-826e-3ab885a2c2c5": {
-        "en": "Temperature - Core #310",
-        "fr": "Température - Cœur 310",
-        "ja": "コア３１０の温度"
-    },
-    "ba96fae8-4806-47e5-ae34-bbcaec72c58a": {
-        "en": "Temperature - Core #311",
-        "fr": "Température - Cœur 311",
-        "ja": "コア３１１の温度"
-    },
-    "fd0e1a25-136d-4b00-8d18-a3667ed320c2": {
-        "en": "Temperature - Core #312",
-        "fr": "Température - Cœur 312",
-        "ja": "コア３１２の温度"
-    },
-    "15ff4c94-f3a7-4154-8e83-2671f689acb1": {
-        "en": "Temperature - Core #313",
-        "fr": "Température - Cœur 313",
-        "ja": "コア３１３の温度"
-    },
-    "c02d9e88-869b-4b2a-86bc-358d35b8662e": {
-        "en": "Temperature - Core #314",
-        "fr": "Température - Cœur 314",
-        "ja": "コア３１４の温度"
-    },
-    "5e3eff2a-e9ae-4b4d-b063-9cdc777735e4": {
-        "en": "Temperature - Core #315",
-        "fr": "Température - Cœur 315",
-        "ja": "コア３１５の温度"
-    },
-    "c22cda47-c479-4218-9d66-1953c8dae7e5": {
-        "en": "Temperature - Core #316",
-        "fr": "Température - Cœur 316",
-        "ja": "コア３１６の温度"
-    },
-    "a4830f40-3bbf-4180-80b0-d3b1646fa39f": {
-        "en": "Temperature - Core #317",
-        "fr": "Température - Cœur 317",
-        "ja": "コア３１７の温度"
-    },
-    "43bdc428-b328-4d03-be77-c24afb03c7a9": {
-        "en": "Temperature - Core #318",
-        "fr": "Température - Cœur 318",
-        "ja": "コア３１８の温度"
-    },
-    "ff0a41bf-d0f6-46bd-a2bf-239cca8f9ae6": {
-        "en": "Temperature - Core #319",
-        "fr": "Température - Cœur 319",
-        "ja": "コア３１９の温度"
-    },
-    "4fcdfe23-55d3-46e9-b26c-61f640dab4cc": {
-        "en": "Temperature - Core #320",
-        "fr": "Température - Cœur 320",
-        "ja": "コア３２０の温度"
-    },
-    "14d604ac-6d36-4557-8dd9-29444b102e2e": {
-        "en": "Temperature - Core #321",
-        "fr": "Température - Cœur 321",
-        "ja": "コア３２１の温度"
-    },
-    "70e134f8-0eea-4843-86fc-87f0a495cebd": {
-        "en": "Temperature - Core #322",
-        "fr": "Température - Cœur 322",
-        "ja": "コア３２２の温度"
-    },
-    "74bc0c73-6e08-497c-9e8d-3c33a0fe5250": {
-        "en": "Temperature - Core #323",
-        "fr": "Température - Cœur 323",
-        "ja": "コア３２３の温度"
-    },
-    "c5cafa56-2e42-41a5-a3b0-e9b0019ddac2": {
-        "en": "Temperature - Core #324",
-        "fr": "Température - Cœur 324",
-        "ja": "コア３２４の温度"
-    },
-    "99950983-1b2b-4e5b-a63d-f2515dd0588d": {
-        "en": "Temperature - Core #325",
-        "fr": "Température - Cœur 325",
-        "ja": "コア３２５の温度"
-    },
-    "106de794-1a1c-44dd-9163-e767e86dc5a3": {
-        "en": "Temperature - Core #326",
-        "fr": "Température - Cœur 326",
-        "ja": "コア３２６の温度"
-    },
-    "5f1c8d90-6937-409a-80f3-a3dceb35c311": {
-        "en": "Temperature - Core #327",
-        "fr": "Température - Cœur 327",
-        "ja": "コア３２７の温度"
-    },
-    "7a80364c-9fe8-436f-bd6a-ebfafded33e1": {
-        "en": "Temperature - Core #328",
-        "fr": "Température - Cœur 328",
-        "ja": "コア３２８の温度"
-    },
-    "96a00c71-5f79-40eb-ae5a-146605c00a88": {
-        "en": "Temperature - Core #329",
-        "fr": "Température - Cœur 329",
-        "ja": "コア３２９の温度"
-    },
-    "acc05a2a-7068-4dbc-98e3-5119f8edeffe": {
-        "en": "Temperature - Core #330",
-        "fr": "Température - Cœur 330",
-        "ja": "コア３３０の温度"
-    },
-    "32413179-8cb2-4df3-ac56-96e858ff77c3": {
-        "en": "Temperature - Core #331",
-        "fr": "Température - Cœur 331",
-        "ja": "コア３３１の温度"
-    },
-    "00672175-cf79-49ae-8b41-f46e1c3a27fb": {
-        "en": "Temperature - Core #332",
-        "fr": "Température - Cœur 332",
-        "ja": "コア３３２の温度"
-    },
-    "f8a491ab-05ec-49aa-a3c6-8c69971619d0": {
-        "en": "Temperature - Core #333",
-        "fr": "Température - Cœur 333",
-        "ja": "コア３３３の温度"
-    },
-    "be86114f-6a17-4778-9988-a05eeb469e3a": {
-        "en": "Temperature - Core #334",
-        "fr": "Température - Cœur 334",
-        "ja": "コア３３４の温度"
-    },
-    "604c4293-174b-4c08-ae14-b3e3d2f94fc1": {
-        "en": "Temperature - Core #335",
-        "fr": "Température - Cœur 335",
-        "ja": "コア３３５の温度"
-    },
-    "b17a3de7-840f-42f2-a6e4-73935ba8bb98": {
-        "en": "Temperature - Core #336",
-        "fr": "Température - Cœur 336",
-        "ja": "コア３３６の温度"
-    },
-    "cb28b629-186f-457d-9e32-4d567dece51c": {
-        "en": "Temperature - Core #337",
-        "fr": "Température - Cœur 337",
-        "ja": "コア３３７の温度"
-    },
-    "a34cb23b-2dbf-41bf-b913-b14a42f41260": {
-        "en": "Temperature - Core #338",
-        "fr": "Température - Cœur 338",
-        "ja": "コア３３８の温度"
-    },
-    "b94f2e5e-d98b-4d97-b85a-882690e62ba2": {
-        "en": "Temperature - Core #339",
-        "fr": "Température - Cœur 339",
-        "ja": "コア３３９の温度"
-    },
-    "d26aeb50-1edb-4e5f-a4eb-ee7116d0c134": {
-        "en": "Temperature - Core #340",
-        "fr": "Température - Cœur 340",
-        "ja": "コア３４０の温度"
-    },
-    "53f2e81d-5597-4606-8f0e-939ccd1ce6aa": {
-        "en": "Temperature - Core #341",
-        "fr": "Température - Cœur 341",
-        "ja": "コア３４１の温度"
-    },
-    "3a3e5daa-cbdd-4549-9d76-ad9614da9df6": {
-        "en": "Temperature - Core #342",
-        "fr": "Température - Cœur 342",
-        "ja": "コア３４２の温度"
-    },
-    "9dcc2d95-6d59-4e79-bd05-4f5976a4362e": {
-        "en": "Temperature - Core #343",
-        "fr": "Température - Cœur 343",
-        "ja": "コア３４３の温度"
-    },
-    "49212c35-7004-49e6-a0e1-74e243f2524b": {
-        "en": "Temperature - Core #344",
-        "fr": "Température - Cœur 344",
-        "ja": "コア３４４の温度"
-    },
-    "c892850a-297a-4d37-a173-8188b289315d": {
-        "en": "Temperature - Core #345",
-        "fr": "Température - Cœur 345",
-        "ja": "コア３４５の温度"
-    },
-    "bad22f3c-b02a-4d7a-b4a8-b9f90ab937b1": {
-        "en": "Temperature - Core #346",
-        "fr": "Température - Cœur 346",
-        "ja": "コア３４６の温度"
-    },
-    "e6ab560b-c39c-48a5-8e06-ab5a3911e67c": {
-        "en": "Temperature - Core #347",
-        "fr": "Température - Cœur 347",
-        "ja": "コア３４７の温度"
-    },
-    "6af6664b-4c27-4e47-8e09-9c7c81707e3d": {
-        "en": "Temperature - Core #348",
-        "fr": "Température - Cœur 348",
-        "ja": "コア３４８の温度"
-    },
-    "26765e9f-1330-498a-b3b1-95dcf9e1d0ac": {
-        "en": "Temperature - Core #349",
-        "fr": "Température - Cœur 349",
-        "ja": "コア３４９の温度"
-    },
-    "8516b2d9-67eb-4f96-b819-31b94e7186f8": {
-        "en": "Temperature - Core #350",
-        "fr": "Température - Cœur 350",
-        "ja": "コア３５０の温度"
-    },
-    "ed5baa8a-e012-4fbf-bcf1-2705042ec71d": {
-        "en": "Temperature - Core #351",
-        "fr": "Température - Cœur 351",
-        "ja": "コア３５１の温度"
-    },
-    "45acf5d0-8d86-4227-8582-784680a35308": {
-        "en": "Temperature - Core #352",
-        "fr": "Température - Cœur 352",
-        "ja": "コア３５２の温度"
-    },
-    "7a715984-01b7-442e-9e39-c61f79a76cba": {
-        "en": "Temperature - Core #353",
-        "fr": "Température - Cœur 353",
-        "ja": "コア３５３の温度"
-    },
-    "19fcb27f-da93-4072-ab1f-cf62a355643d": {
-        "en": "Temperature - Core #354",
-        "fr": "Température - Cœur 354",
-        "ja": "コア３５４の温度"
-    },
-    "28dcea98-ee17-4ea5-8fb0-f147ee450399": {
-        "en": "Temperature - Core #355",
-        "fr": "Température - Cœur 355",
-        "ja": "コア３５５の温度"
-    },
-    "64b45015-4caa-4ae1-9b8f-902eeb72b57b": {
-        "en": "Temperature - Core #356",
-        "fr": "Température - Cœur 356",
-        "ja": "コア３５６の温度"
-    },
-    "4e48552c-e748-4c21-a3fd-f19836cc5a05": {
-        "en": "Temperature - Core #357",
-        "fr": "Température - Cœur 357",
-        "ja": "コア３５７の温度"
-    },
-    "69b14a55-ec08-4feb-894b-8b97e91a758b": {
-        "en": "Temperature - Core #358",
-        "fr": "Température - Cœur 358",
-        "ja": "コア３５８の温度"
-    },
-    "4d9751cf-404a-4f58-a809-968284079a3b": {
-        "en": "Temperature - Core #359",
-        "fr": "Température - Cœur 359",
-        "ja": "コア３５９の温度"
-    },
-    "ef87414a-4bcb-4dc2-b24e-b06d250ade0a": {
-        "en": "Temperature - Core #360",
-        "fr": "Température - Cœur 360",
-        "ja": "コア３６０の温度"
-    },
-    "f08bf355-f14c-4419-b2b2-dfcfa788470c": {
-        "en": "Temperature - Core #361",
-        "fr": "Température - Cœur 361",
-        "ja": "コア３６１の温度"
-    },
-    "19f80155-6841-4ae1-8547-5ac54b2e49c1": {
-        "en": "Temperature - Core #362",
-        "fr": "Température - Cœur 362",
-        "ja": "コア３６２の温度"
-    },
-    "d3012a65-1c53-49bf-bcb2-dccd17253acd": {
-        "en": "Temperature - Core #363",
-        "fr": "Température - Cœur 363",
-        "ja": "コア３６３の温度"
-    },
-    "f1629e5d-3827-4746-a814-893ae72d579b": {
-        "en": "Temperature - Core #364",
-        "fr": "Température - Cœur 364",
-        "ja": "コア３６４の温度"
-    },
-    "e4fc3255-0a50-4839-9130-48d415118212": {
-        "en": "Temperature - Core #365",
-        "fr": "Température - Cœur 365",
-        "ja": "コア３６５の温度"
-    },
-    "305d4353-986e-4b79-8686-7ba9e32e69ce": {
-        "en": "Temperature - Core #366",
-        "fr": "Température - Cœur 366",
-        "ja": "コア３６６の温度"
-    },
-    "7204e0d9-9e5d-4fd5-9b07-9d8be782baed": {
-        "en": "Temperature - Core #367",
-        "fr": "Température - Cœur 367",
-        "ja": "コア３６７の温度"
-    },
-    "77f16ed2-1d4f-4ab9-8e93-2e1b8e2db847": {
-        "en": "Temperature - Core #368",
-        "fr": "Température - Cœur 368",
-        "ja": "コア３６８の温度"
-    },
-    "c0be683d-b431-47ab-a176-3eb711abe934": {
-        "en": "Temperature - Core #369",
-        "fr": "Température - Cœur 369",
-        "ja": "コア３６９の温度"
-    },
-    "c5882178-9349-4120-ae93-eaca28450e44": {
-        "en": "Temperature - Core #370",
-        "fr": "Température - Cœur 370",
-        "ja": "コア３７０の温度"
-    },
-    "a31db973-a8f6-4bea-86e3-d91fe9ac4471": {
-        "en": "Temperature - Core #371",
-        "fr": "Température - Cœur 371",
-        "ja": "コア３７１の温度"
-    },
-    "64ee550c-9921-4360-8d9b-3e61ef57542f": {
-        "en": "Temperature - Core #372",
-        "fr": "Température - Cœur 372",
-        "ja": "コア３７２の温度"
-    },
-    "22f3fc26-fca1-4826-9c6a-b444e13f6487": {
-        "en": "Temperature - Core #373",
-        "fr": "Température - Cœur 373",
-        "ja": "コア３７３の温度"
-    },
-    "fb1a85d1-7a53-4ca5-a542-318c2a788124": {
-        "en": "Temperature - Core #374",
-        "fr": "Température - Cœur 374",
-        "ja": "コア３７４の温度"
-    },
-    "5d2f5834-0589-4cef-b639-7a86afa66da8": {
-        "en": "Temperature - Core #375",
-        "fr": "Température - Cœur 375",
-        "ja": "コア３７５の温度"
-    },
-    "4d33d7e8-628b-4b74-87ca-1fca1efa0bde": {
-        "en": "Temperature - Core #376",
-        "fr": "Température - Cœur 376",
-        "ja": "コア３７６の温度"
-    },
-    "440e6cc5-214c-4551-a1f1-02d7c9bb91a8": {
-        "en": "Temperature - Core #377",
-        "fr": "Température - Cœur 377",
-        "ja": "コア３７７の温度"
-    },
-    "c5538284-f1b8-46ca-921b-a9f48c5d824f": {
-        "en": "Temperature - Core #378",
-        "fr": "Température - Cœur 378",
-        "ja": "コア３７８の温度"
-    },
-    "fbc6765f-0231-4741-bc11-9fdf0beb0d16": {
-        "en": "Temperature - Core #379",
-        "fr": "Température - Cœur 379",
-        "ja": "コア３７９の温度"
-    },
-    "e6ff620b-f03c-45ed-9d24-b872aac536f2": {
-        "en": "Temperature - Core #380",
-        "fr": "Température - Cœur 380",
-        "ja": "コア３８０の温度"
-    },
-    "c033e59c-a55d-4e61-92f1-cfb46bb79d38": {
-        "en": "Temperature - Core #381",
-        "fr": "Température - Cœur 381",
-        "ja": "コア３８１の温度"
-    },
-    "88352553-c5cf-443f-a3fd-ac240b4b8487": {
-        "en": "Temperature - Core #382",
-        "fr": "Température - Cœur 382",
-        "ja": "コア３８２の温度"
-    },
-    "ddeb51c7-c6a9-4dfe-be80-ee63dd5f2592": {
-        "en": "Temperature - Core #383",
-        "fr": "Température - Cœur 383",
-        "ja": "コア３８３の温度"
-    },
-    "2d6b8acd-b878-40c8-9442-a2e712702167": {
-        "en": "Temperature - Core #384",
-        "fr": "Température - Cœur 384",
-        "ja": "コア３８４の温度"
-    },
-    "97ded660-7bbb-48f3-9e3a-b42a2af51de8": {
-        "en": "Temperature - Core #385",
-        "fr": "Température - Cœur 385",
-        "ja": "コア３８５の温度"
-    },
-    "265cecfc-2bb7-40e1-88df-7b7bcc6ab73d": {
-        "en": "Temperature - Core #386",
-        "fr": "Température - Cœur 386",
-        "ja": "コア３８６の温度"
-    },
-    "2f7f40fb-4634-488e-9254-139c685df0e6": {
-        "en": "Temperature - Core #387",
-        "fr": "Température - Cœur 387",
-        "ja": "コア３８７の温度"
-    },
-    "eebc7899-1a74-49c8-8200-24af1030eaea": {
-        "en": "Temperature - Core #388",
-        "fr": "Température - Cœur 388",
-        "ja": "コア３８８の温度"
-    },
-    "3736e531-ed67-4ce6-839f-71e24e2bf25f": {
-        "en": "Temperature - Core #389",
-        "fr": "Température - Cœur 389",
-        "ja": "コア３８９の温度"
-    },
-    "934b5ab2-e69c-407d-928b-57db8140d00f": {
-        "en": "Temperature - Core #390",
-        "fr": "Température - Cœur 390",
-        "ja": "コア３９０の温度"
-    },
-    "cdc1ac36-7a51-4d95-915e-63ad24c27137": {
-        "en": "Temperature - Core #391",
-        "fr": "Température - Cœur 391",
-        "ja": "コア３９１の温度"
-    },
-    "c5ca7e91-7b58-416b-a606-8d01e3213f80": {
-        "en": "Temperature - Core #392",
-        "fr": "Température - Cœur 392",
-        "ja": "コア３９２の温度"
-    },
-    "05303c4c-87fa-4212-91ce-91f976474b72": {
-        "en": "Temperature - Core #393",
-        "fr": "Température - Cœur 393",
-        "ja": "コア３９３の温度"
-    },
-    "0019d55c-7a3f-43cc-8374-7edef4401e69": {
-        "en": "Temperature - Core #394",
-        "fr": "Température - Cœur 394",
-        "ja": "コア３９４の温度"
-    },
-    "6146feaf-6ec5-4edc-90ea-759b8edfb339": {
-        "en": "Temperature - Core #395",
-        "fr": "Température - Cœur 395",
-        "ja": "コア３９５の温度"
-    },
-    "9b09c541-1b56-411d-84bd-aedb2189cd78": {
-        "en": "Temperature - Core #396",
-        "fr": "Température - Cœur 396",
-        "ja": "コア３９６の温度"
-    },
-    "ffc21787-646e-464e-b4d8-e08e4ae3fcf3": {
-        "en": "Temperature - Core #397",
-        "fr": "Température - Cœur 397",
-        "ja": "コア３９７の温度"
-    },
-    "3a0a5b5b-a36b-40ba-b965-ab957174f2f5": {
-        "en": "Temperature - Core #398",
-        "fr": "Température - Cœur 398",
-        "ja": "コア３９８の温度"
-    },
-    "f395fef1-7018-405e-be47-2713524e7f88": {
-        "en": "Temperature - Core #399",
-        "fr": "Température - Cœur 399",
-        "ja": "コア３９９の温度"
-    },
-    "8e5dd761-2c55-4ffe-a51d-0cf3e8764bae": {
-        "en": "Temperature - Core #400",
-        "fr": "Température - Cœur 400",
-        "ja": "コア４００の温度"
-    },
-    "47771f44-ef27-44c5-b79a-83df625fdd59": {
-        "en": "Temperature - Core #401",
-        "fr": "Température - Cœur 401",
-        "ja": "コア４０１の温度"
-    },
-    "16ec9834-ea82-4afa-9d29-69db251b1ba4": {
-        "en": "Temperature - Core #402",
-        "fr": "Température - Cœur 402",
-        "ja": "コア４０２の温度"
-    },
-    "af4496e2-3975-4341-bb88-4b847ce5b493": {
-        "en": "Temperature - Core #403",
-        "fr": "Température - Cœur 403",
-        "ja": "コア４０３の温度"
-    },
-    "e9288672-a154-4ade-b11e-b702402b6b2f": {
-        "en": "Temperature - Core #404",
-        "fr": "Température - Cœur 404",
-        "ja": "コア４０４の温度"
-    },
-    "a083efd4-dd33-467c-8ec1-d9f9cea8520c": {
-        "en": "Temperature - Core #405",
-        "fr": "Température - Cœur 405",
-        "ja": "コア４０５の温度"
-    },
-    "94b97795-6c0f-43dc-b911-53d0ff075d1b": {
-        "en": "Temperature - Core #406",
-        "fr": "Température - Cœur 406",
-        "ja": "コア４０６の温度"
-    },
-    "aa2e2ad5-fb7d-4e3c-afc3-3c6d2d79afcb": {
-        "en": "Temperature - Core #407",
-        "fr": "Température - Cœur 407",
-        "ja": "コア４０７の温度"
-    },
-    "c2f98937-94d8-4ef6-99aa-60cd732b5549": {
-        "en": "Temperature - Core #408",
-        "fr": "Température - Cœur 408",
-        "ja": "コア４０８の温度"
-    },
-    "c73b32eb-173a-4ed2-ace4-572ec89d3287": {
-        "en": "Temperature - Core #409",
-        "fr": "Température - Cœur 409",
-        "ja": "コア４０９の温度"
-    },
-    "e4e2d7f5-4b87-46ef-b812-4954451f6cc4": {
-        "en": "Temperature - Core #410",
-        "fr": "Température - Cœur 410",
-        "ja": "コア４１０の温度"
-    },
-    "3393330f-a73b-4325-8191-4e9bd24ddbb4": {
-        "en": "Temperature - Core #411",
-        "fr": "Température - Cœur 411",
-        "ja": "コア４１１の温度"
-    },
-    "dde6075b-8513-4121-8cd6-4b1a3c638be7": {
-        "en": "Temperature - Core #412",
-        "fr": "Température - Cœur 412",
-        "ja": "コア４１２の温度"
-    },
-    "2bfc7b7a-3ceb-4085-8328-170d89a4959a": {
-        "en": "Temperature - Core #413",
-        "fr": "Température - Cœur 413",
-        "ja": "コア４１３の温度"
-    },
-    "5f47c5c6-3a5b-4d25-82e4-9dd425223ea0": {
-        "en": "Temperature - Core #414",
-        "fr": "Température - Cœur 414",
-        "ja": "コア４１４の温度"
-    },
-    "41b0956c-4331-4d25-b9c3-304628179633": {
-        "en": "Temperature - Core #415",
-        "fr": "Température - Cœur 415",
-        "ja": "コア４１５の温度"
-    },
-    "43b5ba5d-9172-4ab0-be44-9d0bf6fc5e02": {
-        "en": "Temperature - Core #416",
-        "fr": "Température - Cœur 416",
-        "ja": "コア４１６の温度"
-    },
-    "ba9034ec-038b-4bbb-854f-0f68c8c473b6": {
-        "en": "Temperature - Core #417",
-        "fr": "Température - Cœur 417",
-        "ja": "コア４１７の温度"
-    },
-    "bb896bbf-ac98-4569-a02a-f85e4d07484b": {
-        "en": "Temperature - Core #418",
-        "fr": "Température - Cœur 418",
-        "ja": "コア４１８の温度"
-    },
-    "0c181310-038a-4346-b69d-bbaa7e67f44e": {
-        "en": "Temperature - Core #419",
-        "fr": "Température - Cœur 419",
-        "ja": "コア４１９の温度"
-    },
-    "5d032861-a919-4dff-93c2-8cf89adfcaa9": {
-        "en": "Temperature - Core #420",
-        "fr": "Température - Cœur 420",
-        "ja": "コア４２０の温度"
-    },
-    "ea3d4a3c-63e0-44b3-9888-4f94753a4555": {
-        "en": "Temperature - Core #421",
-        "fr": "Température - Cœur 421",
-        "ja": "コア４２１の温度"
-    },
-    "f49ad92c-d1ac-4ac3-b7d3-dd65e4999bd7": {
-        "en": "Temperature - Core #422",
-        "fr": "Température - Cœur 422",
-        "ja": "コア４２２の温度"
-    },
-    "9930ae53-b96b-49f9-9ddc-1bd19ca29185": {
-        "en": "Temperature - Core #423",
-        "fr": "Température - Cœur 423",
-        "ja": "コア４２３の温度"
-    },
-    "cb9b32bd-a361-44da-bc0d-264a681c93aa": {
-        "en": "Temperature - Core #424",
-        "fr": "Température - Cœur 424",
-        "ja": "コア４２４の温度"
-    },
-    "05958a0d-a8e4-4d97-8d52-30f0e3d79dc7": {
-        "en": "Temperature - Core #425",
-        "fr": "Température - Cœur 425",
-        "ja": "コア４２５の温度"
-    },
-    "747b48a5-57f8-47e8-9090-cd570e54a0e1": {
-        "en": "Temperature - Core #426",
-        "fr": "Température - Cœur 426",
-        "ja": "コア４２６の温度"
-    },
-    "59e22291-cfdd-414d-9383-87b3fba08d7c": {
-        "en": "Temperature - Core #427",
-        "fr": "Température - Cœur 427",
-        "ja": "コア４２７の温度"
-    },
-    "5e1bd81f-e756-4db8-9539-abfb16806c0b": {
-        "en": "Temperature - Core #428",
-        "fr": "Température - Cœur 428",
-        "ja": "コア４２８の温度"
-    },
-    "7490001c-6f63-4250-ba4c-8b7a653644fd": {
-        "en": "Temperature - Core #429",
-        "fr": "Température - Cœur 429",
-        "ja": "コア４２９の温度"
-    },
-    "59177b8d-b9a4-4b71-a4ca-84f59ec89a0a": {
-        "en": "Temperature - Core #430",
-        "fr": "Température - Cœur 430",
-        "ja": "コア４３０の温度"
-    },
-    "c3e093bb-31d9-40e3-ae3b-83ac4911ca73": {
-        "en": "Temperature - Core #431",
-        "fr": "Température - Cœur 431",
-        "ja": "コア４３１の温度"
-    },
-    "1fc96473-ad5e-4deb-a962-ae44154e3072": {
-        "en": "Temperature - Core #432",
-        "fr": "Température - Cœur 432",
-        "ja": "コア４３２の温度"
-    },
-    "506a65e9-b380-4aa7-9b8e-e38a3c78d9b3": {
-        "en": "Temperature - Core #433",
-        "fr": "Température - Cœur 433",
-        "ja": "コア４３３の温度"
-    },
-    "c010f01c-821a-4ca2-97c5-f978c81e5c63": {
-        "en": "Temperature - Core #434",
-        "fr": "Température - Cœur 434",
-        "ja": "コア４３４の温度"
-    },
-    "a77468c4-eeff-450d-9c5b-80f9b1b0e375": {
-        "en": "Temperature - Core #435",
-        "fr": "Température - Cœur 435",
-        "ja": "コア４３５の温度"
-    },
-    "3c7ce5ab-13ba-44e0-b99d-ae6b19f907b8": {
-        "en": "Temperature - Core #436",
-        "fr": "Température - Cœur 436",
-        "ja": "コア４３６の温度"
-    },
-    "a7939ad3-1efa-4fd5-80e0-6a812fbe1a78": {
-        "en": "Temperature - Core #437",
-        "fr": "Température - Cœur 437",
-        "ja": "コア４３７の温度"
-    },
-    "c73e80af-b253-4fcf-91fd-622f01231087": {
-        "en": "Temperature - Core #438",
-        "fr": "Température - Cœur 438",
-        "ja": "コア４３８の温度"
-    },
-    "dd98cd75-0423-4b78-b375-301081e17827": {
-        "en": "Temperature - Core #439",
-        "fr": "Température - Cœur 439",
-        "ja": "コア４３９の温度"
-    },
-    "4926a4ef-9062-47f2-9535-e52ca24c07aa": {
-        "en": "Temperature - Core #440",
-        "fr": "Température - Cœur 440",
-        "ja": "コア４４０の温度"
-    },
-    "0f9496c7-2706-4133-b3c3-332a6176d7f1": {
-        "en": "Temperature - Core #441",
-        "fr": "Température - Cœur 441",
-        "ja": "コア４４１の温度"
-    },
-    "998b24aa-3d1e-4528-b141-3e38d8416f7b": {
-        "en": "Temperature - Core #442",
-        "fr": "Température - Cœur 442",
-        "ja": "コア４４２の温度"
-    },
-    "53490624-5da1-462f-9f93-b906d54a78fb": {
-        "en": "Temperature - Core #443",
-        "fr": "Température - Cœur 443",
-        "ja": "コア４４３の温度"
-    },
-    "73111178-352d-4e7b-a91f-fbe619ead4e6": {
-        "en": "Temperature - Core #444",
-        "fr": "Température - Cœur 444",
-        "ja": "コア４４４の温度"
-    },
-    "48428e1d-22eb-437a-b4cf-e857a58f2160": {
-        "en": "Temperature - Core #445",
-        "fr": "Température - Cœur 445",
-        "ja": "コア４４５の温度"
-    },
-    "fa496217-56ba-470c-bb7c-39a15afe465c": {
-        "en": "Temperature - Core #446",
-        "fr": "Température - Cœur 446",
-        "ja": "コア４４６の温度"
-    },
-    "a023e0c2-85bf-4482-bb02-b5320ac3f3e1": {
-        "en": "Temperature - Core #447",
-        "fr": "Température - Cœur 447",
-        "ja": "コア４４７の温度"
-    },
-    "7bc1390e-c4b9-4938-a360-af0ecfc92ac1": {
-        "en": "Temperature - Core #448",
-        "fr": "Température - Cœur 448",
-        "ja": "コア４４８の温度"
-    },
-    "63bce93f-3d02-4b47-8457-404eeb789b94": {
-        "en": "Temperature - Core #449",
-        "fr": "Température - Cœur 449",
-        "ja": "コア４４９の温度"
-    },
-    "f5e78a6d-29b0-4440-84c2-0afcaa257d31": {
-        "en": "Temperature - Core #450",
-        "fr": "Température - Cœur 450",
-        "ja": "コア４５０の温度"
-    },
-    "4ac745d0-b306-4f2c-86b0-2089d976cf22": {
-        "en": "Temperature - Core #451",
-        "fr": "Température - Cœur 451",
-        "ja": "コア４５１の温度"
-    },
-    "8a344d35-13bb-4d9f-a23c-a91c6a20a6a8": {
-        "en": "Temperature - Core #452",
-        "fr": "Température - Cœur 452",
-        "ja": "コア４５２の温度"
-    },
-    "880a1b2b-2360-487a-aa60-cb121f7a66c0": {
-        "en": "Temperature - Core #453",
-        "fr": "Température - Cœur 453",
-        "ja": "コア４５３の温度"
-    },
-    "ca4f2833-b091-4fc3-9977-7e0f02b5059e": {
-        "en": "Temperature - Core #454",
-        "fr": "Température - Cœur 454",
-        "ja": "コア４５４の温度"
-    },
-    "2a5cd527-1525-452d-bbb6-064151abbf7c": {
-        "en": "Temperature - Core #455",
-        "fr": "Température - Cœur 455",
-        "ja": "コア４５５の温度"
-    },
-    "eacb88c4-40f9-4e89-910a-e006adc11181": {
-        "en": "Temperature - Core #456",
-        "fr": "Température - Cœur 456",
-        "ja": "コア４５６の温度"
-    },
-    "846803ec-96e3-403b-9b57-46c1e4b3ff6a": {
-        "en": "Temperature - Core #457",
-        "fr": "Température - Cœur 457",
-        "ja": "コア４５７の温度"
-    },
-    "bb5fad64-6673-4fad-a266-75a8394bb81d": {
-        "en": "Temperature - Core #458",
-        "fr": "Température - Cœur 458",
-        "ja": "コア４５８の温度"
-    },
-    "c2d089c4-30b9-407d-96c9-a7825fb176ed": {
-        "en": "Temperature - Core #459",
-        "fr": "Température - Cœur 459",
-        "ja": "コア４５９の温度"
-    },
-    "a4607c34-08c3-4c3b-98cf-35fa2bdefbd4": {
-        "en": "Temperature - Core #460",
-        "fr": "Température - Cœur 460",
-        "ja": "コア４６０の温度"
-    },
-    "c9a76bb9-a978-4e44-b272-70aff9ba7ac3": {
-        "en": "Temperature - Core #461",
-        "fr": "Température - Cœur 461",
-        "ja": "コア４６１の温度"
-    },
-    "7f34c9ce-b22f-4213-9789-dee24ad23241": {
-        "en": "Temperature - Core #462",
-        "fr": "Température - Cœur 462",
-        "ja": "コア４６２の温度"
-    },
-    "bb8f4911-3494-4921-8c84-c7881ce63b24": {
-        "en": "Temperature - Core #463",
-        "fr": "Température - Cœur 463",
-        "ja": "コア４６３の温度"
-    },
-    "7cd54314-1133-442f-be5f-8418400867c3": {
-        "en": "Temperature - Core #464",
-        "fr": "Température - Cœur 464",
-        "ja": "コア４６４の温度"
-    },
-    "19a1c47a-734e-4fd8-87be-3a254bc7082e": {
-        "en": "Temperature - Core #465",
-        "fr": "Température - Cœur 465",
-        "ja": "コア４６５の温度"
-    },
-    "a5521671-dbbb-4d68-81e1-8ff472d4fb27": {
-        "en": "Temperature - Core #466",
-        "fr": "Température - Cœur 466",
-        "ja": "コア４６６の温度"
-    },
-    "8f8935b7-c886-42e0-9ef6-5619a356fa3e": {
-        "en": "Temperature - Core #467",
-        "fr": "Température - Cœur 467",
-        "ja": "コア４６７の温度"
-    },
-    "16a0065f-78db-4c14-a7d3-4c9b2c67518f": {
-        "en": "Temperature - Core #468",
-        "fr": "Température - Cœur 468",
-        "ja": "コア４６８の温度"
-    },
-    "66bd16b3-614c-40ff-81c4-2baa333c1742": {
-        "en": "Temperature - Core #469",
-        "fr": "Température - Cœur 469",
-        "ja": "コア４６９の温度"
-    },
-    "c4d12565-330c-4925-9eff-6f9934b9c84d": {
-        "en": "Temperature - Core #470",
-        "fr": "Température - Cœur 470",
-        "ja": "コア４７０の温度"
-    },
-    "80227d90-b7c4-45b6-990f-7042240dffe6": {
-        "en": "Temperature - Core #471",
-        "fr": "Température - Cœur 471",
-        "ja": "コア４７１の温度"
-    },
-    "f59dc2b1-5553-4db8-b4a5-061d31173fcf": {
-        "en": "Temperature - Core #472",
-        "fr": "Température - Cœur 472",
-        "ja": "コア４７２の温度"
-    },
-    "08bdcd70-ad9f-4c0d-981c-5be8b5d8e3af": {
-        "en": "Temperature - Core #473",
-        "fr": "Température - Cœur 473",
-        "ja": "コア４７３の温度"
-    },
-    "a84606b9-c915-4a08-a0be-6f38f02fde0d": {
-        "en": "Temperature - Core #474",
-        "fr": "Température - Cœur 474",
-        "ja": "コア４７４の温度"
-    },
-    "ae4427d7-31a3-4834-9222-ce6d4a197b5f": {
-        "en": "Temperature - Core #475",
-        "fr": "Température - Cœur 475",
-        "ja": "コア４７５の温度"
-    },
-    "7339991e-3bcf-4d6f-ac1d-afaea9db4e14": {
-        "en": "Temperature - Core #476",
-        "fr": "Température - Cœur 476",
-        "ja": "コア４７６の温度"
-    },
-    "95432015-d62c-4421-9a48-1fcb38b24e4d": {
-        "en": "Temperature - Core #477",
-        "fr": "Température - Cœur 477",
-        "ja": "コア４７７の温度"
-    },
-    "664112cf-b3a1-4a91-a0c7-058def47fc35": {
-        "en": "Temperature - Core #478",
-        "fr": "Température - Cœur 478",
-        "ja": "コア４７８の温度"
-    },
-    "ed83a13a-a9db-4504-b44a-183f7fa1976e": {
-        "en": "Temperature - Core #479",
-        "fr": "Température - Cœur 479",
-        "ja": "コア４７９の温度"
-    },
-    "6e2af343-c1ef-4445-89b0-ba2c6a684751": {
-        "en": "Temperature - Core #480",
-        "fr": "Température - Cœur 480",
-        "ja": "コア４８０の温度"
-    },
-    "f3d5c8f6-33dd-487e-83c6-b2710c0087bf": {
-        "en": "Temperature - Core #481",
-        "fr": "Température - Cœur 481",
-        "ja": "コア４８１の温度"
-    },
-    "4739469a-62e3-46a6-a8bd-239cc5a1ca04": {
-        "en": "Temperature - Core #482",
-        "fr": "Température - Cœur 482",
-        "ja": "コア４８２の温度"
-    },
-    "c3b1e6e4-2fe4-4f96-844e-921dfbd6433c": {
-        "en": "Temperature - Core #483",
-        "fr": "Température - Cœur 483",
-        "ja": "コア４８３の温度"
-    },
-    "fecac444-5e9d-44e7-9316-c5eb163ff582": {
-        "en": "Temperature - Core #484",
-        "fr": "Température - Cœur 484",
-        "ja": "コア４８４の温度"
-    },
-    "296ddd5e-913b-471c-9cdd-e2595d05f19f": {
-        "en": "Temperature - Core #485",
-        "fr": "Température - Cœur 485",
-        "ja": "コア４８５の温度"
-    },
-    "81197e27-434a-4aef-b831-0be711846e90": {
-        "en": "Temperature - Core #486",
-        "fr": "Température - Cœur 486",
-        "ja": "コア４８６の温度"
-    },
-    "db410172-a949-42ae-b5aa-e37c12b1c0aa": {
-        "en": "Temperature - Core #487",
-        "fr": "Température - Cœur 487",
-        "ja": "コア４８７の温度"
-    },
-    "7d13ffd6-6c28-4d05-9366-666d67e18106": {
-        "en": "Temperature - Core #488",
-        "fr": "Température - Cœur 488",
-        "ja": "コア４８８の温度"
-    },
-    "e5dc8cd8-74ff-4e1c-9107-1aade0e772eb": {
-        "en": "Temperature - Core #489",
-        "fr": "Température - Cœur 489",
-        "ja": "コア４８９の温度"
-    },
-    "759e738a-b881-4e76-99e2-3922d98c89b2": {
-        "en": "Temperature - Core #490",
-        "fr": "Température - Cœur 490",
-        "ja": "コア４９０の温度"
-    },
-    "96cb1d75-fc79-4cd2-b752-f7e675219b97": {
-        "en": "Temperature - Core #491",
-        "fr": "Température - Cœur 491",
-        "ja": "コア４９１の温度"
-    },
-    "b95d0ef1-e185-48e3-b48b-6ad3ea34fd11": {
-        "en": "Temperature - Core #492",
-        "fr": "Température - Cœur 492",
-        "ja": "コア４９２の温度"
-    },
-    "d32c33ec-6300-4e19-a2cf-80491b3baa20": {
-        "en": "Temperature - Core #493",
-        "fr": "Température - Cœur 493",
-        "ja": "コア４９３の温度"
-    },
-    "6f4e67df-3b59-4dba-b56f-82998a960d2f": {
-        "en": "Temperature - Core #494",
-        "fr": "Température - Cœur 494",
-        "ja": "コア４９４の温度"
-    },
-    "880772cc-bdd4-475f-b83a-00fd6b2422d6": {
-        "en": "Temperature - Core #495",
-        "fr": "Température - Cœur 495",
-        "ja": "コア４９５の温度"
-    },
-    "457f9280-09e4-41c5-bb46-6927a4ff4462": {
-        "en": "Temperature - Core #496",
-        "fr": "Température - Cœur 496",
-        "ja": "コア４９６の温度"
-    },
-    "500db530-b700-4779-aa36-bfb593219a16": {
-        "en": "Temperature - Core #497",
-        "fr": "Température - Cœur 497",
-        "ja": "コア４９７の温度"
-    },
-    "a32cd01b-fea8-430b-befe-0348004c0076": {
-        "en": "Temperature - Core #498",
-        "fr": "Température - Cœur 498",
-        "ja": "コア４９８の温度"
-    },
-    "25567b6b-7605-45b7-946b-a4d4c556b581": {
-        "en": "Temperature - Core #499",
-        "fr": "Température - Cœur 499",
-        "ja": "コア４９９の温度"
-    },
-    "e3c14545-6d81-48e1-bf0f-8a44614e4bcc": {
-        "en": "Temperature - Core #500",
-        "fr": "Température - Cœur 500",
-        "ja": "コア５００の温度"
-    },
-    "e7f189c0-38b8-4f8b-aa1f-b977bc82e5de": {
-        "en": "Temperature - Core #501",
-        "fr": "Température - Cœur 501",
-        "ja": "コア５０１の温度"
-    },
-    "f0054c6b-fcef-499e-8c1d-b16f42c9309d": {
-        "en": "Temperature - Core #502",
-        "fr": "Température - Cœur 502",
-        "ja": "コア５０２の温度"
-    },
-    "bf9d1935-24cf-4889-9c37-2df1ed5759fd": {
-        "en": "Temperature - Core #503",
-        "fr": "Température - Cœur 503",
-        "ja": "コア５０３の温度"
-    },
-    "96135999-fb18-4e07-a87e-8380d02a1b54": {
-        "en": "Temperature - Core #504",
-        "fr": "Température - Cœur 504",
-        "ja": "コア５０４の温度"
-    },
-    "c5e5055d-ac29-4b73-b00b-bc6fac76d01c": {
-        "en": "Temperature - Core #505",
-        "fr": "Température - Cœur 505",
-        "ja": "コア５０５の温度"
-    },
-    "0838db3c-7c82-4e3c-b62e-66db86c5c441": {
-        "en": "Temperature - Core #506",
-        "fr": "Température - Cœur 506",
-        "ja": "コア５０６の温度"
-    },
-    "5872862e-e03a-4d1f-a1a0-68fd4bb7d417": {
-        "en": "Temperature - Core #507",
-        "fr": "Température - Cœur 507",
-        "ja": "コア５０７の温度"
-    },
-    "57004a47-113c-49c2-ac3c-b076b99fdd8f": {
-        "en": "Temperature - Core #508",
-        "fr": "Température - Cœur 508",
-        "ja": "コア５０８の温度"
-    },
-    "53facd38-ed5a-474e-b94a-04c791637809": {
-        "en": "Temperature - Core #509",
-        "fr": "Température - Cœur 509",
-        "ja": "コア５０９の温度"
-    },
-    "6802097c-e58b-412b-8989-02b9a91c076c": {
-        "en": "Temperature - Core #510",
-        "fr": "Température - Cœur 510",
-        "ja": "コア５１０の温度"
-    },
-    "8b9bef42-bfa5-45a5-a724-3843d31f096d": {
-        "en": "Temperature - Core #511",
-        "fr": "Température - Cœur 511",
-        "ja": "コア５１１の温度"
-    },
-    "58538897-31c9-4484-99a8-567d34c8483a": {
-        "en": "Temperature - Core #512",
-        "fr": "Température - Cœur 512",
-        "ja": "コア５１２の温度"
-    }
+	// Common use strings
+	"4d2b3404-1cb1-4536-918c-80facc124cf9": {
+		"en": "On",
+		"fr": "Allumé",
+		"ja": "オン"
+	},
+	"a9f9a2e6-2091-4bd9-b135-a4a5d6d4009e": {
+		"en": "Off",
+		"fr": "Éteint",
+		"ja": "オフ"
+	},
+	"5c65f531-fceb-477b-97ef-b762bc358396": {
+		"en": "Enabled",
+		"fr": "Activé",
+		"ja": "有効"
+	},
+	"da23bf28-6572-4e00-83a1-be68bf7cf749": {
+		"en": "Disabled",
+		"fr": "Désactivé",
+		"ja": "無効"
+	},
+	"16ac1b8f-cb3f-4910-9af4-bd966aa16279": {
+		"en": "Standard",
+		"fr": "Standard",
+		"ja": "標準"
+	},
+	"e677ce93-816f-44c7-ad7e-b1042f61f2fd": {
+		"en": "Advanced",
+		"fr": "Avancé",
+		"ja": "詳細"
+	},
+	"c88a634b-9621-4108-91b8-b2f74208421f": {
+		"en": "Normal",
+		"fr": "Normal",
+		"ja": "普通"
+	},
+	"76e54863-cd4a-4690-bcc1-ae566b534cef": {
+		"en": "Fast",
+		"fr": "Rapide"
+	},
+	"e383e29e-60c3-44a5-a761-b08f96a200a7": {
+		"en": "Faster",
+		"fr": "Plus rapide"
+	},
+	// Sensors
+	"d5db037c-caa7-4a40-937f-ec2ec64b1b96": {
+		"en": "Fan Speed",
+		"fr": "Vitesse du ventilateur",
+		"ja": "ファンの回転数"
+	},
+	"d9608d42-6ba3-4ffd-a4a9-905ba063b445": {
+		"en": "Fan 1 Speed",
+		"fr": "Vitesse ventilateur 1",
+		"ja": "ファン１の回転数"
+	},
+	"8b280e41-5c23-4c45-9088-65dd4b67fccc": {
+		"en": "Fan 2 Speed",
+		"fr": "Vitesse ventilateur 2",
+		"ja": "ファン２の回転数"
+	},
+	"80acb355-040e-4789-96c9-8ed249964b08": {
+		"en": "Pump Speed",
+		"fr": "Vitesse de la pompe",
+		"ja": "ポンプの回転数"
+	},
+	"a16abea5-5e05-40a0-861e-b948f3bc7084": {
+		"en": "Temperature",
+		"fr": "Température",
+		"ja": "温度"
+	},
+	"5553c264-35bf-44ba-bd23-5a1bf611f5e1": {
+		"en": "Liquid Temperature",
+		"fr": "Température du liquide",
+		"ja": "液体の温度"
+	},
+	"4458560b-d509-4368-9181-9f66faaa65bf": {
+		"en": "Input Voltage",
+		"fr": "Tension d'entrée",
+		"ja": "入力電圧"
+	},
+	"d29d5844-6fc3-4e76-bd70-b158b584c5de": {
+		"en": "Output Voltage",
+		"fr": "Tension de sortie",
+		"ja": "出力電圧"
+	},
+	"c5f09e52-98c0-48ec-ab4a-19766755fb78": {
+		"en": "Output Power",
+		"fr": "Puissance de sortie",
+		"ja": "出力電力"
+	},
+	"7a074c26-621c-4539-9c45-d1e7050f7bfb": {
+		"en": "Power Load",
+		"fr": "% de puissance"
+	},
+	"ff58ccbd-f377-481a-94eb-57e8aabb3fb7": {
+		"en": "Graphics Load",
+		"fr": "% Graphismes"
+	},
+	"d25c1838-3959-4e29-8aec-b99347a66b3f": {
+		"en": "Frame Buffer Load",
+		"fr": "% Frame buffer"
+	},
+	"33b3eec9-a302-47ab-abb9-007ec068830a": {
+		"en": "Video Load",
+		"fr": "% Vidéo"
+	},
+	"a2e5471f-7d3c-432c-88f8-c9f16e2456f5": {
+		"en": "Bus Load",
+		"fr": "% Bus"
+	},
+	"830f4e78-71b0-459c-9ade-a001d6f1ae10": {
+		"en": "GPU Temperature",
+		"fr": "Température GPU"
+	},
+	"304c3571-9070-4aad-b9ac-36d3e16008de": {
+		"en": "Memory Temperature",
+		"fr": "Température mémoire"
+	},
+	"80a6a818-b3bf-498a-a9dc-e91e0eeb9287": {
+		"en": "Power Supply Temperature",
+		"fr": "Température de l'alimentation"
+	},
+	"b143636c-58cc-4e08-9a1e-c13eb9457f7e": {
+		"en": "Board Temperature",
+		"fr": "Température carte"
+	},
+	"4dc9d432-8be8-4358-b08f-c1c6b2810692": {
+		"en": "Graphics Frequency",
+		"fr": "Fréquence graphismes"
+	},
+	"775c66e1-a4af-492d-a1fd-fa0d4601a121": {
+		"en": "Memory Frequency",
+		"fr": "Fréquence mémoire"
+	},
+	"dfc64831-9fd0-4f41-a91e-00fd7476aff7": {
+		"en": "Processor Frequency",
+		"fr": "Fréquence processeur"
+	},
+	"451592a3-c6b4-407f-826f-dda5bd9eead7": {
+		"en": "Video Frequency",
+		"fr": "Fréquence vidéo"
+	},
+	// Coolers
+	"58dbe372-3c18-4059-8f53-0bc56ded725c": {
+		"en": "Fan",
+		"fr": "Ventilateur",
+		"ja": "ファン"
+	},
+	"96248f2b-3504-4feb-80df-8b49f2f1ebe0": {
+		"en": "Fan 1",
+		"fr": "Ventilateur 1",
+		"ja": "ファン１"
+	},
+	"f3a31701-859b-4eff-8ae8-65af35aaca69": {
+		"en": "Fan 2",
+		"fr": "Ventilateur 2",
+		"ja": "ファン２"
+	},
+	"78986262-eeb6-4d90-88b2-cc2ce44f1874": {
+		"en": "Pump",
+		"fr": "Pompe",
+		"ja": "ポンプ"
+	},
+	// Lighting Zone Names
+	"43e202d9-1322-4508-aeb3-ebfa7c3cbf93": {
+		"en": "Memory Module 1",
+		"fr": "Module mémoire 1"
+	},
+	"f13178da-3309-4992-bea9-70a02da3afc9": {
+		"en": "Memory Module 2",
+		"fr": "Module mémoire 2"
+	},
+	"8ff13cab-b313-4bc6-83b7-60932ff1b0bf": {
+		"en": "Memory Module 3",
+		"fr": "Module mémoire 3"
+	},
+	"90c74ed6-fe35-450e-960e-951100998fd2": {
+		"en": "Memory Module 4",
+		"fr": "Module mémoire 4"
+	},
+	"76f1ab82-757c-4e83-8e70-6ce2ff970352": {
+		"en": "Memory Module 5",
+		"fr": "Module mémoire 5"
+	},
+	"09779d85-985f-4a1b-a3d0-3fd666d01841": {
+		"en": "Memory Module 6",
+		"fr": "Module mémoire 6"
+	},
+	"3d29c33f-f5bc-4a54-80aa-1d4111b21694": {
+		"en": "Memory Module 7",
+		"fr": "Module mémoire 7"
+	},
+	"76ffbca1-8fa9-4d79-9e07-af863a006b02": {
+		"en": "Memory Module 8",
+		"fr": "Module mémoire 8"
+	},
+	"014ef66f-12c2-48eb-8350-7bbcd7efab1f": {
+		"en": "Mouse wheel",
+		"fr": "Molette de la souris"
+	},
+	"179c675c-f48b-4a95-885e-542ddb4e3412": {
+		"en": "Logo",
+		"fr": "Logo",
+		"ja": "ロゴ"
+	},
+	// Lighting Effect Names
+	"72324394-b58d-41e3-a4fe-aa17342b0036": {
+		"en": "(Not Applicable)",
+		"fr": "(Non applicable)"
+	},
+	"36218033-ff96-41f1-b01c-f9fbefa4bcc3": {
+		"en": "Disabled",
+		"fr": "Désactivé",
+		"ja": "無効"
+	},
+	"e965c6f5-3d24-42ed-9182-31f48b5248a6": {
+		"en": "Enabled",
+		"fr": "Activé",
+		"ja": "有効"
+	},
+	"bfa5b721-db96-47a5-9e69-5dd0ae943275": {
+		"en": "Static",
+		"fr": "Statique"
+	},
+	"f49c1855-5583-4a4f-8272-7f0326a23197": {
+		"en": "Pulse",
+		"fr": "Impulsion"
+	},
+	"d30ddfeb-9337-4fde-a303-b63db3a64c2b": {
+		"en": "Pulse (Speed)",
+		"fr": "Impulsion (Vitesse)"
+	},
+	"965a4868-b74e-4674-b43f-2086daf37906": {
+		"en": "Blink",
+		"fr": "Clignottement"
+	},
+	"419e70ee-8355-4cf5-9d18-54835008cdb0": {
+		"en": "Flash",
+		"fr": "Flashs"
+	},
+	"ad36bbab-eb53-4610-957a-07ff72d5fc94": {
+		"en": "Flash (Speed)",
+		"fr": "Flashs (Vitesse)"
+	},
+	"597bbd76-be6e-4c8f-8e48-cc45cd1c5a30": {
+		"en": "Double Flash",
+		"fr": "Double flashs"
+	},
+	"5a22c2a6-ff28-4a99-985c-f027cefc305b": {
+		"en": "Chase",
+		"fr": "Chasse"
+	},
+	"8f32de3a-b7c5-459c-9678-5e247af86056": {
+		"en": "Chase (Speed)",
+		"fr": "Chasse (Vitesse)"
+	},
+	"c1dc1388-3864-4db9-bffb-40bc78b34442": {
+		"en": "Wave",
+		"fr": "Vague"
+	},
+	"2c0f5ddb-f374-497b-a873-e8fd7bf6db77": {
+		"en": "Wave (Speed)",
+		"fr": "Vague (Vitesse)"
+	},
+	"5ba5b8c5-3fd9-40c5-830a-68f775a9f27b": {
+		"en": "Spectrum Cycle",
+		"fr": "Cycle spectral"
+	},
+	"a1c25516-29ca-4e76-9210-6c9afadde4da": {
+		"en": "Spectrum Cycle (Speed)",
+		"fr": "Cycle spectral (Vitesse)"
+	},
+	"1dbeeeb3-5738-4503-b3a4-c25a4c519de1": {
+		"en": "Spectrum Cycle (Brightness)",
+		"fr": "Cycle spectral (Luminosité)"
+	},
+	"454153c6-7231-4677-9007-d0f75f4432b6": {
+		"en": "Spectrum Wave",
+		"fr": "Vague spectrale"
+	},
+	"621e5d5b-7eb5-4953-b338-3a00a65ea350": {
+		"en": "Spectrum Wave (Speed)",
+		"fr": "Vague spectrale (Vitesse)"
+	},
+	"60e315f9-c41c-4d3e-a813-5031dd0b39ef": {
+		"en": "Reactive",
+		"fr": "Réactif"
+	},
+	"66893ce9-cf8d-4bb4-b3ba-ee38a51186dd": {
+		"en": "Breathing",
+		"fr": "Respiration"
+	},
+	"dd4b72a6-9cbd-431a-9468-869d5df17fa9": {
+		"en": "Color Cycle",
+		"fr": "Cycle de couleurs"
+	},
+	// Embedded monitor graphics
+	"2f538961-daf9-4664-87fa-22b848df0eec": {
+		"en": "Image",
+		"fr": "Image",
+		"ja": "画像"
+	},
+	// Language names
+	"3d7555d0-345a-49f1-903e-a15d35b0f5ec": {
+		"en": "English",
+		"fr": "Anglais",
+		"ja": "英語"
+	},
+	"cc5d6fb5-0653-49bb-85cc-4ae2ca82f487": {
+		"en": "French",
+		"fr": "Français",
+		"ja": "フランス語"
+	},
+	"1af16a76-e293-4096-a9d7-9e9eff68b591": {
+		"en": "German",
+		"fr": "Allemand",
+		"ja": "ドイツ語"
+	},
+	"f12057bc-08ce-446d-9d25-b5965b6136ab": {
+		"en": "Italian",
+		"fr": "Italien",
+		"ja": "イタリア語"
+	},
+	"9ef9c042-bfbb-4b72-9c24-4da56e1f56be": {
+		"en": "Japanese",
+		"fr": "Japonais",
+		"ja": "日本語"
+	},
+	"12df152a-1065-4200-966f-2be77410fd13": {
+		"en": "Korean",
+		"fr": "Coréen",
+		"ja": "韓国語"
+	},
+	"e9d6e301-de10-4f5a-910e-5aa80cf057d1": {
+		"en": "Chinese (Traditional)",
+		"fr": "Chinois (Traditionnel)",
+		"ja": "中国語（繁体字）"
+	},
+	"4b0f748a-cc4a-41ea-a59b-9549dd619e76": {
+		"en": "Chinese (Simplified)",
+		"fr": "Chinois (Simplifié)",
+		"ja": "中国語（簡体字）"
+	},
+	"e3e65711-aae3-4f2d-aa95-092cfc105872": {
+		"en": "Portuguese (Portugal)",
+		"fr": "Portugais (Portugal)",
+		"ja": "ポルトガル語（ポルトガル）"
+	},
+	"9318646f-67aa-4fae-95fc-3618c2f2777b": {
+		"en": "Portuguese (Brazil)",
+		"fr": "Portugais (Brésil)",
+		"ja": "ポルトガル語（ブラジル）"
+	},
+	"5ad769bf-3aa1-49a1-a9f9-6f0ec1b43dd2": {
+		"en": "Russian",
+		"fr": "Russe",
+		"ja": "ロシア語"
+	},
+	"f4bcb574-a61d-4b25-824b-6e865d7427fe": {
+		"en": "Spanish",
+		"fr": "Espagnol",
+		"ja": "スペイン語"
+	},
+	"88307c6f-da3e-424b-bef0-23a252e5b26d": {
+		"en": "Swedish",
+		"fr": "Suédois",
+		"ja": "スウェーデン語"
+	},
+	"f2fc7a26-b392-4c13-a86e-47b2e390caf8": {
+		"en": "Turkish",
+		"fr": "Turque",
+		"ja": "トルコ語"
+	},
+	"ac934765-0eb0-4ac6-b085-88177b1e2d84": {
+		"en": "Arabic",
+		"fr": "Arabe",
+		"ja": "アラビア語"
+	},
+	"49a21314-8315-47a5-b01b-6c7e50403921": {
+		"en": "Bulgarian",
+		"fr": "Bulgare",
+		"ja": "ブルガリア語"
+	},
+	"5506a84a-4ebf-46f5-b611-047cb8631ab9": {
+		"en": "Croatian",
+		"fr": "Croate",
+		"ja": "クロアチア語"
+	},
+	"f73a11cb-ec92-42a2-83b9-5d89a811d36e": {
+		"en": "Czech",
+		"fr": "Tchèque",
+		"ja": "チェコ語"
+	},
+	"ed6ef567-b80a-40d0-9551-38f39955c4c1": {
+		"en": "Danish",
+		"fr": "Danois",
+		"ja": "デンマーク語"
+	},
+	"c42dd145-2882-4b31-90d0-a47a822ed1cd": {
+		"en": "Dutch",
+		"fr": "Néerlandais",
+		"ja": "オランダ語"
+	},
+	"3ee2c2c1-1da2-434b-80d2-2463a52273f5": {
+		"en": "Estonian",
+		"fr": "Estonien",
+		"ja": "エストニア語"
+	},
+	"42177650-1189-414e-9f67-15a0a484a1f2": {
+		"en": "Finnish",
+		"fr": "Finnois",
+		"ja": "フィンランド語"
+	},
+	"9342a747-f7e4-4f79-b0ce-5fb0c8040126": {
+		"en": "Greek",
+		"fr": "Grec",
+		"ja": "ギリシャ語"
+	},
+	"7bed3e7d-9df4-41a9-94ea-4bde84db23a2": {
+		"en": "Hebrew",
+		"fr": "Hébreu",
+		"ja": "ヘブライ語"
+	},
+	"3f31973d-899a-46f3-a249-db6b9c895f4a": {
+		"en": "Hindi",
+		"fr": "Hindi",
+		"ja": "ヒンディー語"
+	},
+	"e3720708-932f-478f-9c7f-59fd4d3e46bf": {
+		"en": "Hungarian",
+		"fr": "Hongrois",
+		"ja": "ハンガリー語"
+	},
+	"3d1908b1-95d4-4ab4-9b56-c8662e0e9ad1": {
+		"en": "Latvian",
+		"fr": "Letton",
+		"ja": "ラトビア語"
+	},
+	"fdb186f3-4dd1-44fd-9bfa-c7237d035a09": {
+		"en": "Lithuanian",
+		"fr": "Lituanien",
+		"ja": "リトアニア語"
+	},
+	"f550eb5b-c345-44db-a341-26fb3d50c04b": {
+		"en": "Norwegian",
+		"fr": "Norvégien",
+		"ja": "ノルウェー語"
+	},
+	"11801b1c-2084-49ce-a965-19a5c3b37a9e": {
+		"en": "Polish",
+		"fr": "Polonais",
+		"ja": "ポーランド語"
+	},
+	"8a812b6b-9d8c-4281-bc9c-a79fce736366": {
+		"en": "Romanian",
+		"fr": "Roumain",
+		"ja": "ルーマニア語"
+	},
+	"8912b5e0-119d-49dc-9f33-872e7e37e729": {
+		"en": "Serbian",
+		"fr": "Serbe",
+		"ja": "セルビア語"
+	},
+	"5317048d-64dd-4240-ae2a-d0787c04e633": {
+		"en": "Slovak",
+		"fr": "Slovaque",
+		"ja": "スロバキア語"
+	},
+	"78632023-055c-4447-8e94-6319c9fded96": {
+		"en": "Slovenian",
+		"fr": "Slovénien",
+		"ja": "スロベニア語"
+	},
+	"e64bd133-b3a1-4d51-bf9c-63c0c4d0d9a8": {
+		"en": "Thai",
+		"fr": "Thailandais",
+		"ja": "タイ語"
+	},
+	"5a78cc6c-bf97-424e-b520-fb004d1009e9": {
+		"en": "Ukranian",
+		"fr": "Ukrainien",
+		"ja": "ウクライナ語"
+	},
+	"6a8fbd37-8ed5-4ade-af15-ccf2e62fc8b7": {
+		"en": "Vietnamese",
+		"fr": "Vietnamien",
+		"ja": "ベトナム語"
+	},
+	// 512 CPU Core Temperatures
+	"b49babfa-4d96-4ebb-ab00-9aace2a33e82": {
+		"en": "Temperature - Core #1",
+		"fr": "Température - Cœur 1",
+		"ja": "コア１の温度"
+	},
+	"c3ce4962-98d7-46cb-8249-e436dc0e5a7d": {
+		"en": "Temperature - Core #2",
+		"fr": "Température - Cœur 2",
+		"ja": "コア２の温度"
+	},
+	"96745f77-7e42-48a0-8df5-b29c8375beca": {
+		"en": "Temperature - Core #3",
+		"fr": "Température - Cœur 3",
+		"ja": "コア３の温度"
+	},
+	"20753a06-eb00-4479-839e-7c16d393a6b1": {
+		"en": "Temperature - Core #4",
+		"fr": "Température - Cœur 4",
+		"ja": "コア４の温度"
+	},
+	"e4f1cbcc-150b-401d-8c50-314664c070c6": {
+		"en": "Temperature - Core #5",
+		"fr": "Température - Cœur 5",
+		"ja": "コア５の温度"
+	},
+	"016c3265-9c01-4efb-bb34-1f150a9ffe01": {
+		"en": "Temperature - Core #6",
+		"fr": "Température - Cœur 6",
+		"ja": "コア６の温度"
+	},
+	"25103f04-82ad-43ab-8d53-4b187ded0116": {
+		"en": "Temperature - Core #7",
+		"fr": "Température - Cœur 7",
+		"ja": "コア７の温度"
+	},
+	"f7261bc1-2c10-40b0-9a8c-b9bf3f3a943b": {
+		"en": "Temperature - Core #8",
+		"fr": "Température - Cœur 8",
+		"ja": "コア８の温度"
+	},
+	"b39b2857-ee8b-4896-a487-ed7c770f1d39": {
+		"en": "Temperature - Core #9",
+		"fr": "Température - Cœur 9",
+		"ja": "コア９の温度"
+	},
+	"2b4d6bf6-2da6-4f79-8b12-68e9c56f60a4": {
+		"en": "Temperature - Core #10",
+		"fr": "Température - Cœur 10",
+		"ja": "コア１０の温度"
+	},
+	"46fc8b63-6e50-49ff-8c93-50d7584ff0b1": {
+		"en": "Temperature - Core #11",
+		"fr": "Température - Cœur 11",
+		"ja": "コア１１の温度"
+	},
+	"c37fd8e1-4cf3-4442-bf26-d7445cd6a05d": {
+		"en": "Temperature - Core #12",
+		"fr": "Température - Cœur 12",
+		"ja": "コア１２の温度"
+	},
+	"0f28c6fd-6fa6-4964-81b3-3860f22ad824": {
+		"en": "Temperature - Core #13",
+		"fr": "Température - Cœur 13",
+		"ja": "コア１３の温度"
+	},
+	"7cb8015c-99a2-4d28-a10d-9a000f426955": {
+		"en": "Temperature - Core #14",
+		"fr": "Température - Cœur 14",
+		"ja": "コア１４の温度"
+	},
+	"de749ed6-3181-4426-b6ce-d7f34385a4de": {
+		"en": "Temperature - Core #15",
+		"fr": "Température - Cœur 15",
+		"ja": "コア１５の温度"
+	},
+	"b0a9f262-929a-4163-973d-f4216b8aa28f": {
+		"en": "Temperature - Core #16",
+		"fr": "Température - Cœur 16",
+		"ja": "コア１６の温度"
+	},
+	"5849d46f-5100-4919-b2d1-f28ea7f83872": {
+		"en": "Temperature - Core #17",
+		"fr": "Température - Cœur 17",
+		"ja": "コア１７の温度"
+	},
+	"c814201f-c6f3-443e-bbef-58d0a8dc5a44": {
+		"en": "Temperature - Core #18",
+		"fr": "Température - Cœur 18",
+		"ja": "コア１８の温度"
+	},
+	"f3b56fa3-daa7-498e-aaa9-71e7dac7c62a": {
+		"en": "Temperature - Core #19",
+		"fr": "Température - Cœur 19",
+		"ja": "コア１９の温度"
+	},
+	"2d9650bb-e5de-42bd-8476-18e43549de51": {
+		"en": "Temperature - Core #20",
+		"fr": "Température - Cœur 20",
+		"ja": "コア２０の温度"
+	},
+	"550af3c1-8fed-426d-b5b9-624cce4c87fc": {
+		"en": "Temperature - Core #21",
+		"fr": "Température - Cœur 21",
+		"ja": "コア２１の温度"
+	},
+	"cdeec73e-247a-4da2-a7cb-c55ddcf5a4e5": {
+		"en": "Temperature - Core #22",
+		"fr": "Température - Cœur 22",
+		"ja": "コア２２の温度"
+	},
+	"406685ee-8948-4c8b-b17d-e2a86f5a8766": {
+		"en": "Temperature - Core #23",
+		"fr": "Température - Cœur 23",
+		"ja": "コア２３の温度"
+	},
+	"5647bd7a-48bc-43bc-abc4-cfee16fb333c": {
+		"en": "Temperature - Core #24",
+		"fr": "Température - Cœur 24",
+		"ja": "コア２４の温度"
+	},
+	"272d9a4f-1e65-4175-b438-03bf604da3a4": {
+		"en": "Temperature - Core #25",
+		"fr": "Température - Cœur 25",
+		"ja": "コア２５の温度"
+	},
+	"afa4e4f6-baaa-40ce-946d-a7b0bc79bfd2": {
+		"en": "Temperature - Core #26",
+		"fr": "Température - Cœur 26",
+		"ja": "コア２６の温度"
+	},
+	"7eb1c1e9-c27c-4e78-a7dd-3431c6048e67": {
+		"en": "Temperature - Core #27",
+		"fr": "Température - Cœur 27",
+		"ja": "コア２７の温度"
+	},
+	"00bbd593-4f26-466a-864f-b11f3d946f42": {
+		"en": "Temperature - Core #28",
+		"fr": "Température - Cœur 28",
+		"ja": "コア２８の温度"
+	},
+	"07fa337e-40cd-47fd-907c-5ea479c051b8": {
+		"en": "Temperature - Core #29",
+		"fr": "Température - Cœur 29",
+		"ja": "コア２９の温度"
+	},
+	"eebf2eaa-a9c9-474b-a912-9f6cb3d0740c": {
+		"en": "Temperature - Core #30",
+		"fr": "Température - Cœur 30",
+		"ja": "コア３０の温度"
+	},
+	"580dd2a6-28e1-4bbd-b319-b415926e2931": {
+		"en": "Temperature - Core #31",
+		"fr": "Température - Cœur 31",
+		"ja": "コア３１の温度"
+	},
+	"6ab849dd-f121-4c67-9830-da05c465e8a4": {
+		"en": "Temperature - Core #32",
+		"fr": "Température - Cœur 32",
+		"ja": "コア３２の温度"
+	},
+	"fb3d8238-deae-480c-a744-8f438c8535d3": {
+		"en": "Temperature - Core #33",
+		"fr": "Température - Cœur 33",
+		"ja": "コア３３の温度"
+	},
+	"4763be63-369b-4c9c-80f0-67944c5be936": {
+		"en": "Temperature - Core #34",
+		"fr": "Température - Cœur 34",
+		"ja": "コア３４の温度"
+	},
+	"eea5b15b-0039-48cc-8a06-1b4df5283929": {
+		"en": "Temperature - Core #35",
+		"fr": "Température - Cœur 35",
+		"ja": "コア３５の温度"
+	},
+	"9936d85d-ecde-45dd-90f6-b02af8a59324": {
+		"en": "Temperature - Core #36",
+		"fr": "Température - Cœur 36",
+		"ja": "コア３６の温度"
+	},
+	"1e1db876-cf86-482c-971f-5209a3a28f65": {
+		"en": "Temperature - Core #37",
+		"fr": "Température - Cœur 37",
+		"ja": "コア３７の温度"
+	},
+	"f4feeafc-5992-442d-b22d-fffd564572bd": {
+		"en": "Temperature - Core #38",
+		"fr": "Température - Cœur 38",
+		"ja": "コア３８の温度"
+	},
+	"f167d431-442d-410b-b0d9-1bb798b707d0": {
+		"en": "Temperature - Core #39",
+		"fr": "Température - Cœur 39",
+		"ja": "コア３９の温度"
+	},
+	"fc851fbf-6b2e-4c67-b3fc-37049a350b4b": {
+		"en": "Temperature - Core #40",
+		"fr": "Température - Cœur 40",
+		"ja": "コア４０の温度"
+	},
+	"fc3d30f8-bac0-4daa-81bd-49d488c7fb68": {
+		"en": "Temperature - Core #41",
+		"fr": "Température - Cœur 41",
+		"ja": "コア４１の温度"
+	},
+	"e9bf62aa-ee58-4fb0-99d1-d0aca4cf64eb": {
+		"en": "Temperature - Core #42",
+		"fr": "Température - Cœur 42",
+		"ja": "コア４２の温度"
+	},
+	"5ae0e7f0-001a-4585-9ac6-2e8bb820e2b4": {
+		"en": "Temperature - Core #43",
+		"fr": "Température - Cœur 43",
+		"ja": "コア４３の温度"
+	},
+	"f5bd36f2-7b94-4de4-98cd-27a2ba2f7824": {
+		"en": "Temperature - Core #44",
+		"fr": "Température - Cœur 44",
+		"ja": "コア４４の温度"
+	},
+	"8cceca1f-95d2-492e-b656-ec99473d0c3c": {
+		"en": "Temperature - Core #45",
+		"fr": "Température - Cœur 45",
+		"ja": "コア４５の温度"
+	},
+	"abd86ab5-d13e-4b93-9e72-b0acfabbcff7": {
+		"en": "Temperature - Core #46",
+		"fr": "Température - Cœur 46",
+		"ja": "コア４６の温度"
+	},
+	"faf99045-e68c-4e8d-ab73-d7dd141fec29": {
+		"en": "Temperature - Core #47",
+		"fr": "Température - Cœur 47",
+		"ja": "コア４７の温度"
+	},
+	"7df97687-15b0-4351-81f8-fc50e1887542": {
+		"en": "Temperature - Core #48",
+		"fr": "Température - Cœur 48",
+		"ja": "コア４８の温度"
+	},
+	"38c7cb5c-6b6b-47a5-90ea-6e3b13395d50": {
+		"en": "Temperature - Core #49",
+		"fr": "Température - Cœur 49",
+		"ja": "コア４９の温度"
+	},
+	"186bfdcb-7cdf-4fe4-bbcb-92b10e05d113": {
+		"en": "Temperature - Core #50",
+		"fr": "Température - Cœur 50",
+		"ja": "コア５０の温度"
+	},
+	"37f97bee-8915-4af2-aa5e-77ae5c95db29": {
+		"en": "Temperature - Core #51",
+		"fr": "Température - Cœur 51",
+		"ja": "コア５１の温度"
+	},
+	"1caf3ea9-6680-4b9e-8c6a-4bca5188101c": {
+		"en": "Temperature - Core #52",
+		"fr": "Température - Cœur 52",
+		"ja": "コア５２の温度"
+	},
+	"ebbbe5f2-f9af-4921-a028-2a6c29d87b7f": {
+		"en": "Temperature - Core #53",
+		"fr": "Température - Cœur 53",
+		"ja": "コア５３の温度"
+	},
+	"27750071-daee-4fba-949b-eceb376eccd6": {
+		"en": "Temperature - Core #54",
+		"fr": "Température - Cœur 54",
+		"ja": "コア５４の温度"
+	},
+	"be1dcaea-82a3-4584-ad72-d4dc7ba31cf0": {
+		"en": "Temperature - Core #55",
+		"fr": "Température - Cœur 55",
+		"ja": "コア５５の温度"
+	},
+	"d79db5f7-3a63-4e13-aa7c-4d9a99b7bf18": {
+		"en": "Temperature - Core #56",
+		"fr": "Température - Cœur 56",
+		"ja": "コア５６の温度"
+	},
+	"c20be363-d213-4d1e-8dea-585c88dd95e7": {
+		"en": "Temperature - Core #57",
+		"fr": "Température - Cœur 57",
+		"ja": "コア５７の温度"
+	},
+	"cb3e307d-7186-4294-a0ec-1196d96b844b": {
+		"en": "Temperature - Core #58",
+		"fr": "Température - Cœur 58",
+		"ja": "コア５８の温度"
+	},
+	"3feaa671-e5c5-46b3-a323-15391d6a22d6": {
+		"en": "Temperature - Core #59",
+		"fr": "Température - Cœur 59",
+		"ja": "コア５９の温度"
+	},
+	"fae2d7d3-b632-45b9-b31c-4c39d57df02a": {
+		"en": "Temperature - Core #60",
+		"fr": "Température - Cœur 60",
+		"ja": "コア６０の温度"
+	},
+	"f07002f4-4f81-480c-9f2a-41fc93cbc0fc": {
+		"en": "Temperature - Core #61",
+		"fr": "Température - Cœur 61",
+		"ja": "コア６１の温度"
+	},
+	"397fe8c8-9e67-48b3-9aa3-0b491ea9037c": {
+		"en": "Temperature - Core #62",
+		"fr": "Température - Cœur 62",
+		"ja": "コア６２の温度"
+	},
+	"140f7319-c663-4fe5-af22-6f91c33c89ed": {
+		"en": "Temperature - Core #63",
+		"fr": "Température - Cœur 63",
+		"ja": "コア６３の温度"
+	},
+	"49802d69-5ec3-4db8-b474-dc3366cacea6": {
+		"en": "Temperature - Core #64",
+		"fr": "Température - Cœur 64",
+		"ja": "コア６４の温度"
+	},
+	"2b603249-df37-41c6-8ecf-27c95cfac339": {
+		"en": "Temperature - Core #65",
+		"fr": "Température - Cœur 65",
+		"ja": "コア６５の温度"
+	},
+	"5ee62f43-67ad-446a-837c-85804634f6f6": {
+		"en": "Temperature - Core #66",
+		"fr": "Température - Cœur 66",
+		"ja": "コア６６の温度"
+	},
+	"22dc7f32-6394-49bb-8f5d-740128625892": {
+		"en": "Temperature - Core #67",
+		"fr": "Température - Cœur 67",
+		"ja": "コア６７の温度"
+	},
+	"394c7fff-3f1a-463e-9016-9dda5c61addc": {
+		"en": "Temperature - Core #68",
+		"fr": "Température - Cœur 68",
+		"ja": "コア６８の温度"
+	},
+	"4c905ffd-cb72-4653-bd8a-6e3166845dc2": {
+		"en": "Temperature - Core #69",
+		"fr": "Température - Cœur 69",
+		"ja": "コア６９の温度"
+	},
+	"71497642-34ac-4cdb-a93a-9fc0c0ffe11a": {
+		"en": "Temperature - Core #70",
+		"fr": "Température - Cœur 70",
+		"ja": "コア７０の温度"
+	},
+	"f0dc13fd-b0fa-4578-882d-6c8a251374d3": {
+		"en": "Temperature - Core #71",
+		"fr": "Température - Cœur 71",
+		"ja": "コア７１の温度"
+	},
+	"b1be4416-9a08-4f3b-b5a9-514acd597055": {
+		"en": "Temperature - Core #72",
+		"fr": "Température - Cœur 72",
+		"ja": "コア７２の温度"
+	},
+	"3fb034a2-4fa5-4413-8872-675fa455623a": {
+		"en": "Temperature - Core #73",
+		"fr": "Température - Cœur 73",
+		"ja": "コア７３の温度"
+	},
+	"aa48991e-0ee4-405d-a33e-618b9fe7374c": {
+		"en": "Temperature - Core #74",
+		"fr": "Température - Cœur 74",
+		"ja": "コア７４の温度"
+	},
+	"d2106213-5ae5-4fc6-a24e-9a70e34e11a6": {
+		"en": "Temperature - Core #75",
+		"fr": "Température - Cœur 75",
+		"ja": "コア７５の温度"
+	},
+	"d4416f67-f957-4511-8fb7-57bb2ebdf1e1": {
+		"en": "Temperature - Core #76",
+		"fr": "Température - Cœur 76",
+		"ja": "コア７６の温度"
+	},
+	"ab676d64-0a7b-4aa8-91aa-1f239a254059": {
+		"en": "Temperature - Core #77",
+		"fr": "Température - Cœur 77",
+		"ja": "コア７７の温度"
+	},
+	"1694b4f4-f998-47e4-b524-16dc9178cc80": {
+		"en": "Temperature - Core #78",
+		"fr": "Température - Cœur 78",
+		"ja": "コア７８の温度"
+	},
+	"80e94904-dfd6-4d6c-a3f5-aee6f5cf98e5": {
+		"en": "Temperature - Core #79",
+		"fr": "Température - Cœur 79",
+		"ja": "コア７９の温度"
+	},
+	"bcae7199-681a-47c7-9d55-cae6c1b68f0a": {
+		"en": "Temperature - Core #80",
+		"fr": "Température - Cœur 80",
+		"ja": "コア８０の温度"
+	},
+	"9a338de8-3b33-4e57-9caf-31aa6db53c56": {
+		"en": "Temperature - Core #81",
+		"fr": "Température - Cœur 81",
+		"ja": "コア８１の温度"
+	},
+	"4912e0f9-16fd-485b-b13b-c9acb0e01d6a": {
+		"en": "Temperature - Core #82",
+		"fr": "Température - Cœur 82",
+		"ja": "コア８２の温度"
+	},
+	"92fc7459-b37f-4436-b638-02d416399a7c": {
+		"en": "Temperature - Core #83",
+		"fr": "Température - Cœur 83",
+		"ja": "コア８３の温度"
+	},
+	"0a06c425-a437-4bc7-989c-343b614491b1": {
+		"en": "Temperature - Core #84",
+		"fr": "Température - Cœur 84",
+		"ja": "コア８４の温度"
+	},
+	"1d0c3c10-906a-491d-a474-ce8ba2936157": {
+		"en": "Temperature - Core #85",
+		"fr": "Température - Cœur 85",
+		"ja": "コア８５の温度"
+	},
+	"7a42d502-3c0f-48ea-b600-442cfcae669b": {
+		"en": "Temperature - Core #86",
+		"fr": "Température - Cœur 86",
+		"ja": "コア８６の温度"
+	},
+	"c6c52147-0727-481c-adec-2d6af7de3792": {
+		"en": "Temperature - Core #87",
+		"fr": "Température - Cœur 87",
+		"ja": "コア８７の温度"
+	},
+	"f22e9100-f1a0-4312-aef8-0ddab0b0e8e9": {
+		"en": "Temperature - Core #88",
+		"fr": "Température - Cœur 88",
+		"ja": "コア８８の温度"
+	},
+	"0b467f67-4362-4977-be27-4f480855b27f": {
+		"en": "Temperature - Core #89",
+		"fr": "Température - Cœur 89",
+		"ja": "コア８９の温度"
+	},
+	"aa56580f-abd6-48de-bcae-c82d107cd2d7": {
+		"en": "Temperature - Core #90",
+		"fr": "Température - Cœur 90",
+		"ja": "コア９０の温度"
+	},
+	"cc431b81-6277-40b0-a5e2-d2bf53ba7565": {
+		"en": "Temperature - Core #91",
+		"fr": "Température - Cœur 91",
+		"ja": "コア９１の温度"
+	},
+	"62dccea4-f56d-4323-baaf-eba8199e2268": {
+		"en": "Temperature - Core #92",
+		"fr": "Température - Cœur 92",
+		"ja": "コア９２の温度"
+	},
+	"0d7cdf1e-978c-4465-88c8-b4b8b5a955d6": {
+		"en": "Temperature - Core #93",
+		"fr": "Température - Cœur 93",
+		"ja": "コア９３の温度"
+	},
+	"07e6ed5a-8df4-4ef4-a618-a7c3169b5f3d": {
+		"en": "Temperature - Core #94",
+		"fr": "Température - Cœur 94",
+		"ja": "コア９４の温度"
+	},
+	"4a1c8b6b-89fe-4dcc-9ef7-5d2ef73b17db": {
+		"en": "Temperature - Core #95",
+		"fr": "Température - Cœur 95",
+		"ja": "コア９５の温度"
+	},
+	"94470633-deac-4a11-89ff-6ebe533ea497": {
+		"en": "Temperature - Core #96",
+		"fr": "Température - Cœur 96",
+		"ja": "コア９６の温度"
+	},
+	"57abc147-b884-45c2-acf7-a8849b196ec4": {
+		"en": "Temperature - Core #97",
+		"fr": "Température - Cœur 97",
+		"ja": "コア９７の温度"
+	},
+	"e55ae00f-0bbe-44da-8e6c-ab6cb41285df": {
+		"en": "Temperature - Core #98",
+		"fr": "Température - Cœur 98",
+		"ja": "コア９８の温度"
+	},
+	"37531266-bfbf-4bcf-a143-34d19c9daa0b": {
+		"en": "Temperature - Core #99",
+		"fr": "Température - Cœur 99",
+		"ja": "コア９９の温度"
+	},
+	"0bcdc138-19f0-44eb-82a2-93f2540c4baf": {
+		"en": "Temperature - Core #100",
+		"fr": "Température - Cœur 100",
+		"ja": "コア１００の温度"
+	},
+	"397a1d38-c5de-4a93-8744-fa5483679bb3": {
+		"en": "Temperature - Core #101",
+		"fr": "Température - Cœur 101",
+		"ja": "コア１０１の温度"
+	},
+	"a26e8011-8c17-4c9e-ae0d-9dffb3274f4b": {
+		"en": "Temperature - Core #102",
+		"fr": "Température - Cœur 102",
+		"ja": "コア１０２の温度"
+	},
+	"e07493f9-29ac-4d0a-99ac-66e859cf799d": {
+		"en": "Temperature - Core #103",
+		"fr": "Température - Cœur 103",
+		"ja": "コア１０３の温度"
+	},
+	"48a12a1c-175f-40bb-b2b8-733c91f54cb2": {
+		"en": "Temperature - Core #104",
+		"fr": "Température - Cœur 104",
+		"ja": "コア１０４の温度"
+	},
+	"40f44157-ec03-425d-952b-2b9d225b1ad6": {
+		"en": "Temperature - Core #105",
+		"fr": "Température - Cœur 105",
+		"ja": "コア１０５の温度"
+	},
+	"0660b551-b956-4951-a30d-395dfdba5580": {
+		"en": "Temperature - Core #106",
+		"fr": "Température - Cœur 106",
+		"ja": "コア１０６の温度"
+	},
+	"36dbf88c-c7e5-46f2-a862-06193a50856e": {
+		"en": "Temperature - Core #107",
+		"fr": "Température - Cœur 107",
+		"ja": "コア１０７の温度"
+	},
+	"8cb0e917-3a03-4186-aac0-c7496b0053f0": {
+		"en": "Temperature - Core #108",
+		"fr": "Température - Cœur 108",
+		"ja": "コア１０８の温度"
+	},
+	"c12bfe10-324f-4290-9202-be425479b20e": {
+		"en": "Temperature - Core #109",
+		"fr": "Température - Cœur 109",
+		"ja": "コア１０９の温度"
+	},
+	"57324a24-53ca-4236-b1ca-d9d49016f68c": {
+		"en": "Temperature - Core #110",
+		"fr": "Température - Cœur 110",
+		"ja": "コア１１０の温度"
+	},
+	"fa540744-56b6-427e-a487-4c690b4290ce": {
+		"en": "Temperature - Core #111",
+		"fr": "Température - Cœur 111",
+		"ja": "コア１１１の温度"
+	},
+	"791a3119-78f5-4d73-a67b-5b4ddf8fe6b1": {
+		"en": "Temperature - Core #112",
+		"fr": "Température - Cœur 112",
+		"ja": "コア１１２の温度"
+	},
+	"f94787a9-622f-45da-8014-e2d8fb122198": {
+		"en": "Temperature - Core #113",
+		"fr": "Température - Cœur 113",
+		"ja": "コア１１３の温度"
+	},
+	"dbdfda16-8527-45da-86e7-c3603ea65553": {
+		"en": "Temperature - Core #114",
+		"fr": "Température - Cœur 114",
+		"ja": "コア１１４の温度"
+	},
+	"c34c4bc3-c3fb-4beb-a607-6585a50008ce": {
+		"en": "Temperature - Core #115",
+		"fr": "Température - Cœur 115",
+		"ja": "コア１１５の温度"
+	},
+	"2b369beb-afe8-4149-a74a-528f809d1a44": {
+		"en": "Temperature - Core #116",
+		"fr": "Température - Cœur 116",
+		"ja": "コア１１６の温度"
+	},
+	"79a8ea76-b0b8-4e6f-a0cb-3fb3d4617c4d": {
+		"en": "Temperature - Core #117",
+		"fr": "Température - Cœur 117",
+		"ja": "コア１１７の温度"
+	},
+	"ca90db06-ffde-457e-a013-877ee88c34a8": {
+		"en": "Temperature - Core #118",
+		"fr": "Température - Cœur 118",
+		"ja": "コア１１８の温度"
+	},
+	"0f202fe4-45b0-4691-a530-766fddae568c": {
+		"en": "Temperature - Core #119",
+		"fr": "Température - Cœur 119",
+		"ja": "コア１１９の温度"
+	},
+	"643b463d-3ddf-41fe-ac0b-2d61ae3a0c88": {
+		"en": "Temperature - Core #120",
+		"fr": "Température - Cœur 120",
+		"ja": "コア１２０の温度"
+	},
+	"147f75c1-ad7f-4355-bbc4-77b072d79d01": {
+		"en": "Temperature - Core #121",
+		"fr": "Température - Cœur 121",
+		"ja": "コア１２１の温度"
+	},
+	"64b857cf-1289-48b7-babd-d6d9cd55e7bb": {
+		"en": "Temperature - Core #122",
+		"fr": "Température - Cœur 122",
+		"ja": "コア１２２の温度"
+	},
+	"e2017776-cf8e-425f-b581-a65f4db87cc2": {
+		"en": "Temperature - Core #123",
+		"fr": "Température - Cœur 123",
+		"ja": "コア１２３の温度"
+	},
+	"bbc50cbb-5b8c-4145-8ba9-d4983e6312a2": {
+		"en": "Temperature - Core #124",
+		"fr": "Température - Cœur 124",
+		"ja": "コア１２４の温度"
+	},
+	"fc650eac-d1c7-40d6-9126-2d6b2f97d8e3": {
+		"en": "Temperature - Core #125",
+		"fr": "Température - Cœur 125",
+		"ja": "コア１２５の温度"
+	},
+	"695966d1-051c-460e-9fd1-e9955f8aebea": {
+		"en": "Temperature - Core #126",
+		"fr": "Température - Cœur 126",
+		"ja": "コア１２６の温度"
+	},
+	"7abb0302-c002-40b1-8846-6acfbcd81c02": {
+		"en": "Temperature - Core #127",
+		"fr": "Température - Cœur 127",
+		"ja": "コア１２７の温度"
+	},
+	"8a9067bc-2681-4222-b5e3-7c0614c8ddfb": {
+		"en": "Temperature - Core #128",
+		"fr": "Température - Cœur 128",
+		"ja": "コア１２８の温度"
+	},
+	"4ddae6b7-53ff-450d-892c-45fcd2210de1": {
+		"en": "Temperature - Core #129",
+		"fr": "Température - Cœur 129",
+		"ja": "コア１２９の温度"
+	},
+	"67fd78b5-ba8c-4161-859e-16dcc1623212": {
+		"en": "Temperature - Core #130",
+		"fr": "Température - Cœur 130",
+		"ja": "コア１３０の温度"
+	},
+	"8dd012eb-eeeb-4844-b865-e62d6b9fae4f": {
+		"en": "Temperature - Core #131",
+		"fr": "Température - Cœur 131",
+		"ja": "コア１３１の温度"
+	},
+	"c4af0389-9467-4973-b291-f055fb743f79": {
+		"en": "Temperature - Core #132",
+		"fr": "Température - Cœur 132",
+		"ja": "コア１３２の温度"
+	},
+	"6885e975-1d41-4a4b-a629-fd6a999f8e82": {
+		"en": "Temperature - Core #133",
+		"fr": "Température - Cœur 133",
+		"ja": "コア１３３の温度"
+	},
+	"7167a8b7-7659-4114-9f59-b9684d88e749": {
+		"en": "Temperature - Core #134",
+		"fr": "Température - Cœur 134",
+		"ja": "コア１３４の温度"
+	},
+	"c6aab2a4-cb90-41dc-91e2-2f0c99bb0d8b": {
+		"en": "Temperature - Core #135",
+		"fr": "Température - Cœur 135",
+		"ja": "コア１３５の温度"
+	},
+	"0e10675e-e047-48b6-ae77-eca23551af4c": {
+		"en": "Temperature - Core #136",
+		"fr": "Température - Cœur 136",
+		"ja": "コア１３６の温度"
+	},
+	"246662ea-2968-4187-a1d5-4814313cff90": {
+		"en": "Temperature - Core #137",
+		"fr": "Température - Cœur 137",
+		"ja": "コア１３７の温度"
+	},
+	"d7d6b1d1-bdfa-4e9e-bbd6-8dbc9e3c8ada": {
+		"en": "Temperature - Core #138",
+		"fr": "Température - Cœur 138",
+		"ja": "コア１３８の温度"
+	},
+	"36e55ee8-781a-48ef-ae90-3568b67eff98": {
+		"en": "Temperature - Core #139",
+		"fr": "Température - Cœur 139",
+		"ja": "コア１３９の温度"
+	},
+	"15f9c059-b648-4596-9ef6-35e17fbfc543": {
+		"en": "Temperature - Core #140",
+		"fr": "Température - Cœur 140",
+		"ja": "コア１４０の温度"
+	},
+	"808a0eb7-8e55-4077-bfad-61a122617810": {
+		"en": "Temperature - Core #141",
+		"fr": "Température - Cœur 141",
+		"ja": "コア１４１の温度"
+	},
+	"02eeee19-5c6f-4f2e-b013-65c1ca63a6e2": {
+		"en": "Temperature - Core #142",
+		"fr": "Température - Cœur 142",
+		"ja": "コア１４２の温度"
+	},
+	"4c06555f-c248-42c5-9324-c7b785d67785": {
+		"en": "Temperature - Core #143",
+		"fr": "Température - Cœur 143",
+		"ja": "コア１４３の温度"
+	},
+	"4017c0d8-4fe3-4afc-b2ae-3b86c4108dc4": {
+		"en": "Temperature - Core #144",
+		"fr": "Température - Cœur 144",
+		"ja": "コア１４４の温度"
+	},
+	"059f6f71-7d60-41fa-bd30-882d3107b1bb": {
+		"en": "Temperature - Core #145",
+		"fr": "Température - Cœur 145",
+		"ja": "コア１４５の温度"
+	},
+	"a67704bd-6c8d-4a45-a45c-3ff3a85029a2": {
+		"en": "Temperature - Core #146",
+		"fr": "Température - Cœur 146",
+		"ja": "コア１４６の温度"
+	},
+	"fc2cd299-7922-40c9-b155-1e91202d32d1": {
+		"en": "Temperature - Core #147",
+		"fr": "Température - Cœur 147",
+		"ja": "コア１４７の温度"
+	},
+	"f589269a-3fa9-4fb2-9b80-400244e1c762": {
+		"en": "Temperature - Core #148",
+		"fr": "Température - Cœur 148",
+		"ja": "コア１４８の温度"
+	},
+	"56a50ce1-1172-4224-9d26-29e48ecc92c8": {
+		"en": "Temperature - Core #149",
+		"fr": "Température - Cœur 149",
+		"ja": "コア１４９の温度"
+	},
+	"1276d718-ef20-4304-92ab-bb2c7a43c476": {
+		"en": "Temperature - Core #150",
+		"fr": "Température - Cœur 150",
+		"ja": "コア１５０の温度"
+	},
+	"ff613867-c039-4551-98c1-b253e80de410": {
+		"en": "Temperature - Core #151",
+		"fr": "Température - Cœur 151",
+		"ja": "コア１５１の温度"
+	},
+	"45279a69-cbc7-46ce-add6-6fcad8f59a79": {
+		"en": "Temperature - Core #152",
+		"fr": "Température - Cœur 152",
+		"ja": "コア１５２の温度"
+	},
+	"f1ad5f66-2260-481e-9e1e-7b8e0fdc9814": {
+		"en": "Temperature - Core #153",
+		"fr": "Température - Cœur 153",
+		"ja": "コア１５３の温度"
+	},
+	"38da0d97-b69d-4077-b44c-19a64860e8fc": {
+		"en": "Temperature - Core #154",
+		"fr": "Température - Cœur 154",
+		"ja": "コア１５４の温度"
+	},
+	"516891f9-01d5-41a3-8fa2-b6c907c8053a": {
+		"en": "Temperature - Core #155",
+		"fr": "Température - Cœur 155",
+		"ja": "コア１５５の温度"
+	},
+	"c31a86ae-ade3-4e95-9b20-a84b02155645": {
+		"en": "Temperature - Core #156",
+		"fr": "Température - Cœur 156",
+		"ja": "コア１５６の温度"
+	},
+	"dcf00024-34be-472f-bca4-08b8efc66e4b": {
+		"en": "Temperature - Core #157",
+		"fr": "Température - Cœur 157",
+		"ja": "コア１５７の温度"
+	},
+	"b55b956c-01fd-4562-905a-b4a1cfae8c24": {
+		"en": "Temperature - Core #158",
+		"fr": "Température - Cœur 158",
+		"ja": "コア１５８の温度"
+	},
+	"d6194e6b-6a83-4f3c-9177-16cf164b67f7": {
+		"en": "Temperature - Core #159",
+		"fr": "Température - Cœur 159",
+		"ja": "コア１５９の温度"
+	},
+	"ab1dbc1a-1781-4d0d-8dcf-498f8f429eb3": {
+		"en": "Temperature - Core #160",
+		"fr": "Température - Cœur 160",
+		"ja": "コア１６０の温度"
+	},
+	"91ce3bb5-9647-48c2-863d-84370d3b5652": {
+		"en": "Temperature - Core #161",
+		"fr": "Température - Cœur 161",
+		"ja": "コア１６１の温度"
+	},
+	"cc117342-01c3-4288-8393-49ceb55f820e": {
+		"en": "Temperature - Core #162",
+		"fr": "Température - Cœur 162",
+		"ja": "コア１６２の温度"
+	},
+	"2254c98d-ea18-419e-a3c8-49924bfdcb16": {
+		"en": "Temperature - Core #163",
+		"fr": "Température - Cœur 163",
+		"ja": "コア１６３の温度"
+	},
+	"657f3ba3-5d39-46fb-8da3-424a1b10b3b8": {
+		"en": "Temperature - Core #164",
+		"fr": "Température - Cœur 164",
+		"ja": "コア１６４の温度"
+	},
+	"f9ff4a71-4c77-4fd3-b724-d456aa176f70": {
+		"en": "Temperature - Core #165",
+		"fr": "Température - Cœur 165",
+		"ja": "コア１６５の温度"
+	},
+	"f739126a-250c-40d7-841f-eab88f6a8e46": {
+		"en": "Temperature - Core #166",
+		"fr": "Température - Cœur 166",
+		"ja": "コア１６６の温度"
+	},
+	"e70facd5-42db-451c-b3ca-8a1a15251965": {
+		"en": "Temperature - Core #167",
+		"fr": "Température - Cœur 167",
+		"ja": "コア１６７の温度"
+	},
+	"c1123258-8f4b-4efd-a1e6-55b347844856": {
+		"en": "Temperature - Core #168",
+		"fr": "Température - Cœur 168",
+		"ja": "コア１６８の温度"
+	},
+	"bd535b33-aedc-41c3-97a5-a4c04abe58c3": {
+		"en": "Temperature - Core #169",
+		"fr": "Température - Cœur 169",
+		"ja": "コア１６９の温度"
+	},
+	"f070471e-8b95-4d52-8520-612297a71170": {
+		"en": "Temperature - Core #170",
+		"fr": "Température - Cœur 170",
+		"ja": "コア１７０の温度"
+	},
+	"fd53d63e-fe4c-46d9-9126-386423548368": {
+		"en": "Temperature - Core #171",
+		"fr": "Température - Cœur 171",
+		"ja": "コア１７１の温度"
+	},
+	"2880cb90-4f1b-48a5-bbca-5d6b1a0b07db": {
+		"en": "Temperature - Core #172",
+		"fr": "Température - Cœur 172",
+		"ja": "コア１７２の温度"
+	},
+	"abffd600-d0c7-4614-bf86-9d96f6488095": {
+		"en": "Temperature - Core #173",
+		"fr": "Température - Cœur 173",
+		"ja": "コア１７３の温度"
+	},
+	"b299e862-2c07-4240-9e5c-adf7b3328b61": {
+		"en": "Temperature - Core #174",
+		"fr": "Température - Cœur 174",
+		"ja": "コア１７４の温度"
+	},
+	"25c0d5e5-a0a2-40db-a117-6d21a899c646": {
+		"en": "Temperature - Core #175",
+		"fr": "Température - Cœur 175",
+		"ja": "コア１７５の温度"
+	},
+	"0cb8250f-5369-4f97-b00b-3bed32bb4d32": {
+		"en": "Temperature - Core #176",
+		"fr": "Température - Cœur 176",
+		"ja": "コア１７６の温度"
+	},
+	"9b27f2a7-eb32-4c0d-89e0-449908964651": {
+		"en": "Temperature - Core #177",
+		"fr": "Température - Cœur 177",
+		"ja": "コア１７７の温度"
+	},
+	"c6a992f4-877f-40ba-95c4-b4887041de50": {
+		"en": "Temperature - Core #178",
+		"fr": "Température - Cœur 178",
+		"ja": "コア１７８の温度"
+	},
+	"c1f44f26-12e4-4f5c-a7df-e7f02df9799e": {
+		"en": "Temperature - Core #179",
+		"fr": "Température - Cœur 179",
+		"ja": "コア１７９の温度"
+	},
+	"37251d82-b45b-4934-af65-d5da4abba180": {
+		"en": "Temperature - Core #180",
+		"fr": "Température - Cœur 180",
+		"ja": "コア１８０の温度"
+	},
+	"2e31b8a5-2154-43fa-abcf-3bf7355c2c14": {
+		"en": "Temperature - Core #181",
+		"fr": "Température - Cœur 181",
+		"ja": "コア１８１の温度"
+	},
+	"53217f06-5fe3-4b74-a091-32a07cb88662": {
+		"en": "Temperature - Core #182",
+		"fr": "Température - Cœur 182",
+		"ja": "コア１８２の温度"
+	},
+	"1da11a3b-17ce-4f7d-ae05-4d57f29fe1a6": {
+		"en": "Temperature - Core #183",
+		"fr": "Température - Cœur 183",
+		"ja": "コア１８３の温度"
+	},
+	"4166d173-b5cb-4fc9-b2e0-9d961f0c449a": {
+		"en": "Temperature - Core #184",
+		"fr": "Température - Cœur 184",
+		"ja": "コア１８４の温度"
+	},
+	"16970f4f-ca90-4323-bccf-e5b5a22fab01": {
+		"en": "Temperature - Core #185",
+		"fr": "Température - Cœur 185",
+		"ja": "コア１８５の温度"
+	},
+	"887778ba-9029-458a-9d59-0e344c78afb5": {
+		"en": "Temperature - Core #186",
+		"fr": "Température - Cœur 186",
+		"ja": "コア１８６の温度"
+	},
+	"054feeaa-fc21-4efd-ae7a-b6c6282bf19c": {
+		"en": "Temperature - Core #187",
+		"fr": "Température - Cœur 187",
+		"ja": "コア１８７の温度"
+	},
+	"2d49c85c-f085-45ef-984a-4a8c1f1a07d0": {
+		"en": "Temperature - Core #188",
+		"fr": "Température - Cœur 188",
+		"ja": "コア１８８の温度"
+	},
+	"9c8c6788-9388-4936-b19d-a26e15cee80f": {
+		"en": "Temperature - Core #189",
+		"fr": "Température - Cœur 189",
+		"ja": "コア１８９の温度"
+	},
+	"c2984700-4813-4925-92a0-841146e56317": {
+		"en": "Temperature - Core #190",
+		"fr": "Température - Cœur 190",
+		"ja": "コア１９０の温度"
+	},
+	"632262fc-9666-4b88-a653-fa2e349ac117": {
+		"en": "Temperature - Core #191",
+		"fr": "Température - Cœur 191",
+		"ja": "コア１９１の温度"
+	},
+	"b61ea0b1-207a-400c-8c43-ed7cd72feb88": {
+		"en": "Temperature - Core #192",
+		"fr": "Température - Cœur 192",
+		"ja": "コア１９２の温度"
+	},
+	"a4e136ce-1668-4508-8956-d44efe6baf88": {
+		"en": "Temperature - Core #193",
+		"fr": "Température - Cœur 193",
+		"ja": "コア１９３の温度"
+	},
+	"3a67a10f-7bf1-4cb0-85d8-82f1d1566883": {
+		"en": "Temperature - Core #194",
+		"fr": "Température - Cœur 194",
+		"ja": "コア１９４の温度"
+	},
+	"5b731a26-6ebf-450a-ae0e-2bf5372b97fb": {
+		"en": "Temperature - Core #195",
+		"fr": "Température - Cœur 195",
+		"ja": "コア１９５の温度"
+	},
+	"56aab0c6-dad6-414f-b698-7fed1efb4973": {
+		"en": "Temperature - Core #196",
+		"fr": "Température - Cœur 196",
+		"ja": "コア１９６の温度"
+	},
+	"963760e6-4739-4f17-b261-f4997627dfa6": {
+		"en": "Temperature - Core #197",
+		"fr": "Température - Cœur 197",
+		"ja": "コア１９７の温度"
+	},
+	"c87aab20-045c-49a1-a8e3-9bcf819cd015": {
+		"en": "Temperature - Core #198",
+		"fr": "Température - Cœur 198",
+		"ja": "コア１９８の温度"
+	},
+	"42182f78-98c3-46be-bbb6-8456828d6163": {
+		"en": "Temperature - Core #199",
+		"fr": "Température - Cœur 199",
+		"ja": "コア１９９の温度"
+	},
+	"29552dbe-d9a8-48a7-a7bd-a85dfe345e7d": {
+		"en": "Temperature - Core #200",
+		"fr": "Température - Cœur 200",
+		"ja": "コア２００の温度"
+	},
+	"e83e127c-aa43-485f-a96c-3bbedeedae2e": {
+		"en": "Temperature - Core #201",
+		"fr": "Température - Cœur 201",
+		"ja": "コア２０１の温度"
+	},
+	"6f58ad47-f0f9-4dd7-9cd7-834bdec7f0ee": {
+		"en": "Temperature - Core #202",
+		"fr": "Température - Cœur 202",
+		"ja": "コア２０２の温度"
+	},
+	"30196b35-5e3b-4590-89e6-1130e6ad129e": {
+		"en": "Temperature - Core #203",
+		"fr": "Température - Cœur 203",
+		"ja": "コア２０３の温度"
+	},
+	"d856efdd-d767-4af1-8113-2076b787b8ad": {
+		"en": "Temperature - Core #204",
+		"fr": "Température - Cœur 204",
+		"ja": "コア２０４の温度"
+	},
+	"b6c726ce-608a-4362-bbdb-2d5f527cd3eb": {
+		"en": "Temperature - Core #205",
+		"fr": "Température - Cœur 205",
+		"ja": "コア２０５の温度"
+	},
+	"7a5e8718-4c73-48b2-9d27-10229d65d44e": {
+		"en": "Temperature - Core #206",
+		"fr": "Température - Cœur 206",
+		"ja": "コア２０６の温度"
+	},
+	"1d08f3ba-982d-4af8-a9c5-31d0bba56f09": {
+		"en": "Temperature - Core #207",
+		"fr": "Température - Cœur 207",
+		"ja": "コア２０７の温度"
+	},
+	"0d0c12a2-2ae7-49e3-8de1-b9a3ead31baf": {
+		"en": "Temperature - Core #208",
+		"fr": "Température - Cœur 208",
+		"ja": "コア２０８の温度"
+	},
+	"1e8a7914-f7cf-4560-b27a-3e0e1766ce7b": {
+		"en": "Temperature - Core #209",
+		"fr": "Température - Cœur 209",
+		"ja": "コア２０９の温度"
+	},
+	"63bcb6e9-7a7d-492b-a677-b61d925500a3": {
+		"en": "Temperature - Core #210",
+		"fr": "Température - Cœur 210",
+		"ja": "コア２１０の温度"
+	},
+	"0dc62a8b-d195-4a1d-ba72-b890711ef3f4": {
+		"en": "Temperature - Core #211",
+		"fr": "Température - Cœur 211",
+		"ja": "コア２１１の温度"
+	},
+	"b08ccf0b-692e-40d4-bf4b-d0cbc48a4ff0": {
+		"en": "Temperature - Core #212",
+		"fr": "Température - Cœur 212",
+		"ja": "コア２１２の温度"
+	},
+	"bcda9943-c5ea-4097-baab-d085ffad4582": {
+		"en": "Temperature - Core #213",
+		"fr": "Température - Cœur 213",
+		"ja": "コア２１３の温度"
+	},
+	"db36c11c-1972-4aad-b542-01f057ad763f": {
+		"en": "Temperature - Core #214",
+		"fr": "Température - Cœur 214",
+		"ja": "コア２１４の温度"
+	},
+	"604b90b0-4fb7-4afb-a03c-2a167a5ecb1e": {
+		"en": "Temperature - Core #215",
+		"fr": "Température - Cœur 215",
+		"ja": "コア２１５の温度"
+	},
+	"12aa20b0-f2f2-412d-94c2-e44d43cd3ee0": {
+		"en": "Temperature - Core #216",
+		"fr": "Température - Cœur 216",
+		"ja": "コア２１６の温度"
+	},
+	"4d441a23-7679-437d-91d1-a00e20bff212": {
+		"en": "Temperature - Core #217",
+		"fr": "Température - Cœur 217",
+		"ja": "コア２１７の温度"
+	},
+	"0ed233f7-a4ea-4f0b-800f-b91db592af65": {
+		"en": "Temperature - Core #218",
+		"fr": "Température - Cœur 218",
+		"ja": "コア２１８の温度"
+	},
+	"be8864c7-8f6d-48f0-9e63-166fe696b22a": {
+		"en": "Temperature - Core #219",
+		"fr": "Température - Cœur 219",
+		"ja": "コア２１９の温度"
+	},
+	"73e1b689-61ea-41d4-8ad8-af9f1f5b0d34": {
+		"en": "Temperature - Core #220",
+		"fr": "Température - Cœur 220",
+		"ja": "コア２２０の温度"
+	},
+	"46917a5a-c7d3-4231-930f-7a4577123dc3": {
+		"en": "Temperature - Core #221",
+		"fr": "Température - Cœur 221",
+		"ja": "コア２２１の温度"
+	},
+	"197a4a58-8b8f-4ae0-ac3d-1e553a3169ef": {
+		"en": "Temperature - Core #222",
+		"fr": "Température - Cœur 222",
+		"ja": "コア２２２の温度"
+	},
+	"9cacfab3-c2ac-442a-a393-aa93fc32993c": {
+		"en": "Temperature - Core #223",
+		"fr": "Température - Cœur 223",
+		"ja": "コア２２３の温度"
+	},
+	"86d503c9-4ba3-4aeb-bcc7-42bd792e95e5": {
+		"en": "Temperature - Core #224",
+		"fr": "Température - Cœur 224",
+		"ja": "コア２２４の温度"
+	},
+	"f6630172-168c-41d9-9422-74c76c01d354": {
+		"en": "Temperature - Core #225",
+		"fr": "Température - Cœur 225",
+		"ja": "コア２２５の温度"
+	},
+	"d9962f48-2b02-44f5-a3d4-b2944ef747ce": {
+		"en": "Temperature - Core #226",
+		"fr": "Température - Cœur 226",
+		"ja": "コア２２６の温度"
+	},
+	"07f3fa76-7036-4750-a720-abd145e27b0a": {
+		"en": "Temperature - Core #227",
+		"fr": "Température - Cœur 227",
+		"ja": "コア２２７の温度"
+	},
+	"e9aaeb2a-aeea-49d5-b827-cc8eeea4c4f8": {
+		"en": "Temperature - Core #228",
+		"fr": "Température - Cœur 228",
+		"ja": "コア２２８の温度"
+	},
+	"246702eb-e59c-4bdf-a9e5-6dae0054b567": {
+		"en": "Temperature - Core #229",
+		"fr": "Température - Cœur 229",
+		"ja": "コア２２９の温度"
+	},
+	"5c0a558f-0954-4cfb-a9d7-8dc7a39313d2": {
+		"en": "Temperature - Core #230",
+		"fr": "Température - Cœur 230",
+		"ja": "コア２３０の温度"
+	},
+	"16a8765b-0e36-4b0e-8fb7-d9d65d8bf6d6": {
+		"en": "Temperature - Core #231",
+		"fr": "Température - Cœur 231",
+		"ja": "コア２３１の温度"
+	},
+	"c78af907-7aa3-4358-8ef6-a1c9fb448000": {
+		"en": "Temperature - Core #232",
+		"fr": "Température - Cœur 232",
+		"ja": "コア２３２の温度"
+	},
+	"5f1a27dd-59d7-420e-8a55-3407d6ca423b": {
+		"en": "Temperature - Core #233",
+		"fr": "Température - Cœur 233",
+		"ja": "コア２３３の温度"
+	},
+	"858a7066-489b-4aa6-9b20-bb405b9bfd79": {
+		"en": "Temperature - Core #234",
+		"fr": "Température - Cœur 234",
+		"ja": "コア２３４の温度"
+	},
+	"f5df6adb-39d2-4c4d-b6af-c525203cbcbf": {
+		"en": "Temperature - Core #235",
+		"fr": "Température - Cœur 235",
+		"ja": "コア２３５の温度"
+	},
+	"9aa1afb0-3a71-4807-8e02-99446c40ae70": {
+		"en": "Temperature - Core #236",
+		"fr": "Température - Cœur 236",
+		"ja": "コア２３６の温度"
+	},
+	"054fe6ce-4435-462e-91ff-05fe9cd1d45d": {
+		"en": "Temperature - Core #237",
+		"fr": "Température - Cœur 237",
+		"ja": "コア２３７の温度"
+	},
+	"3209dcd4-0bce-409c-8a6d-249690798dfc": {
+		"en": "Temperature - Core #238",
+		"fr": "Température - Cœur 238",
+		"ja": "コア２３８の温度"
+	},
+	"9cc82ba3-7ab2-40af-bf90-ffd978908a64": {
+		"en": "Temperature - Core #239",
+		"fr": "Température - Cœur 239",
+		"ja": "コア２３９の温度"
+	},
+	"7bdb21d7-8ec4-40e1-85b8-53bd548ed476": {
+		"en": "Temperature - Core #240",
+		"fr": "Température - Cœur 240",
+		"ja": "コア２４０の温度"
+	},
+	"179101c9-21a0-4ac8-ae3c-2744e7cf7c3a": {
+		"en": "Temperature - Core #241",
+		"fr": "Température - Cœur 241",
+		"ja": "コア２４１の温度"
+	},
+	"5a5b1954-9cd0-4292-b2e9-b0143252958b": {
+		"en": "Temperature - Core #242",
+		"fr": "Température - Cœur 242",
+		"ja": "コア２４２の温度"
+	},
+	"a072541b-e9c6-4258-9b3f-99b8388115c7": {
+		"en": "Temperature - Core #243",
+		"fr": "Température - Cœur 243",
+		"ja": "コア２４３の温度"
+	},
+	"3fc86942-c7d3-48d7-b94f-7c25d21236e4": {
+		"en": "Temperature - Core #244",
+		"fr": "Température - Cœur 244",
+		"ja": "コア２４４の温度"
+	},
+	"e481edcc-092e-4c9a-b3c9-375f5d0f3ac7": {
+		"en": "Temperature - Core #245",
+		"fr": "Température - Cœur 245",
+		"ja": "コア２４５の温度"
+	},
+	"fc9ac632-a383-4bed-8617-e62d8a37e2cd": {
+		"en": "Temperature - Core #246",
+		"fr": "Température - Cœur 246",
+		"ja": "コア２４６の温度"
+	},
+	"4c32190e-9187-4676-9fdf-4cad4fbdecb1": {
+		"en": "Temperature - Core #247",
+		"fr": "Température - Cœur 247",
+		"ja": "コア２４７の温度"
+	},
+	"47922774-802d-4ee2-8f20-193ec0b2512e": {
+		"en": "Temperature - Core #248",
+		"fr": "Température - Cœur 248",
+		"ja": "コア２４８の温度"
+	},
+	"76f29e3d-15b3-4bd7-9428-d03a4d286f94": {
+		"en": "Temperature - Core #249",
+		"fr": "Température - Cœur 249",
+		"ja": "コア２４９の温度"
+	},
+	"1ce4662a-7e4a-4163-b85c-5be8c2c25fae": {
+		"en": "Temperature - Core #250",
+		"fr": "Température - Cœur 250",
+		"ja": "コア２５０の温度"
+	},
+	"058b3e72-204e-4692-9806-5b6bf418f598": {
+		"en": "Temperature - Core #251",
+		"fr": "Température - Cœur 251",
+		"ja": "コア２５１の温度"
+	},
+	"2b221162-2c8f-4129-8ed0-8a276ebfb461": {
+		"en": "Temperature - Core #252",
+		"fr": "Température - Cœur 252",
+		"ja": "コア２５２の温度"
+	},
+	"99ee99ba-ee4a-4b44-bb17-9be601eef37d": {
+		"en": "Temperature - Core #253",
+		"fr": "Température - Cœur 253",
+		"ja": "コア２５３の温度"
+	},
+	"df363314-7034-4099-8942-001b61631f03": {
+		"en": "Temperature - Core #254",
+		"fr": "Température - Cœur 254",
+		"ja": "コア２５４の温度"
+	},
+	"1fbfa2e1-a3e0-4050-a9b7-a74e9d44b199": {
+		"en": "Temperature - Core #255",
+		"fr": "Température - Cœur 255",
+		"ja": "コア２５５の温度"
+	},
+	"a864d3d2-51f9-4082-bf76-e27e8fd6b888": {
+		"en": "Temperature - Core #256",
+		"fr": "Température - Cœur 256",
+		"ja": "コア２５６の温度"
+	},
+	"e32e73f0-f108-4203-9178-2d08711848d6": {
+		"en": "Temperature - Core #257",
+		"fr": "Température - Cœur 257",
+		"ja": "コア２５７の温度"
+	},
+	"b32355f9-3c32-4d28-b156-ce1dbf2c6fef": {
+		"en": "Temperature - Core #258",
+		"fr": "Température - Cœur 258",
+		"ja": "コア２５８の温度"
+	},
+	"5ec71be7-1beb-4072-90c6-0303d88c75ed": {
+		"en": "Temperature - Core #259",
+		"fr": "Température - Cœur 259",
+		"ja": "コア２５９の温度"
+	},
+	"2f972879-fc41-45cc-b246-350b0796390b": {
+		"en": "Temperature - Core #260",
+		"fr": "Température - Cœur 260",
+		"ja": "コア２６０の温度"
+	},
+	"00fabc03-2c30-489a-8f50-1ae68546d0fc": {
+		"en": "Temperature - Core #261",
+		"fr": "Température - Cœur 261",
+		"ja": "コア２６１の温度"
+	},
+	"7499ae45-802c-473b-bc34-373bca2074b7": {
+		"en": "Temperature - Core #262",
+		"fr": "Température - Cœur 262",
+		"ja": "コア２６２の温度"
+	},
+	"8fea2dd0-be66-4a2f-84c8-3a72cdaf553a": {
+		"en": "Temperature - Core #263",
+		"fr": "Température - Cœur 263",
+		"ja": "コア２６３の温度"
+	},
+	"7870dbdd-b36d-4a04-bf46-752b6c680584": {
+		"en": "Temperature - Core #264",
+		"fr": "Température - Cœur 264",
+		"ja": "コア２６４の温度"
+	},
+	"a9061c70-fbe7-416b-846d-0ec0a72b96fe": {
+		"en": "Temperature - Core #265",
+		"fr": "Température - Cœur 265",
+		"ja": "コア２６５の温度"
+	},
+	"5a7b5407-2b30-4c12-9c14-280764de150a": {
+		"en": "Temperature - Core #266",
+		"fr": "Température - Cœur 266",
+		"ja": "コア２６６の温度"
+	},
+	"c3aba590-e877-45fe-82c9-221d43656056": {
+		"en": "Temperature - Core #267",
+		"fr": "Température - Cœur 267",
+		"ja": "コア２６７の温度"
+	},
+	"2976ff9a-7a06-493a-92dd-b6b0432aa993": {
+		"en": "Temperature - Core #268",
+		"fr": "Température - Cœur 268",
+		"ja": "コア２６８の温度"
+	},
+	"6b1cd161-ad66-4a46-8c2f-a0a6a5ebcfee": {
+		"en": "Temperature - Core #269",
+		"fr": "Température - Cœur 269",
+		"ja": "コア２６９の温度"
+	},
+	"5d223209-8e3d-43e3-af99-480cd2577036": {
+		"en": "Temperature - Core #270",
+		"fr": "Température - Cœur 270",
+		"ja": "コア２７０の温度"
+	},
+	"fc220529-9aa4-4f27-9fb2-40a99dabdf3d": {
+		"en": "Temperature - Core #271",
+		"fr": "Température - Cœur 271",
+		"ja": "コア２７１の温度"
+	},
+	"c0c0ae45-bb81-46a3-a9d6-71611ec2606d": {
+		"en": "Temperature - Core #272",
+		"fr": "Température - Cœur 272",
+		"ja": "コア２７２の温度"
+	},
+	"68756549-5feb-4dcb-b8a6-26c0615f739a": {
+		"en": "Temperature - Core #273",
+		"fr": "Température - Cœur 273",
+		"ja": "コア２７３の温度"
+	},
+	"2ce44348-bdc7-4ce9-997e-082769e7370e": {
+		"en": "Temperature - Core #274",
+		"fr": "Température - Cœur 274",
+		"ja": "コア２７４の温度"
+	},
+	"05c0ec45-da2a-4e8c-b91b-fb9f8dd83e03": {
+		"en": "Temperature - Core #275",
+		"fr": "Température - Cœur 275",
+		"ja": "コア２７５の温度"
+	},
+	"e111389b-1bc2-4cfd-b71a-a0114c235967": {
+		"en": "Temperature - Core #276",
+		"fr": "Température - Cœur 276",
+		"ja": "コア２７６の温度"
+	},
+	"503c8c53-8340-44ff-9c66-477fb53e7251": {
+		"en": "Temperature - Core #277",
+		"fr": "Température - Cœur 277",
+		"ja": "コア２７７の温度"
+	},
+	"7c789751-6d21-41d6-9108-85b6b920ac45": {
+		"en": "Temperature - Core #278",
+		"fr": "Température - Cœur 278",
+		"ja": "コア２７８の温度"
+	},
+	"89f3628d-bc58-4d2d-9231-0f2f86b16723": {
+		"en": "Temperature - Core #279",
+		"fr": "Température - Cœur 279",
+		"ja": "コア２７９の温度"
+	},
+	"8b9d45c5-ebcd-4c81-b05a-992cac1eafa2": {
+		"en": "Temperature - Core #280",
+		"fr": "Température - Cœur 280",
+		"ja": "コア２８０の温度"
+	},
+	"21387902-4af4-4eb6-8bb0-f5e441c1a955": {
+		"en": "Temperature - Core #281",
+		"fr": "Température - Cœur 281",
+		"ja": "コア２８１の温度"
+	},
+	"ea3f03d8-7403-4806-afcf-40e18ee1e4a3": {
+		"en": "Temperature - Core #282",
+		"fr": "Température - Cœur 282",
+		"ja": "コア２８２の温度"
+	},
+	"ec8a3c0f-1dff-4836-852d-57d5385d9b2d": {
+		"en": "Temperature - Core #283",
+		"fr": "Température - Cœur 283",
+		"ja": "コア２８３の温度"
+	},
+	"c7a3415a-1c90-403e-8cdf-10113d731a80": {
+		"en": "Temperature - Core #284",
+		"fr": "Température - Cœur 284",
+		"ja": "コア２８４の温度"
+	},
+	"bebca509-45ed-4c90-9920-876144ed9344": {
+		"en": "Temperature - Core #285",
+		"fr": "Température - Cœur 285",
+		"ja": "コア２８５の温度"
+	},
+	"28702bbf-2987-42e8-96ff-2cb624cbfe10": {
+		"en": "Temperature - Core #286",
+		"fr": "Température - Cœur 286",
+		"ja": "コア２８６の温度"
+	},
+	"1c61e1c2-d9f7-4ac8-a337-9c2f647a9655": {
+		"en": "Temperature - Core #287",
+		"fr": "Température - Cœur 287",
+		"ja": "コア２８７の温度"
+	},
+	"2e39e855-1531-4a6d-a2b0-11260e576209": {
+		"en": "Temperature - Core #288",
+		"fr": "Température - Cœur 288",
+		"ja": "コア２８８の温度"
+	},
+	"17804e46-a96d-4ffc-8f47-d9df7609bfb7": {
+		"en": "Temperature - Core #289",
+		"fr": "Température - Cœur 289",
+		"ja": "コア２８９の温度"
+	},
+	"39e5f223-a2a2-4af1-b943-d44d21a7fe1b": {
+		"en": "Temperature - Core #290",
+		"fr": "Température - Cœur 290",
+		"ja": "コア２９０の温度"
+	},
+	"9ed94f0a-9b5b-417b-891e-e3dd546f3de3": {
+		"en": "Temperature - Core #291",
+		"fr": "Température - Cœur 291",
+		"ja": "コア２９１の温度"
+	},
+	"fd12794e-e9c5-4447-856d-76296100373f": {
+		"en": "Temperature - Core #292",
+		"fr": "Température - Cœur 292",
+		"ja": "コア２９２の温度"
+	},
+	"35d89832-df0c-41a5-ad66-adb79234e194": {
+		"en": "Temperature - Core #293",
+		"fr": "Température - Cœur 293",
+		"ja": "コア２９３の温度"
+	},
+	"9ea37dcb-f89a-48f7-b70e-51a0d2a6f07d": {
+		"en": "Temperature - Core #294",
+		"fr": "Température - Cœur 294",
+		"ja": "コア２９４の温度"
+	},
+	"3b2f4b5e-ef93-4bb2-9f9b-316a82785875": {
+		"en": "Temperature - Core #295",
+		"fr": "Température - Cœur 295",
+		"ja": "コア２９５の温度"
+	},
+	"cbbd18b8-b294-4f0e-9dfc-086ee44feecf": {
+		"en": "Temperature - Core #296",
+		"fr": "Température - Cœur 296",
+		"ja": "コア２９６の温度"
+	},
+	"7b191c90-6cf6-4137-873f-96f4bfb0e159": {
+		"en": "Temperature - Core #297",
+		"fr": "Température - Cœur 297",
+		"ja": "コア２９７の温度"
+	},
+	"d1701dcf-4b3c-40b4-aaa5-e90765e5cef0": {
+		"en": "Temperature - Core #298",
+		"fr": "Température - Cœur 298",
+		"ja": "コア２９８の温度"
+	},
+	"c9f51457-c559-4c8a-a7d2-df25989465b9": {
+		"en": "Temperature - Core #299",
+		"fr": "Température - Cœur 299",
+		"ja": "コア２９９の温度"
+	},
+	"d2147c1a-c6f1-4f05-87fe-7beafd850a91": {
+		"en": "Temperature - Core #300",
+		"fr": "Température - Cœur 300",
+		"ja": "コア３００の温度"
+	},
+	"cd0e263c-289d-48e7-a9a3-3c9888b84ccf": {
+		"en": "Temperature - Core #301",
+		"fr": "Température - Cœur 301",
+		"ja": "コア３０１の温度"
+	},
+	"04b055b7-5b52-4f4b-8a39-4104dd1375d2": {
+		"en": "Temperature - Core #302",
+		"fr": "Température - Cœur 302",
+		"ja": "コア３０２の温度"
+	},
+	"04baa224-9f6d-4350-9c11-197639376938": {
+		"en": "Temperature - Core #303",
+		"fr": "Température - Cœur 303",
+		"ja": "コア３０３の温度"
+	},
+	"ad5e2d81-ef68-4095-8507-a82c24bb8224": {
+		"en": "Temperature - Core #304",
+		"fr": "Température - Cœur 304",
+		"ja": "コア３０４の温度"
+	},
+	"39ffc4e6-9e2d-4168-a779-731e4ebf8387": {
+		"en": "Temperature - Core #305",
+		"fr": "Température - Cœur 305",
+		"ja": "コア３０５の温度"
+	},
+	"f92f2874-9038-4af7-82a2-90daf40f6759": {
+		"en": "Temperature - Core #306",
+		"fr": "Température - Cœur 306",
+		"ja": "コア３０６の温度"
+	},
+	"cc4338d7-56b2-454a-8690-a53ddb4c7427": {
+		"en": "Temperature - Core #307",
+		"fr": "Température - Cœur 307",
+		"ja": "コア３０７の温度"
+	},
+	"7a5bc269-ff4d-47b9-806d-f96a36dea5dd": {
+		"en": "Temperature - Core #308",
+		"fr": "Température - Cœur 308",
+		"ja": "コア３０８の温度"
+	},
+	"c552123f-ea31-4dd7-975f-48f6ee5db7f0": {
+		"en": "Temperature - Core #309",
+		"fr": "Température - Cœur 309",
+		"ja": "コア３０９の温度"
+	},
+	"8919db4a-3e17-4e9b-826e-3ab885a2c2c5": {
+		"en": "Temperature - Core #310",
+		"fr": "Température - Cœur 310",
+		"ja": "コア３１０の温度"
+	},
+	"ba96fae8-4806-47e5-ae34-bbcaec72c58a": {
+		"en": "Temperature - Core #311",
+		"fr": "Température - Cœur 311",
+		"ja": "コア３１１の温度"
+	},
+	"fd0e1a25-136d-4b00-8d18-a3667ed320c2": {
+		"en": "Temperature - Core #312",
+		"fr": "Température - Cœur 312",
+		"ja": "コア３１２の温度"
+	},
+	"15ff4c94-f3a7-4154-8e83-2671f689acb1": {
+		"en": "Temperature - Core #313",
+		"fr": "Température - Cœur 313",
+		"ja": "コア３１３の温度"
+	},
+	"c02d9e88-869b-4b2a-86bc-358d35b8662e": {
+		"en": "Temperature - Core #314",
+		"fr": "Température - Cœur 314",
+		"ja": "コア３１４の温度"
+	},
+	"5e3eff2a-e9ae-4b4d-b063-9cdc777735e4": {
+		"en": "Temperature - Core #315",
+		"fr": "Température - Cœur 315",
+		"ja": "コア３１５の温度"
+	},
+	"c22cda47-c479-4218-9d66-1953c8dae7e5": {
+		"en": "Temperature - Core #316",
+		"fr": "Température - Cœur 316",
+		"ja": "コア３１６の温度"
+	},
+	"a4830f40-3bbf-4180-80b0-d3b1646fa39f": {
+		"en": "Temperature - Core #317",
+		"fr": "Température - Cœur 317",
+		"ja": "コア３１７の温度"
+	},
+	"43bdc428-b328-4d03-be77-c24afb03c7a9": {
+		"en": "Temperature - Core #318",
+		"fr": "Température - Cœur 318",
+		"ja": "コア３１８の温度"
+	},
+	"ff0a41bf-d0f6-46bd-a2bf-239cca8f9ae6": {
+		"en": "Temperature - Core #319",
+		"fr": "Température - Cœur 319",
+		"ja": "コア３１９の温度"
+	},
+	"4fcdfe23-55d3-46e9-b26c-61f640dab4cc": {
+		"en": "Temperature - Core #320",
+		"fr": "Température - Cœur 320",
+		"ja": "コア３２０の温度"
+	},
+	"14d604ac-6d36-4557-8dd9-29444b102e2e": {
+		"en": "Temperature - Core #321",
+		"fr": "Température - Cœur 321",
+		"ja": "コア３２１の温度"
+	},
+	"70e134f8-0eea-4843-86fc-87f0a495cebd": {
+		"en": "Temperature - Core #322",
+		"fr": "Température - Cœur 322",
+		"ja": "コア３２２の温度"
+	},
+	"74bc0c73-6e08-497c-9e8d-3c33a0fe5250": {
+		"en": "Temperature - Core #323",
+		"fr": "Température - Cœur 323",
+		"ja": "コア３２３の温度"
+	},
+	"c5cafa56-2e42-41a5-a3b0-e9b0019ddac2": {
+		"en": "Temperature - Core #324",
+		"fr": "Température - Cœur 324",
+		"ja": "コア３２４の温度"
+	},
+	"99950983-1b2b-4e5b-a63d-f2515dd0588d": {
+		"en": "Temperature - Core #325",
+		"fr": "Température - Cœur 325",
+		"ja": "コア３２５の温度"
+	},
+	"106de794-1a1c-44dd-9163-e767e86dc5a3": {
+		"en": "Temperature - Core #326",
+		"fr": "Température - Cœur 326",
+		"ja": "コア３２６の温度"
+	},
+	"5f1c8d90-6937-409a-80f3-a3dceb35c311": {
+		"en": "Temperature - Core #327",
+		"fr": "Température - Cœur 327",
+		"ja": "コア３２７の温度"
+	},
+	"7a80364c-9fe8-436f-bd6a-ebfafded33e1": {
+		"en": "Temperature - Core #328",
+		"fr": "Température - Cœur 328",
+		"ja": "コア３２８の温度"
+	},
+	"96a00c71-5f79-40eb-ae5a-146605c00a88": {
+		"en": "Temperature - Core #329",
+		"fr": "Température - Cœur 329",
+		"ja": "コア３２９の温度"
+	},
+	"acc05a2a-7068-4dbc-98e3-5119f8edeffe": {
+		"en": "Temperature - Core #330",
+		"fr": "Température - Cœur 330",
+		"ja": "コア３３０の温度"
+	},
+	"32413179-8cb2-4df3-ac56-96e858ff77c3": {
+		"en": "Temperature - Core #331",
+		"fr": "Température - Cœur 331",
+		"ja": "コア３３１の温度"
+	},
+	"00672175-cf79-49ae-8b41-f46e1c3a27fb": {
+		"en": "Temperature - Core #332",
+		"fr": "Température - Cœur 332",
+		"ja": "コア３３２の温度"
+	},
+	"f8a491ab-05ec-49aa-a3c6-8c69971619d0": {
+		"en": "Temperature - Core #333",
+		"fr": "Température - Cœur 333",
+		"ja": "コア３３３の温度"
+	},
+	"be86114f-6a17-4778-9988-a05eeb469e3a": {
+		"en": "Temperature - Core #334",
+		"fr": "Température - Cœur 334",
+		"ja": "コア３３４の温度"
+	},
+	"604c4293-174b-4c08-ae14-b3e3d2f94fc1": {
+		"en": "Temperature - Core #335",
+		"fr": "Température - Cœur 335",
+		"ja": "コア３３５の温度"
+	},
+	"b17a3de7-840f-42f2-a6e4-73935ba8bb98": {
+		"en": "Temperature - Core #336",
+		"fr": "Température - Cœur 336",
+		"ja": "コア３３６の温度"
+	},
+	"cb28b629-186f-457d-9e32-4d567dece51c": {
+		"en": "Temperature - Core #337",
+		"fr": "Température - Cœur 337",
+		"ja": "コア３３７の温度"
+	},
+	"a34cb23b-2dbf-41bf-b913-b14a42f41260": {
+		"en": "Temperature - Core #338",
+		"fr": "Température - Cœur 338",
+		"ja": "コア３３８の温度"
+	},
+	"b94f2e5e-d98b-4d97-b85a-882690e62ba2": {
+		"en": "Temperature - Core #339",
+		"fr": "Température - Cœur 339",
+		"ja": "コア３３９の温度"
+	},
+	"d26aeb50-1edb-4e5f-a4eb-ee7116d0c134": {
+		"en": "Temperature - Core #340",
+		"fr": "Température - Cœur 340",
+		"ja": "コア３４０の温度"
+	},
+	"53f2e81d-5597-4606-8f0e-939ccd1ce6aa": {
+		"en": "Temperature - Core #341",
+		"fr": "Température - Cœur 341",
+		"ja": "コア３４１の温度"
+	},
+	"3a3e5daa-cbdd-4549-9d76-ad9614da9df6": {
+		"en": "Temperature - Core #342",
+		"fr": "Température - Cœur 342",
+		"ja": "コア３４２の温度"
+	},
+	"9dcc2d95-6d59-4e79-bd05-4f5976a4362e": {
+		"en": "Temperature - Core #343",
+		"fr": "Température - Cœur 343",
+		"ja": "コア３４３の温度"
+	},
+	"49212c35-7004-49e6-a0e1-74e243f2524b": {
+		"en": "Temperature - Core #344",
+		"fr": "Température - Cœur 344",
+		"ja": "コア３４４の温度"
+	},
+	"c892850a-297a-4d37-a173-8188b289315d": {
+		"en": "Temperature - Core #345",
+		"fr": "Température - Cœur 345",
+		"ja": "コア３４５の温度"
+	},
+	"bad22f3c-b02a-4d7a-b4a8-b9f90ab937b1": {
+		"en": "Temperature - Core #346",
+		"fr": "Température - Cœur 346",
+		"ja": "コア３４６の温度"
+	},
+	"e6ab560b-c39c-48a5-8e06-ab5a3911e67c": {
+		"en": "Temperature - Core #347",
+		"fr": "Température - Cœur 347",
+		"ja": "コア３４７の温度"
+	},
+	"6af6664b-4c27-4e47-8e09-9c7c81707e3d": {
+		"en": "Temperature - Core #348",
+		"fr": "Température - Cœur 348",
+		"ja": "コア３４８の温度"
+	},
+	"26765e9f-1330-498a-b3b1-95dcf9e1d0ac": {
+		"en": "Temperature - Core #349",
+		"fr": "Température - Cœur 349",
+		"ja": "コア３４９の温度"
+	},
+	"8516b2d9-67eb-4f96-b819-31b94e7186f8": {
+		"en": "Temperature - Core #350",
+		"fr": "Température - Cœur 350",
+		"ja": "コア３５０の温度"
+	},
+	"ed5baa8a-e012-4fbf-bcf1-2705042ec71d": {
+		"en": "Temperature - Core #351",
+		"fr": "Température - Cœur 351",
+		"ja": "コア３５１の温度"
+	},
+	"45acf5d0-8d86-4227-8582-784680a35308": {
+		"en": "Temperature - Core #352",
+		"fr": "Température - Cœur 352",
+		"ja": "コア３５２の温度"
+	},
+	"7a715984-01b7-442e-9e39-c61f79a76cba": {
+		"en": "Temperature - Core #353",
+		"fr": "Température - Cœur 353",
+		"ja": "コア３５３の温度"
+	},
+	"19fcb27f-da93-4072-ab1f-cf62a355643d": {
+		"en": "Temperature - Core #354",
+		"fr": "Température - Cœur 354",
+		"ja": "コア３５４の温度"
+	},
+	"28dcea98-ee17-4ea5-8fb0-f147ee450399": {
+		"en": "Temperature - Core #355",
+		"fr": "Température - Cœur 355",
+		"ja": "コア３５５の温度"
+	},
+	"64b45015-4caa-4ae1-9b8f-902eeb72b57b": {
+		"en": "Temperature - Core #356",
+		"fr": "Température - Cœur 356",
+		"ja": "コア３５６の温度"
+	},
+	"4e48552c-e748-4c21-a3fd-f19836cc5a05": {
+		"en": "Temperature - Core #357",
+		"fr": "Température - Cœur 357",
+		"ja": "コア３５７の温度"
+	},
+	"69b14a55-ec08-4feb-894b-8b97e91a758b": {
+		"en": "Temperature - Core #358",
+		"fr": "Température - Cœur 358",
+		"ja": "コア３５８の温度"
+	},
+	"4d9751cf-404a-4f58-a809-968284079a3b": {
+		"en": "Temperature - Core #359",
+		"fr": "Température - Cœur 359",
+		"ja": "コア３５９の温度"
+	},
+	"ef87414a-4bcb-4dc2-b24e-b06d250ade0a": {
+		"en": "Temperature - Core #360",
+		"fr": "Température - Cœur 360",
+		"ja": "コア３６０の温度"
+	},
+	"f08bf355-f14c-4419-b2b2-dfcfa788470c": {
+		"en": "Temperature - Core #361",
+		"fr": "Température - Cœur 361",
+		"ja": "コア３６１の温度"
+	},
+	"19f80155-6841-4ae1-8547-5ac54b2e49c1": {
+		"en": "Temperature - Core #362",
+		"fr": "Température - Cœur 362",
+		"ja": "コア３６２の温度"
+	},
+	"d3012a65-1c53-49bf-bcb2-dccd17253acd": {
+		"en": "Temperature - Core #363",
+		"fr": "Température - Cœur 363",
+		"ja": "コア３６３の温度"
+	},
+	"f1629e5d-3827-4746-a814-893ae72d579b": {
+		"en": "Temperature - Core #364",
+		"fr": "Température - Cœur 364",
+		"ja": "コア３６４の温度"
+	},
+	"e4fc3255-0a50-4839-9130-48d415118212": {
+		"en": "Temperature - Core #365",
+		"fr": "Température - Cœur 365",
+		"ja": "コア３６５の温度"
+	},
+	"305d4353-986e-4b79-8686-7ba9e32e69ce": {
+		"en": "Temperature - Core #366",
+		"fr": "Température - Cœur 366",
+		"ja": "コア３６６の温度"
+	},
+	"7204e0d9-9e5d-4fd5-9b07-9d8be782baed": {
+		"en": "Temperature - Core #367",
+		"fr": "Température - Cœur 367",
+		"ja": "コア３６７の温度"
+	},
+	"77f16ed2-1d4f-4ab9-8e93-2e1b8e2db847": {
+		"en": "Temperature - Core #368",
+		"fr": "Température - Cœur 368",
+		"ja": "コア３６８の温度"
+	},
+	"c0be683d-b431-47ab-a176-3eb711abe934": {
+		"en": "Temperature - Core #369",
+		"fr": "Température - Cœur 369",
+		"ja": "コア３６９の温度"
+	},
+	"c5882178-9349-4120-ae93-eaca28450e44": {
+		"en": "Temperature - Core #370",
+		"fr": "Température - Cœur 370",
+		"ja": "コア３７０の温度"
+	},
+	"a31db973-a8f6-4bea-86e3-d91fe9ac4471": {
+		"en": "Temperature - Core #371",
+		"fr": "Température - Cœur 371",
+		"ja": "コア３７１の温度"
+	},
+	"64ee550c-9921-4360-8d9b-3e61ef57542f": {
+		"en": "Temperature - Core #372",
+		"fr": "Température - Cœur 372",
+		"ja": "コア３７２の温度"
+	},
+	"22f3fc26-fca1-4826-9c6a-b444e13f6487": {
+		"en": "Temperature - Core #373",
+		"fr": "Température - Cœur 373",
+		"ja": "コア３７３の温度"
+	},
+	"fb1a85d1-7a53-4ca5-a542-318c2a788124": {
+		"en": "Temperature - Core #374",
+		"fr": "Température - Cœur 374",
+		"ja": "コア３７４の温度"
+	},
+	"5d2f5834-0589-4cef-b639-7a86afa66da8": {
+		"en": "Temperature - Core #375",
+		"fr": "Température - Cœur 375",
+		"ja": "コア３７５の温度"
+	},
+	"4d33d7e8-628b-4b74-87ca-1fca1efa0bde": {
+		"en": "Temperature - Core #376",
+		"fr": "Température - Cœur 376",
+		"ja": "コア３７６の温度"
+	},
+	"440e6cc5-214c-4551-a1f1-02d7c9bb91a8": {
+		"en": "Temperature - Core #377",
+		"fr": "Température - Cœur 377",
+		"ja": "コア３７７の温度"
+	},
+	"c5538284-f1b8-46ca-921b-a9f48c5d824f": {
+		"en": "Temperature - Core #378",
+		"fr": "Température - Cœur 378",
+		"ja": "コア３７８の温度"
+	},
+	"fbc6765f-0231-4741-bc11-9fdf0beb0d16": {
+		"en": "Temperature - Core #379",
+		"fr": "Température - Cœur 379",
+		"ja": "コア３７９の温度"
+	},
+	"e6ff620b-f03c-45ed-9d24-b872aac536f2": {
+		"en": "Temperature - Core #380",
+		"fr": "Température - Cœur 380",
+		"ja": "コア３８０の温度"
+	},
+	"c033e59c-a55d-4e61-92f1-cfb46bb79d38": {
+		"en": "Temperature - Core #381",
+		"fr": "Température - Cœur 381",
+		"ja": "コア３８１の温度"
+	},
+	"88352553-c5cf-443f-a3fd-ac240b4b8487": {
+		"en": "Temperature - Core #382",
+		"fr": "Température - Cœur 382",
+		"ja": "コア３８２の温度"
+	},
+	"ddeb51c7-c6a9-4dfe-be80-ee63dd5f2592": {
+		"en": "Temperature - Core #383",
+		"fr": "Température - Cœur 383",
+		"ja": "コア３８３の温度"
+	},
+	"2d6b8acd-b878-40c8-9442-a2e712702167": {
+		"en": "Temperature - Core #384",
+		"fr": "Température - Cœur 384",
+		"ja": "コア３８４の温度"
+	},
+	"97ded660-7bbb-48f3-9e3a-b42a2af51de8": {
+		"en": "Temperature - Core #385",
+		"fr": "Température - Cœur 385",
+		"ja": "コア３８５の温度"
+	},
+	"265cecfc-2bb7-40e1-88df-7b7bcc6ab73d": {
+		"en": "Temperature - Core #386",
+		"fr": "Température - Cœur 386",
+		"ja": "コア３８６の温度"
+	},
+	"2f7f40fb-4634-488e-9254-139c685df0e6": {
+		"en": "Temperature - Core #387",
+		"fr": "Température - Cœur 387",
+		"ja": "コア３８７の温度"
+	},
+	"eebc7899-1a74-49c8-8200-24af1030eaea": {
+		"en": "Temperature - Core #388",
+		"fr": "Température - Cœur 388",
+		"ja": "コア３８８の温度"
+	},
+	"3736e531-ed67-4ce6-839f-71e24e2bf25f": {
+		"en": "Temperature - Core #389",
+		"fr": "Température - Cœur 389",
+		"ja": "コア３８９の温度"
+	},
+	"934b5ab2-e69c-407d-928b-57db8140d00f": {
+		"en": "Temperature - Core #390",
+		"fr": "Température - Cœur 390",
+		"ja": "コア３９０の温度"
+	},
+	"cdc1ac36-7a51-4d95-915e-63ad24c27137": {
+		"en": "Temperature - Core #391",
+		"fr": "Température - Cœur 391",
+		"ja": "コア３９１の温度"
+	},
+	"c5ca7e91-7b58-416b-a606-8d01e3213f80": {
+		"en": "Temperature - Core #392",
+		"fr": "Température - Cœur 392",
+		"ja": "コア３９２の温度"
+	},
+	"05303c4c-87fa-4212-91ce-91f976474b72": {
+		"en": "Temperature - Core #393",
+		"fr": "Température - Cœur 393",
+		"ja": "コア３９３の温度"
+	},
+	"0019d55c-7a3f-43cc-8374-7edef4401e69": {
+		"en": "Temperature - Core #394",
+		"fr": "Température - Cœur 394",
+		"ja": "コア３９４の温度"
+	},
+	"6146feaf-6ec5-4edc-90ea-759b8edfb339": {
+		"en": "Temperature - Core #395",
+		"fr": "Température - Cœur 395",
+		"ja": "コア３９５の温度"
+	},
+	"9b09c541-1b56-411d-84bd-aedb2189cd78": {
+		"en": "Temperature - Core #396",
+		"fr": "Température - Cœur 396",
+		"ja": "コア３９６の温度"
+	},
+	"ffc21787-646e-464e-b4d8-e08e4ae3fcf3": {
+		"en": "Temperature - Core #397",
+		"fr": "Température - Cœur 397",
+		"ja": "コア３９７の温度"
+	},
+	"3a0a5b5b-a36b-40ba-b965-ab957174f2f5": {
+		"en": "Temperature - Core #398",
+		"fr": "Température - Cœur 398",
+		"ja": "コア３９８の温度"
+	},
+	"f395fef1-7018-405e-be47-2713524e7f88": {
+		"en": "Temperature - Core #399",
+		"fr": "Température - Cœur 399",
+		"ja": "コア３９９の温度"
+	},
+	"8e5dd761-2c55-4ffe-a51d-0cf3e8764bae": {
+		"en": "Temperature - Core #400",
+		"fr": "Température - Cœur 400",
+		"ja": "コア４００の温度"
+	},
+	"47771f44-ef27-44c5-b79a-83df625fdd59": {
+		"en": "Temperature - Core #401",
+		"fr": "Température - Cœur 401",
+		"ja": "コア４０１の温度"
+	},
+	"16ec9834-ea82-4afa-9d29-69db251b1ba4": {
+		"en": "Temperature - Core #402",
+		"fr": "Température - Cœur 402",
+		"ja": "コア４０２の温度"
+	},
+	"af4496e2-3975-4341-bb88-4b847ce5b493": {
+		"en": "Temperature - Core #403",
+		"fr": "Température - Cœur 403",
+		"ja": "コア４０３の温度"
+	},
+	"e9288672-a154-4ade-b11e-b702402b6b2f": {
+		"en": "Temperature - Core #404",
+		"fr": "Température - Cœur 404",
+		"ja": "コア４０４の温度"
+	},
+	"a083efd4-dd33-467c-8ec1-d9f9cea8520c": {
+		"en": "Temperature - Core #405",
+		"fr": "Température - Cœur 405",
+		"ja": "コア４０５の温度"
+	},
+	"94b97795-6c0f-43dc-b911-53d0ff075d1b": {
+		"en": "Temperature - Core #406",
+		"fr": "Température - Cœur 406",
+		"ja": "コア４０６の温度"
+	},
+	"aa2e2ad5-fb7d-4e3c-afc3-3c6d2d79afcb": {
+		"en": "Temperature - Core #407",
+		"fr": "Température - Cœur 407",
+		"ja": "コア４０７の温度"
+	},
+	"c2f98937-94d8-4ef6-99aa-60cd732b5549": {
+		"en": "Temperature - Core #408",
+		"fr": "Température - Cœur 408",
+		"ja": "コア４０８の温度"
+	},
+	"c73b32eb-173a-4ed2-ace4-572ec89d3287": {
+		"en": "Temperature - Core #409",
+		"fr": "Température - Cœur 409",
+		"ja": "コア４０９の温度"
+	},
+	"e4e2d7f5-4b87-46ef-b812-4954451f6cc4": {
+		"en": "Temperature - Core #410",
+		"fr": "Température - Cœur 410",
+		"ja": "コア４１０の温度"
+	},
+	"3393330f-a73b-4325-8191-4e9bd24ddbb4": {
+		"en": "Temperature - Core #411",
+		"fr": "Température - Cœur 411",
+		"ja": "コア４１１の温度"
+	},
+	"dde6075b-8513-4121-8cd6-4b1a3c638be7": {
+		"en": "Temperature - Core #412",
+		"fr": "Température - Cœur 412",
+		"ja": "コア４１２の温度"
+	},
+	"2bfc7b7a-3ceb-4085-8328-170d89a4959a": {
+		"en": "Temperature - Core #413",
+		"fr": "Température - Cœur 413",
+		"ja": "コア４１３の温度"
+	},
+	"5f47c5c6-3a5b-4d25-82e4-9dd425223ea0": {
+		"en": "Temperature - Core #414",
+		"fr": "Température - Cœur 414",
+		"ja": "コア４１４の温度"
+	},
+	"41b0956c-4331-4d25-b9c3-304628179633": {
+		"en": "Temperature - Core #415",
+		"fr": "Température - Cœur 415",
+		"ja": "コア４１５の温度"
+	},
+	"43b5ba5d-9172-4ab0-be44-9d0bf6fc5e02": {
+		"en": "Temperature - Core #416",
+		"fr": "Température - Cœur 416",
+		"ja": "コア４１６の温度"
+	},
+	"ba9034ec-038b-4bbb-854f-0f68c8c473b6": {
+		"en": "Temperature - Core #417",
+		"fr": "Température - Cœur 417",
+		"ja": "コア４１７の温度"
+	},
+	"bb896bbf-ac98-4569-a02a-f85e4d07484b": {
+		"en": "Temperature - Core #418",
+		"fr": "Température - Cœur 418",
+		"ja": "コア４１８の温度"
+	},
+	"0c181310-038a-4346-b69d-bbaa7e67f44e": {
+		"en": "Temperature - Core #419",
+		"fr": "Température - Cœur 419",
+		"ja": "コア４１９の温度"
+	},
+	"5d032861-a919-4dff-93c2-8cf89adfcaa9": {
+		"en": "Temperature - Core #420",
+		"fr": "Température - Cœur 420",
+		"ja": "コア４２０の温度"
+	},
+	"ea3d4a3c-63e0-44b3-9888-4f94753a4555": {
+		"en": "Temperature - Core #421",
+		"fr": "Température - Cœur 421",
+		"ja": "コア４２１の温度"
+	},
+	"f49ad92c-d1ac-4ac3-b7d3-dd65e4999bd7": {
+		"en": "Temperature - Core #422",
+		"fr": "Température - Cœur 422",
+		"ja": "コア４２２の温度"
+	},
+	"9930ae53-b96b-49f9-9ddc-1bd19ca29185": {
+		"en": "Temperature - Core #423",
+		"fr": "Température - Cœur 423",
+		"ja": "コア４２３の温度"
+	},
+	"cb9b32bd-a361-44da-bc0d-264a681c93aa": {
+		"en": "Temperature - Core #424",
+		"fr": "Température - Cœur 424",
+		"ja": "コア４２４の温度"
+	},
+	"05958a0d-a8e4-4d97-8d52-30f0e3d79dc7": {
+		"en": "Temperature - Core #425",
+		"fr": "Température - Cœur 425",
+		"ja": "コア４２５の温度"
+	},
+	"747b48a5-57f8-47e8-9090-cd570e54a0e1": {
+		"en": "Temperature - Core #426",
+		"fr": "Température - Cœur 426",
+		"ja": "コア４２６の温度"
+	},
+	"59e22291-cfdd-414d-9383-87b3fba08d7c": {
+		"en": "Temperature - Core #427",
+		"fr": "Température - Cœur 427",
+		"ja": "コア４２７の温度"
+	},
+	"5e1bd81f-e756-4db8-9539-abfb16806c0b": {
+		"en": "Temperature - Core #428",
+		"fr": "Température - Cœur 428",
+		"ja": "コア４２８の温度"
+	},
+	"7490001c-6f63-4250-ba4c-8b7a653644fd": {
+		"en": "Temperature - Core #429",
+		"fr": "Température - Cœur 429",
+		"ja": "コア４２９の温度"
+	},
+	"59177b8d-b9a4-4b71-a4ca-84f59ec89a0a": {
+		"en": "Temperature - Core #430",
+		"fr": "Température - Cœur 430",
+		"ja": "コア４３０の温度"
+	},
+	"c3e093bb-31d9-40e3-ae3b-83ac4911ca73": {
+		"en": "Temperature - Core #431",
+		"fr": "Température - Cœur 431",
+		"ja": "コア４３１の温度"
+	},
+	"1fc96473-ad5e-4deb-a962-ae44154e3072": {
+		"en": "Temperature - Core #432",
+		"fr": "Température - Cœur 432",
+		"ja": "コア４３２の温度"
+	},
+	"506a65e9-b380-4aa7-9b8e-e38a3c78d9b3": {
+		"en": "Temperature - Core #433",
+		"fr": "Température - Cœur 433",
+		"ja": "コア４３３の温度"
+	},
+	"c010f01c-821a-4ca2-97c5-f978c81e5c63": {
+		"en": "Temperature - Core #434",
+		"fr": "Température - Cœur 434",
+		"ja": "コア４３４の温度"
+	},
+	"a77468c4-eeff-450d-9c5b-80f9b1b0e375": {
+		"en": "Temperature - Core #435",
+		"fr": "Température - Cœur 435",
+		"ja": "コア４３５の温度"
+	},
+	"3c7ce5ab-13ba-44e0-b99d-ae6b19f907b8": {
+		"en": "Temperature - Core #436",
+		"fr": "Température - Cœur 436",
+		"ja": "コア４３６の温度"
+	},
+	"a7939ad3-1efa-4fd5-80e0-6a812fbe1a78": {
+		"en": "Temperature - Core #437",
+		"fr": "Température - Cœur 437",
+		"ja": "コア４３７の温度"
+	},
+	"c73e80af-b253-4fcf-91fd-622f01231087": {
+		"en": "Temperature - Core #438",
+		"fr": "Température - Cœur 438",
+		"ja": "コア４３８の温度"
+	},
+	"dd98cd75-0423-4b78-b375-301081e17827": {
+		"en": "Temperature - Core #439",
+		"fr": "Température - Cœur 439",
+		"ja": "コア４３９の温度"
+	},
+	"4926a4ef-9062-47f2-9535-e52ca24c07aa": {
+		"en": "Temperature - Core #440",
+		"fr": "Température - Cœur 440",
+		"ja": "コア４４０の温度"
+	},
+	"0f9496c7-2706-4133-b3c3-332a6176d7f1": {
+		"en": "Temperature - Core #441",
+		"fr": "Température - Cœur 441",
+		"ja": "コア４４１の温度"
+	},
+	"998b24aa-3d1e-4528-b141-3e38d8416f7b": {
+		"en": "Temperature - Core #442",
+		"fr": "Température - Cœur 442",
+		"ja": "コア４４２の温度"
+	},
+	"53490624-5da1-462f-9f93-b906d54a78fb": {
+		"en": "Temperature - Core #443",
+		"fr": "Température - Cœur 443",
+		"ja": "コア４４３の温度"
+	},
+	"73111178-352d-4e7b-a91f-fbe619ead4e6": {
+		"en": "Temperature - Core #444",
+		"fr": "Température - Cœur 444",
+		"ja": "コア４４４の温度"
+	},
+	"48428e1d-22eb-437a-b4cf-e857a58f2160": {
+		"en": "Temperature - Core #445",
+		"fr": "Température - Cœur 445",
+		"ja": "コア４４５の温度"
+	},
+	"fa496217-56ba-470c-bb7c-39a15afe465c": {
+		"en": "Temperature - Core #446",
+		"fr": "Température - Cœur 446",
+		"ja": "コア４４６の温度"
+	},
+	"a023e0c2-85bf-4482-bb02-b5320ac3f3e1": {
+		"en": "Temperature - Core #447",
+		"fr": "Température - Cœur 447",
+		"ja": "コア４４７の温度"
+	},
+	"7bc1390e-c4b9-4938-a360-af0ecfc92ac1": {
+		"en": "Temperature - Core #448",
+		"fr": "Température - Cœur 448",
+		"ja": "コア４４８の温度"
+	},
+	"63bce93f-3d02-4b47-8457-404eeb789b94": {
+		"en": "Temperature - Core #449",
+		"fr": "Température - Cœur 449",
+		"ja": "コア４４９の温度"
+	},
+	"f5e78a6d-29b0-4440-84c2-0afcaa257d31": {
+		"en": "Temperature - Core #450",
+		"fr": "Température - Cœur 450",
+		"ja": "コア４５０の温度"
+	},
+	"4ac745d0-b306-4f2c-86b0-2089d976cf22": {
+		"en": "Temperature - Core #451",
+		"fr": "Température - Cœur 451",
+		"ja": "コア４５１の温度"
+	},
+	"8a344d35-13bb-4d9f-a23c-a91c6a20a6a8": {
+		"en": "Temperature - Core #452",
+		"fr": "Température - Cœur 452",
+		"ja": "コア４５２の温度"
+	},
+	"880a1b2b-2360-487a-aa60-cb121f7a66c0": {
+		"en": "Temperature - Core #453",
+		"fr": "Température - Cœur 453",
+		"ja": "コア４５３の温度"
+	},
+	"ca4f2833-b091-4fc3-9977-7e0f02b5059e": {
+		"en": "Temperature - Core #454",
+		"fr": "Température - Cœur 454",
+		"ja": "コア４５４の温度"
+	},
+	"2a5cd527-1525-452d-bbb6-064151abbf7c": {
+		"en": "Temperature - Core #455",
+		"fr": "Température - Cœur 455",
+		"ja": "コア４５５の温度"
+	},
+	"eacb88c4-40f9-4e89-910a-e006adc11181": {
+		"en": "Temperature - Core #456",
+		"fr": "Température - Cœur 456",
+		"ja": "コア４５６の温度"
+	},
+	"846803ec-96e3-403b-9b57-46c1e4b3ff6a": {
+		"en": "Temperature - Core #457",
+		"fr": "Température - Cœur 457",
+		"ja": "コア４５７の温度"
+	},
+	"bb5fad64-6673-4fad-a266-75a8394bb81d": {
+		"en": "Temperature - Core #458",
+		"fr": "Température - Cœur 458",
+		"ja": "コア４５８の温度"
+	},
+	"c2d089c4-30b9-407d-96c9-a7825fb176ed": {
+		"en": "Temperature - Core #459",
+		"fr": "Température - Cœur 459",
+		"ja": "コア４５９の温度"
+	},
+	"a4607c34-08c3-4c3b-98cf-35fa2bdefbd4": {
+		"en": "Temperature - Core #460",
+		"fr": "Température - Cœur 460",
+		"ja": "コア４６０の温度"
+	},
+	"c9a76bb9-a978-4e44-b272-70aff9ba7ac3": {
+		"en": "Temperature - Core #461",
+		"fr": "Température - Cœur 461",
+		"ja": "コア４６１の温度"
+	},
+	"7f34c9ce-b22f-4213-9789-dee24ad23241": {
+		"en": "Temperature - Core #462",
+		"fr": "Température - Cœur 462",
+		"ja": "コア４６２の温度"
+	},
+	"bb8f4911-3494-4921-8c84-c7881ce63b24": {
+		"en": "Temperature - Core #463",
+		"fr": "Température - Cœur 463",
+		"ja": "コア４６３の温度"
+	},
+	"7cd54314-1133-442f-be5f-8418400867c3": {
+		"en": "Temperature - Core #464",
+		"fr": "Température - Cœur 464",
+		"ja": "コア４６４の温度"
+	},
+	"19a1c47a-734e-4fd8-87be-3a254bc7082e": {
+		"en": "Temperature - Core #465",
+		"fr": "Température - Cœur 465",
+		"ja": "コア４６５の温度"
+	},
+	"a5521671-dbbb-4d68-81e1-8ff472d4fb27": {
+		"en": "Temperature - Core #466",
+		"fr": "Température - Cœur 466",
+		"ja": "コア４６６の温度"
+	},
+	"8f8935b7-c886-42e0-9ef6-5619a356fa3e": {
+		"en": "Temperature - Core #467",
+		"fr": "Température - Cœur 467",
+		"ja": "コア４６７の温度"
+	},
+	"16a0065f-78db-4c14-a7d3-4c9b2c67518f": {
+		"en": "Temperature - Core #468",
+		"fr": "Température - Cœur 468",
+		"ja": "コア４６８の温度"
+	},
+	"66bd16b3-614c-40ff-81c4-2baa333c1742": {
+		"en": "Temperature - Core #469",
+		"fr": "Température - Cœur 469",
+		"ja": "コア４６９の温度"
+	},
+	"c4d12565-330c-4925-9eff-6f9934b9c84d": {
+		"en": "Temperature - Core #470",
+		"fr": "Température - Cœur 470",
+		"ja": "コア４７０の温度"
+	},
+	"80227d90-b7c4-45b6-990f-7042240dffe6": {
+		"en": "Temperature - Core #471",
+		"fr": "Température - Cœur 471",
+		"ja": "コア４７１の温度"
+	},
+	"f59dc2b1-5553-4db8-b4a5-061d31173fcf": {
+		"en": "Temperature - Core #472",
+		"fr": "Température - Cœur 472",
+		"ja": "コア４７２の温度"
+	},
+	"08bdcd70-ad9f-4c0d-981c-5be8b5d8e3af": {
+		"en": "Temperature - Core #473",
+		"fr": "Température - Cœur 473",
+		"ja": "コア４７３の温度"
+	},
+	"a84606b9-c915-4a08-a0be-6f38f02fde0d": {
+		"en": "Temperature - Core #474",
+		"fr": "Température - Cœur 474",
+		"ja": "コア４７４の温度"
+	},
+	"ae4427d7-31a3-4834-9222-ce6d4a197b5f": {
+		"en": "Temperature - Core #475",
+		"fr": "Température - Cœur 475",
+		"ja": "コア４７５の温度"
+	},
+	"7339991e-3bcf-4d6f-ac1d-afaea9db4e14": {
+		"en": "Temperature - Core #476",
+		"fr": "Température - Cœur 476",
+		"ja": "コア４７６の温度"
+	},
+	"95432015-d62c-4421-9a48-1fcb38b24e4d": {
+		"en": "Temperature - Core #477",
+		"fr": "Température - Cœur 477",
+		"ja": "コア４７７の温度"
+	},
+	"664112cf-b3a1-4a91-a0c7-058def47fc35": {
+		"en": "Temperature - Core #478",
+		"fr": "Température - Cœur 478",
+		"ja": "コア４７８の温度"
+	},
+	"ed83a13a-a9db-4504-b44a-183f7fa1976e": {
+		"en": "Temperature - Core #479",
+		"fr": "Température - Cœur 479",
+		"ja": "コア４７９の温度"
+	},
+	"6e2af343-c1ef-4445-89b0-ba2c6a684751": {
+		"en": "Temperature - Core #480",
+		"fr": "Température - Cœur 480",
+		"ja": "コア４８０の温度"
+	},
+	"f3d5c8f6-33dd-487e-83c6-b2710c0087bf": {
+		"en": "Temperature - Core #481",
+		"fr": "Température - Cœur 481",
+		"ja": "コア４８１の温度"
+	},
+	"4739469a-62e3-46a6-a8bd-239cc5a1ca04": {
+		"en": "Temperature - Core #482",
+		"fr": "Température - Cœur 482",
+		"ja": "コア４８２の温度"
+	},
+	"c3b1e6e4-2fe4-4f96-844e-921dfbd6433c": {
+		"en": "Temperature - Core #483",
+		"fr": "Température - Cœur 483",
+		"ja": "コア４８３の温度"
+	},
+	"fecac444-5e9d-44e7-9316-c5eb163ff582": {
+		"en": "Temperature - Core #484",
+		"fr": "Température - Cœur 484",
+		"ja": "コア４８４の温度"
+	},
+	"296ddd5e-913b-471c-9cdd-e2595d05f19f": {
+		"en": "Temperature - Core #485",
+		"fr": "Température - Cœur 485",
+		"ja": "コア４８５の温度"
+	},
+	"81197e27-434a-4aef-b831-0be711846e90": {
+		"en": "Temperature - Core #486",
+		"fr": "Température - Cœur 486",
+		"ja": "コア４８６の温度"
+	},
+	"db410172-a949-42ae-b5aa-e37c12b1c0aa": {
+		"en": "Temperature - Core #487",
+		"fr": "Température - Cœur 487",
+		"ja": "コア４８７の温度"
+	},
+	"7d13ffd6-6c28-4d05-9366-666d67e18106": {
+		"en": "Temperature - Core #488",
+		"fr": "Température - Cœur 488",
+		"ja": "コア４８８の温度"
+	},
+	"e5dc8cd8-74ff-4e1c-9107-1aade0e772eb": {
+		"en": "Temperature - Core #489",
+		"fr": "Température - Cœur 489",
+		"ja": "コア４８９の温度"
+	},
+	"759e738a-b881-4e76-99e2-3922d98c89b2": {
+		"en": "Temperature - Core #490",
+		"fr": "Température - Cœur 490",
+		"ja": "コア４９０の温度"
+	},
+	"96cb1d75-fc79-4cd2-b752-f7e675219b97": {
+		"en": "Temperature - Core #491",
+		"fr": "Température - Cœur 491",
+		"ja": "コア４９１の温度"
+	},
+	"b95d0ef1-e185-48e3-b48b-6ad3ea34fd11": {
+		"en": "Temperature - Core #492",
+		"fr": "Température - Cœur 492",
+		"ja": "コア４９２の温度"
+	},
+	"d32c33ec-6300-4e19-a2cf-80491b3baa20": {
+		"en": "Temperature - Core #493",
+		"fr": "Température - Cœur 493",
+		"ja": "コア４９３の温度"
+	},
+	"6f4e67df-3b59-4dba-b56f-82998a960d2f": {
+		"en": "Temperature - Core #494",
+		"fr": "Température - Cœur 494",
+		"ja": "コア４９４の温度"
+	},
+	"880772cc-bdd4-475f-b83a-00fd6b2422d6": {
+		"en": "Temperature - Core #495",
+		"fr": "Température - Cœur 495",
+		"ja": "コア４９５の温度"
+	},
+	"457f9280-09e4-41c5-bb46-6927a4ff4462": {
+		"en": "Temperature - Core #496",
+		"fr": "Température - Cœur 496",
+		"ja": "コア４９６の温度"
+	},
+	"500db530-b700-4779-aa36-bfb593219a16": {
+		"en": "Temperature - Core #497",
+		"fr": "Température - Cœur 497",
+		"ja": "コア４９７の温度"
+	},
+	"a32cd01b-fea8-430b-befe-0348004c0076": {
+		"en": "Temperature - Core #498",
+		"fr": "Température - Cœur 498",
+		"ja": "コア４９８の温度"
+	},
+	"25567b6b-7605-45b7-946b-a4d4c556b581": {
+		"en": "Temperature - Core #499",
+		"fr": "Température - Cœur 499",
+		"ja": "コア４９９の温度"
+	},
+	"e3c14545-6d81-48e1-bf0f-8a44614e4bcc": {
+		"en": "Temperature - Core #500",
+		"fr": "Température - Cœur 500",
+		"ja": "コア５００の温度"
+	},
+	"e7f189c0-38b8-4f8b-aa1f-b977bc82e5de": {
+		"en": "Temperature - Core #501",
+		"fr": "Température - Cœur 501",
+		"ja": "コア５０１の温度"
+	},
+	"f0054c6b-fcef-499e-8c1d-b16f42c9309d": {
+		"en": "Temperature - Core #502",
+		"fr": "Température - Cœur 502",
+		"ja": "コア５０２の温度"
+	},
+	"bf9d1935-24cf-4889-9c37-2df1ed5759fd": {
+		"en": "Temperature - Core #503",
+		"fr": "Température - Cœur 503",
+		"ja": "コア５０３の温度"
+	},
+	"96135999-fb18-4e07-a87e-8380d02a1b54": {
+		"en": "Temperature - Core #504",
+		"fr": "Température - Cœur 504",
+		"ja": "コア５０４の温度"
+	},
+	"c5e5055d-ac29-4b73-b00b-bc6fac76d01c": {
+		"en": "Temperature - Core #505",
+		"fr": "Température - Cœur 505",
+		"ja": "コア５０５の温度"
+	},
+	"0838db3c-7c82-4e3c-b62e-66db86c5c441": {
+		"en": "Temperature - Core #506",
+		"fr": "Température - Cœur 506",
+		"ja": "コア５０６の温度"
+	},
+	"5872862e-e03a-4d1f-a1a0-68fd4bb7d417": {
+		"en": "Temperature - Core #507",
+		"fr": "Température - Cœur 507",
+		"ja": "コア５０７の温度"
+	},
+	"57004a47-113c-49c2-ac3c-b076b99fdd8f": {
+		"en": "Temperature - Core #508",
+		"fr": "Température - Cœur 508",
+		"ja": "コア５０８の温度"
+	},
+	"53facd38-ed5a-474e-b94a-04c791637809": {
+		"en": "Temperature - Core #509",
+		"fr": "Température - Cœur 509",
+		"ja": "コア５０９の温度"
+	},
+	"6802097c-e58b-412b-8989-02b9a91c076c": {
+		"en": "Temperature - Core #510",
+		"fr": "Température - Cœur 510",
+		"ja": "コア５１０の温度"
+	},
+	"8b9bef42-bfa5-45a5-a724-3843d31f096d": {
+		"en": "Temperature - Core #511",
+		"fr": "Température - Cœur 511",
+		"ja": "コア５１１の温度"
+	},
+	"58538897-31c9-4484-99a8-567d34c8483a": {
+		"en": "Temperature - Core #512",
+		"fr": "Température - Cœur 512",
+		"ja": "コア５１２の温度"
+	}
 }

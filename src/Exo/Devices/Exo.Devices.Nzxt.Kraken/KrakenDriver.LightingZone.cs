@@ -12,13 +12,14 @@ public partial class KrakenDriver
 		ILightingZone,
 		ILightingZoneEffect<DisabledEffect>,
 		ILightingZoneEffect<StaticColorEffect>,
-		ILightingZoneEffect<ColorPulseEffect>,
-		ILightingZoneEffect<VariableColorPulseEffect>,
+		ILightingZoneEffect<VariableMultiColorCycleEffect>,
+		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
+		ILightingZoneEffect<VariableMultiColorPulseEffect>,
+		ILightingZoneEffect<VariableMultiColorBreathingEffect>,
 		ILightingZoneEffect<CandleEffect>,
 		ILightingZoneEffect<StarryNightEffect>,
 		ILightingZoneEffect<TaiChiEffect>,
 		ILightingZoneEffect<LiquidCoolerEffect>,
-		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
 		ILightingZoneEffect<CoveringMarqueeEffect>
 	{
 		const byte DefaultStaticSpeed = 0x32;
@@ -76,10 +77,14 @@ public partial class KrakenDriver
 			{
 			case KrakenEffect.Static:
 				return _colors[0] == default ? DisabledEffect.SharedInstance : new StaticColorEffect(_colors[0]);
+			case KrakenEffect.Fade:
+				return new VariableMultiColorCycleEffect(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (speedIndex = FadeSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow);
 			case KrakenEffect.SpectrumWave:
 				return new ReversibleVariableSpectrumWaveEffect((speedIndex = SpectrumWaveSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & 0x02) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.Pulse:
-				return (speedIndex = PulseSpeeds.IndexOf(_speed)) >= 0 ? new VariableColorPulseEffect(_colors[0], (PredeterminedEffectSpeed)speedIndex) : new ColorPulseEffect(_colors[0]);
+				return new VariableMultiColorPulseEffect(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (speedIndex = PulseSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow);
+			case KrakenEffect.Breathing:
+				return new VariableMultiColorBreathingEffect(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (speedIndex = BreathingSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow);
 			case KrakenEffect.Candle:
 				return new CandleEffect(_colors[0]);
 			case KrakenEffect.StarryNight:
@@ -129,18 +134,22 @@ public partial class KrakenDriver
 			}
 		}
 
-		void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect)
+		void ILightingZoneEffect<VariableMultiColorCycleEffect>.ApplyEffect(in VariableMultiColorCycleEffect effect)
 		{
-			if (_effectId != KrakenEffect.Pulse || _colorCount != 1 || _colors[0] != effect.Color || _speed != PulseSpeeds[2] || _flags != 0x00 && _parameter2 != 0x08 || _size != 0x03)
+			if (effect.Colors.IsDefault || effect.Colors.Length is < 2 or > 8) throw new ArgumentException("The effect requires between two to eight colors.");
+
+			if (_effectId != KrakenEffect.Fade ||
+				_colorCount != effect.Colors.Length ||
+				!_colors.AsSpan(0, _colorCount).SequenceEqual(effect.Colors.AsSpan()) ||
+				FadeSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				_flags != 0x00 ||
+				_parameter2 != 0x08 ||
+				_size != 0x03)
 			{
-				_effectId = KrakenEffect.Pulse;
-				_colors[0] = effect.Color;
-				if (_colorCount > 1)
-				{
-					_colors.AsSpan(1, _colorCount - 1).Clear();
-				}
-				_colorCount = 1;
-				_speed = PulseSpeeds[2];
+				_effectId = KrakenEffect.Fade;
+				effect.Colors.AsSpan().CopyTo(_colors);
+				_colorCount = (byte)effect.Colors.Length;
+				_speed = FadeSpeeds[(int)effect.Speed];
 				_flags = 0x00;
 				_parameter2 = 0x08;
 				_size = 0x03;
@@ -148,18 +157,45 @@ public partial class KrakenDriver
 			}
 		}
 
-		void ILightingZoneEffect<VariableColorPulseEffect>.ApplyEffect(in VariableColorPulseEffect effect)
+		void ILightingZoneEffect<VariableMultiColorPulseEffect>.ApplyEffect(in VariableMultiColorPulseEffect effect)
 		{
-			if (_effectId != KrakenEffect.Pulse || _colorCount != 1 || _colors[0] != effect.Color || _speed != PulseSpeeds[2] || _flags != 0x00 && _parameter2 != 0x08 || _size != 0x03)
+			if (effect.Colors.IsDefault || effect.Colors.Length is < 1 or > 8) throw new ArgumentException("The effect requires between one to eight colors.");
+
+			if (_effectId != KrakenEffect.Pulse ||
+				_colorCount != effect.Colors.Length ||
+				!_colors.AsSpan(0, _colorCount).SequenceEqual(effect.Colors.AsSpan()) ||
+				PulseSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				_flags != 0x00 ||
+				_parameter2 != 0x08 ||
+				_size != 0x03)
 			{
 				_effectId = KrakenEffect.Pulse;
-				_colors[0] = effect.Color;
-				if (_colorCount > 1)
-				{
-					_colors.AsSpan(1, _colorCount - 1).Clear();
-				}
-				_colorCount = 1;
+				effect.Colors.AsSpan().CopyTo(_colors);
+				_colorCount = (byte)effect.Colors.Length;
 				_speed = PulseSpeeds[(int)effect.Speed];
+				_flags = 0x00;
+				_parameter2 = 0x08;
+				_size = 0x03;
+				_hasChanged = true;
+			}
+		}
+
+		void ILightingZoneEffect<VariableMultiColorBreathingEffect>.ApplyEffect(in VariableMultiColorBreathingEffect effect)
+		{
+			if (effect.Colors.IsDefault || effect.Colors.Length is < 1 or > 8) throw new ArgumentException("The effect requires between one to eight colors.");
+
+			if (_effectId != KrakenEffect.Breathing ||
+				_colorCount != effect.Colors.Length ||
+				!_colors.AsSpan(0, _colorCount).SequenceEqual(effect.Colors.AsSpan()) ||
+				BreathingSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
+				_flags != 0x00 ||
+				_parameter2 != 0x08 ||
+				_size != 0x03)
+			{
+				_effectId = KrakenEffect.Breathing;
+				effect.Colors.AsSpan().CopyTo(_colors);
+				_colorCount = (byte)effect.Colors.Length;
+				_speed = BreathingSpeeds[(int)effect.Speed];
 				_flags = 0x00;
 				_parameter2 = 0x08;
 				_size = 0x03;
@@ -281,7 +317,7 @@ public partial class KrakenDriver
 
 		void ILightingZoneEffect<CoveringMarqueeEffect>.ApplyEffect(in CoveringMarqueeEffect effect)
 		{
-			if (effect.Colors.IsDefault || effect.Colors.Length is < 1 or > 8) throw new ArgumentException("The covering marquee effect requires between one to eight colors.");
+			if (effect.Colors.IsDefault || effect.Colors.Length is < 1 or > 8) throw new ArgumentException("The effect requires between one to eight colors.");
 
 			if (_effectId != KrakenEffect.CoveringMarquee ||
 				_colorCount != effect.Colors.Length ||
@@ -319,22 +355,51 @@ public partial class KrakenDriver
 			return false;
 		}
 
-		bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect)
+		bool ILightingZoneEffect<VariableMultiColorCycleEffect>.TryGetCurrentEffect(out VariableMultiColorCycleEffect effect)
 		{
-			if (_effectId == KrakenEffect.Pulse && _colorCount == 1 && _speed == PulseSpeeds[2] && _flags == 0x00 && _parameter2 == 0x08 && _size == 0x03)
+			if (_effectId == KrakenEffect.Pulse &&
+				_colorCount >= 1 &&
+				FadeSpeeds.IndexOf(_speed) is int speedIndex &&
+				speedIndex >= 0 &&
+				_flags == 0x00 &&
+				_parameter2 == 0x08 &&
+				_size == 0x03)
 			{
-				effect = new(_colors[0]);
+				effect = new(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (PredeterminedEffectSpeed)speedIndex);
 				return true;
 			}
 			effect = default;
 			return false;
 		}
 
-		bool ILightingZoneEffect<VariableColorPulseEffect>.TryGetCurrentEffect(out VariableColorPulseEffect effect)
+		bool ILightingZoneEffect<VariableMultiColorPulseEffect>.TryGetCurrentEffect(out VariableMultiColorPulseEffect effect)
 		{
-			if (_effectId == KrakenEffect.Pulse && _colorCount == 1 && PulseSpeeds.IndexOf(_speed) is int speedIndex && speedIndex >= 0 && _flags == 0x00 && _parameter2 == 0x08 && _size == 0x03)
+			if (_effectId == KrakenEffect.Pulse &&
+				_colorCount >= 1 &&
+				PulseSpeeds.IndexOf(_speed) is int speedIndex &&
+				speedIndex >= 0 &&
+				_flags == 0x00 &&
+				_parameter2 == 0x08 &&
+				_size == 0x03)
 			{
-				effect = new(_colors[0], (PredeterminedEffectSpeed)speedIndex);
+				effect = new(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (PredeterminedEffectSpeed)speedIndex);
+				return true;
+			}
+			effect = default;
+			return false;
+		}
+
+		bool ILightingZoneEffect<VariableMultiColorBreathingEffect>.TryGetCurrentEffect(out VariableMultiColorBreathingEffect effect)
+		{
+			if (_effectId == KrakenEffect.Breathing &&
+				_colorCount >= 1 &&
+				BreathingSpeeds.IndexOf(_speed) is int speedIndex &&
+				speedIndex >= 0 &&
+				_flags == 0x00 &&
+				_parameter2 == 0x08 &&
+				_size == 0x03)
+			{
+				effect = new(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (PredeterminedEffectSpeed)speedIndex);
 				return true;
 			}
 			effect = default;
