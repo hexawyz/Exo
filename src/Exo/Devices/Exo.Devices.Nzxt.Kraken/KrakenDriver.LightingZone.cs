@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using Exo.ColorFormats;
 using Exo.Devices.Nzxt.LightingEffects;
 using Exo.Lighting;
@@ -113,8 +114,7 @@ public partial class KrakenDriver
 				if ((_flags & LightingEffectFlags.Moving) == 0) speed >>>= 1;
 				return new AlternatingEffect
 				(
-					_colors[0],
-					_colors[1],
+					CreateTwoColorArray(_colors),
 					(speedIndex = AlternatingBaseSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumFast,
 					(_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward,
 					_size,
@@ -137,14 +137,24 @@ public partial class KrakenDriver
 			case KrakenEffect.RainbowPulse:
 				return new ReversibleVariableRainbowPulseEffect((speedIndex = RainbowWaveSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.TaiChi:
-				return new TaiChiEffect(_colors[0], _colors[1], (speedIndex = TaiChiSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+				return new TaiChiEffect(CreateTwoColorArray(_colors), (speedIndex = TaiChiSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.LiquidCooler:
-				return new LiquidCoolerEffect(_colors[0], _colors[1], (speedIndex = LiquidCoolerSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+				return new LiquidCoolerEffect(CreateTwoColorArray(_colors), (speedIndex = LiquidCoolerSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.Loading:
 				return new ReversibleVariableColorLoadingEffect(_colors[0], (speedIndex = StarryNightSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			default:
 				throw new NotImplementedException();
 			}
+		}
+
+		[SkipLocalsInit]
+		private static FixedArray2<RgbColor> CreateTwoColorArray(ReadOnlySpan<RgbColor> colors)
+		{
+			if (colors.Length < 2) throw new ArgumentException(null, nameof(colors));
+			FixedArray2<RgbColor> array;
+			Unsafe.SkipInit(out array);
+			colors[..2].CopyTo(array);
+			return array;
 		}
 
 		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
@@ -279,16 +289,16 @@ public partial class KrakenDriver
 		{
 			if (_effectId != KrakenEffect.Alternating ||
 				_colorCount != 2 ||
-				_colors[0] != effect.Color1 ||
-				_colors[1] != effect.Color2 ||
+				_colors[0] != effect.Colors[0] ||
+				_colors[1] != effect.Colors[1] ||
 				AlternatingBaseSpeeds.IndexOf((_flags & LightingEffectFlags.Moving) == 0 ? (byte)(_speed >>> 1) : _speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
 				(_flags & (LightingEffectFlags.Moving | LightingEffectFlags.Reversed)) != 0 ||
 				_parameter2 != 0x00 ||
 				_size != effect.Size)
 			{
 				_effectId = KrakenEffect.Alternating;
-				_colors[0] = effect.Color1;
-				_colors[1] = effect.Color2;
+				_colors[0] = effect.Colors[0];
+				_colors[1] = effect.Colors[1];
 				if (_colorCount > 2)
 				{
 					_colors.AsSpan(2, _colorCount - 2).Clear();
@@ -349,16 +359,16 @@ public partial class KrakenDriver
 		{
 			if (_effectId != KrakenEffect.TaiChi ||
 				_colorCount != 2 ||
-				_colors[0] != effect.Color1 ||
-				_colors[1] != effect.Color2 ||
+				_colors[0] != effect.Colors[0] ||
+				_colors[1] != effect.Colors[1] ||
 				TaiChiSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
 				_flags != (effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None) ||
 				_parameter2 != 0x05 ||
 				_size != DefaultSize)
 			{
 				_effectId = KrakenEffect.TaiChi;
-				_colors[0] = effect.Color1;
-				_colors[1] = effect.Color2;
+				_colors[0] = effect.Colors[0];
+				_colors[1] = effect.Colors[1];
 				if (_colorCount > 2)
 				{
 					_colors.AsSpan(2, _colorCount - 2).Clear();
@@ -376,16 +386,16 @@ public partial class KrakenDriver
 		{
 			if (_effectId != KrakenEffect.LiquidCooler ||
 				_colorCount != 2 ||
-				_colors[0] != effect.Color1 ||
-				_colors[1] != effect.Color2 ||
+				_colors[0] != effect.Colors[0] ||
+				_colors[1] != effect.Colors[1] ||
 				LiquidCoolerSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
 				_flags != (effect.Direction != EffectDirection1D.Forward ? LightingEffectFlags.Reversed : LightingEffectFlags.None) ||
 				_parameter2 != 0x05 ||
 				_size != DefaultSize)
 			{
 				_effectId = KrakenEffect.LiquidCooler;
-				_colors[0] = effect.Color1;
-				_colors[1] = effect.Color2;
+				_colors[0] = effect.Colors[0];
+				_colors[1] = effect.Colors[1];
 				if (_colorCount > 2)
 				{
 					_colors.AsSpan(2, _colorCount - 2).Clear();
@@ -647,8 +657,7 @@ public partial class KrakenDriver
 			{
 				effect = new
 				(
-					_colors[0],
-					_colors[1],
+					CreateTwoColorArray(_colors),
 					(PredeterminedEffectSpeed)speedIndex,
 					(_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward,
 					_size,
@@ -692,7 +701,7 @@ public partial class KrakenDriver
 				_parameter2 == 0x05 &&
 				_size == DefaultSize)
 			{
-				effect = new(_colors[0], _colors[1], (PredeterminedEffectSpeed)speedIndex, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+				effect = new(CreateTwoColorArray(_colors), (PredeterminedEffectSpeed)speedIndex, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 				return true;
 			}
 			effect = default;
@@ -709,7 +718,7 @@ public partial class KrakenDriver
 				_parameter2 == 0x05 &&
 				_size == DefaultSize)
 			{
-				effect = new(_colors[0], _colors[1], (PredeterminedEffectSpeed)speedIndex, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+				effect = new(CreateTwoColorArray(_colors), (PredeterminedEffectSpeed)speedIndex, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 				return true;
 			}
 			effect = default;

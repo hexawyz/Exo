@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -118,8 +119,7 @@ public abstract partial class RazerDeviceDriver
 		protected class LightingZoneV1 : LightingZone,
 			ILightingZoneEffect<StaticColorEffect>,
 			ILightingZoneEffect<ColorBlinkEffect>,
-			ILightingZoneEffect<ColorPulseEffect>,
-			ILightingZoneEffect<TwoColorPulseEffect>,
+			ILightingZoneEffect<MultiColorBreathingEffect>,
 			ILightingZoneEffect<SpectrumCycleEffect>,
 			IUnifiedLightingFeature
 		{
@@ -151,13 +151,13 @@ public abstract partial class RazerDeviceDriver
 				case RazerLightingEffectV0.Blink:
 					return new ColorBlinkEffect(await Transport.GetStaticColorV1Async(_ledId, cancellationToken).ConfigureAwait(false));
 				case RazerLightingEffectV0.Breathing:
-					return new ColorPulseEffect(await Transport.GetStaticColorV1Async(_ledId, cancellationToken).ConfigureAwait(false));
+					return new MultiColorBreathingEffect([await Transport.GetStaticColorV1Async(_ledId, cancellationToken).ConfigureAwait(false)]);
 				case RazerLightingEffectV0.BreathingExtended:
 					try
 					{
 						var (colorCount, color1, color2) = await Transport.GetBreathingEffectParametersV1Async(_ledId, cancellationToken).ConfigureAwait(false);
-						if (colorCount == 2) return new TwoColorPulseEffect(color1, color2);
-						else if (colorCount == 1) return new ColorPulseEffect(color1);
+						if (colorCount == 2) return new MultiColorBreathingEffect([color1, color2]);
+						else if (colorCount == 1) return new MultiColorBreathingEffect([color1]);
 						else return DisabledEffect.SharedInstance;
 					}
 					catch
@@ -201,14 +201,21 @@ public abstract partial class RazerDeviceDriver
 					await transport.SetStaticColorV1Async(_ledId, blinkEffect.Color, cancellationToken);
 					effectId = RazerLightingEffectV0.Blink;
 					break;
-				case ColorPulseEffect colorPulseEffect:
-					await transport.SetBreathingEffectParametersV1Async(_ledId, colorPulseEffect.Color, cancellationToken);
-					await transport.SetStaticColorV1Async(_ledId, colorPulseEffect.Color, cancellationToken);
-					effectId = RazerLightingEffectV0.Breathing;
-					break;
-				case TwoColorPulseEffect twoColorPulseEffect:
-					await transport.SetBreathingEffectParametersV1Async(_ledId, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken);
-					effectId = RazerLightingEffectV0.BreathingExtended;
+				case MultiColorBreathingEffect colorBreathingEffect:
+					var colors = colorBreathingEffect.Colors;
+					switch (colors.Length)
+					{
+					case 2:
+						await transport.SetBreathingEffectParametersV1Async(_ledId, colors[0], colors[1], cancellationToken);
+						effectId = RazerLightingEffectV0.BreathingExtended;
+						break;
+					case 1:
+						await transport.SetBreathingEffectParametersV1Async(_ledId, colors[0], cancellationToken);
+						await transport.SetStaticColorV1Async(_ledId, colors[0], cancellationToken);
+						effectId = RazerLightingEffectV0.Breathing;
+						break;
+					default: throw new UnreachableException();
+					}
 					break;
 				case SpectrumCycleEffect:
 					effectId = RazerLightingEffectV0.SpectrumCycle;
@@ -243,11 +250,13 @@ public abstract partial class RazerDeviceDriver
 			void ILightingZoneEffect<ColorBlinkEffect>.ApplyEffect(in ColorBlinkEffect effect) => SetCurrentEffect(effect);
 			bool ILightingZoneEffect<ColorBlinkEffect>.TryGetCurrentEffect(out ColorBlinkEffect effect) => CurrentEffect.TryGetEffect(out effect);
 
-			void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => SetCurrentEffect(effect);
-			bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			void ILightingZoneEffect<MultiColorBreathingEffect>.ApplyEffect(in MultiColorBreathingEffect effect)
+			{
+				if (effect.Colors.IsDefaultOrEmpty || effect.Colors.Length > 2) throw new ArgumentException(null, nameof(effect));
+				SetCurrentEffect(effect);
+			}
 
-			void ILightingZoneEffect<TwoColorPulseEffect>.ApplyEffect(in TwoColorPulseEffect effect) => SetCurrentEffect(effect);
-			bool ILightingZoneEffect<TwoColorPulseEffect>.TryGetCurrentEffect(out TwoColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<MultiColorBreathingEffect>.TryGetCurrentEffect(out MultiColorBreathingEffect effect) => CurrentEffect.TryGetEffect(out effect);
 
 			void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => SetCurrentEffect(effect);
 			bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
@@ -299,9 +308,13 @@ public abstract partial class RazerDeviceDriver
 				{
 					DisabledEffect staticColorEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Disabled, 0, default, default, cancellationToken),
 					StaticColorEffect staticColorEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
-					RandomColorPulseEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 3, default, default, cancellationToken),
-					ColorPulseEffect colorPulseEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 1, colorPulseEffect.Color, default, cancellationToken),
-					TwoColorPulseEffect twoColorPulseEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken),
+					RandomColorBreathingEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 3, default, default, cancellationToken),
+					MultiColorBreathingEffect colorBreathingEffect => colorBreathingEffect.Colors.Length switch
+					{
+						2 => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 2, colorBreathingEffect.Colors[0], colorBreathingEffect.Colors[1], cancellationToken),
+						1 => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 1, colorBreathingEffect.Colors[0], default, cancellationToken),
+						_ => throw new UnreachableException()
+					},
 					SpectrumCycleEffect => transport.SetEffectV1Async(RazerLightingEffectV1.SpectrumCycle, 0, default, default, cancellationToken),
 					SpectrumWaveEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Wave, 1, default, default, cancellationToken),
 					ReactiveEffect reactiveEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Reactive, 1, reactiveEffect.Color, default, cancellationToken),
@@ -336,9 +349,13 @@ public abstract partial class RazerDeviceDriver
 				{
 					DisabledEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Disabled, 0, default, default, cancellationToken),
 					StaticColorEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
-					RandomColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 0, default, default, cancellationToken),
-					ColorPulseEffect colorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 1, colorPulseEffect.Color, default, cancellationToken),
-					TwoColorPulseEffect twoColorPulseEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 2, twoColorPulseEffect.Color, twoColorPulseEffect.SecondColor, cancellationToken),
+					RandomColorBreathingEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 0, default, default, cancellationToken),
+					MultiColorBreathingEffect colorBreathingEffect => colorBreathingEffect.Colors.Length switch
+					{
+						2 => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 2, colorBreathingEffect.Colors[0], colorBreathingEffect.Colors[1], cancellationToken),
+						1 => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 1, colorBreathingEffect.Colors[0], default, cancellationToken),
+						_ => throw new UnreachableException()
+					},
 					SpectrumCycleEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.SpectrumCycle, 0, default, default, cancellationToken),
 					SpectrumWaveEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Wave, 1, default, default, cancellationToken),
 					ReactiveEffect reactiveEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Reactive, 1, reactiveEffect.Color, default, cancellationToken),
@@ -349,9 +366,8 @@ public abstract partial class RazerDeviceDriver
 
 		protected class BasicLightingZoneV2 : LightingZoneV2,
 			ILightingZoneEffect<StaticColorEffect>,
-			ILightingZoneEffect<ColorPulseEffect>,
-			ILightingZoneEffect<TwoColorPulseEffect>,
-			ILightingZoneEffect<RandomColorPulseEffect>,
+			ILightingZoneEffect<MultiColorBreathingEffect>,
+			ILightingZoneEffect<RandomColorBreathingEffect>,
 			ILightingZoneEffect<SpectrumCycleEffect>,
 			ILightingZoneEffect<SpectrumWaveEffect>
 		{
@@ -360,16 +376,20 @@ public abstract partial class RazerDeviceDriver
 			}
 
 			void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => SetCurrentEffect(effect);
-			void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => SetCurrentEffect(effect);
-			void ILightingZoneEffect<TwoColorPulseEffect>.ApplyEffect(in TwoColorPulseEffect effect) => SetCurrentEffect(effect);
-			void ILightingZoneEffect<RandomColorPulseEffect>.ApplyEffect(in RandomColorPulseEffect effect) => SetCurrentEffect(RandomColorPulseEffect.SharedInstance);
+
+			void ILightingZoneEffect<MultiColorBreathingEffect>.ApplyEffect(in MultiColorBreathingEffect effect)
+			{
+				if (effect.Colors.IsDefaultOrEmpty || effect.Colors.Length > 2) throw new ArgumentException(null, nameof(effect));
+				SetCurrentEffect(effect);
+			}
+
+			void ILightingZoneEffect<RandomColorBreathingEffect>.ApplyEffect(in RandomColorBreathingEffect effect) => SetCurrentEffect(RandomColorBreathingEffect.SharedInstance);
 			void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => SetCurrentEffect(SpectrumCycleEffect.SharedInstance);
 			void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => SetCurrentEffect(SpectrumWaveEffect.SharedInstance);
 
 			bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<TwoColorPulseEffect>.TryGetCurrentEffect(out TwoColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<RandomColorPulseEffect>.TryGetCurrentEffect(out RandomColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<MultiColorBreathingEffect>.TryGetCurrentEffect(out MultiColorBreathingEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<RandomColorBreathingEffect>.TryGetCurrentEffect(out RandomColorBreathingEffect effect) => CurrentEffect.TryGetEffect(out effect);
 			bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
 			bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		}
@@ -400,9 +420,8 @@ public abstract partial class RazerDeviceDriver
 
 		protected class BasicUnifiedLightingZoneV1 : UnifiedLightingZoneV1,
 			ILightingZoneEffect<StaticColorEffect>,
-			ILightingZoneEffect<ColorPulseEffect>,
-			ILightingZoneEffect<TwoColorPulseEffect>,
-			ILightingZoneEffect<RandomColorPulseEffect>,
+			ILightingZoneEffect<MultiColorBreathingEffect>,
+			ILightingZoneEffect<RandomColorBreathingEffect>,
 			ILightingZoneEffect<SpectrumCycleEffect>,
 			ILightingZoneEffect<SpectrumWaveEffect>,
 			IUnifiedLightingFeature
@@ -412,16 +431,20 @@ public abstract partial class RazerDeviceDriver
 			}
 
 			void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => SetCurrentEffect(effect);
-			void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => SetCurrentEffect(effect);
-			void ILightingZoneEffect<TwoColorPulseEffect>.ApplyEffect(in TwoColorPulseEffect effect) => SetCurrentEffect(effect);
-			void ILightingZoneEffect<RandomColorPulseEffect>.ApplyEffect(in RandomColorPulseEffect effect) => SetCurrentEffect(RandomColorPulseEffect.SharedInstance);
+
+			void ILightingZoneEffect<MultiColorBreathingEffect>.ApplyEffect(in MultiColorBreathingEffect effect)
+			{
+				if (effect.Colors.IsDefaultOrEmpty || effect.Colors.Length > 2) throw new ArgumentException(null, nameof(effect));
+				SetCurrentEffect(effect);
+			}
+
+			void ILightingZoneEffect<RandomColorBreathingEffect>.ApplyEffect(in RandomColorBreathingEffect effect) => SetCurrentEffect(RandomColorBreathingEffect.SharedInstance);
 			void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => SetCurrentEffect(SpectrumCycleEffect.SharedInstance);
 			void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => SetCurrentEffect(SpectrumWaveEffect.SharedInstance);
 
 			bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<TwoColorPulseEffect>.TryGetCurrentEffect(out TwoColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
-			bool ILightingZoneEffect<RandomColorPulseEffect>.TryGetCurrentEffect(out RandomColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<MultiColorBreathingEffect>.TryGetCurrentEffect(out MultiColorBreathingEffect effect) => CurrentEffect.TryGetEffect(out effect);
+			bool ILightingZoneEffect<RandomColorBreathingEffect>.TryGetCurrentEffect(out RandomColorBreathingEffect effect) => CurrentEffect.TryGetEffect(out effect);
 			bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
 			bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		}

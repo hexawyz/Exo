@@ -2,6 +2,15 @@ using System.Runtime.CompilerServices;
 
 namespace Exo;
 
+[InlineArray(2)]
+public struct FixedArray2<T>
+where T : unmanaged
+{
+#pragma warning disable IDE0044
+	private T _element0;
+#pragma warning restore IDE0044 // Add readonly modifier
+}
+
 [InlineArray(5)]
 public struct FixedArray5<T>
 where T : unmanaged

@@ -250,7 +250,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 					foreach (var (elementSize, member) in variableMembers)
 					{
 						sb.AppendLine(" +")
-							.Append("\t\t\t\t(value.").Append(member.Name).Append(".IsDefault ? 0 : global::Exo.BufferWriter.GetVariableLength((uint)value.").Append(member.Name).Append(".Length) + (uint)value.").Append(member.Name).Append(".Length * Unsafe.SizeOf<").Append(GetMemberElementType(member)).Append(">())");
+							.Append("\t\t\t\t(value.").Append(member.Name).Append(".IsDefault ? 0 : global::Exo.BufferWriter.GetVariableLength((uint)value.").Append(member.Name).Append(".Length) + (uint)value.").Append(member.Name).Append(".Length * (uint)global::System.Runtime.CompilerServices.Unsafe.SizeOf<").Append(GetMemberElementType(member)).Append(">())");
 					}
 					sb.AppendLine(";")
 						.AppendLine("\t\t\treturn true;");

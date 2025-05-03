@@ -1086,9 +1086,9 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			RazerLightingEffectV1.Static => new StaticColorEffect(color1),
 			RazerLightingEffectV1.Breathing => parameter switch
 			{
-				0 => RandomColorPulseEffect.SharedInstance,
-				1 => new ColorPulseEffect(color1),
-				_ => new TwoColorPulseEffect(color1, color2),
+				0 => RandomColorBreathingEffect.SharedInstance,
+				1 => new MultiColorBreathingEffect([color1]),
+				_ => new MultiColorBreathingEffect([color1, color2]),
 			},
 			RazerLightingEffectV1.SpectrumCycle => SpectrumCycleEffect.SharedInstance,
 			RazerLightingEffectV1.Wave => SpectrumWaveEffect.SharedInstance,
@@ -1205,9 +1205,9 @@ internal abstract class RazerProtocolTransport : IDisposable, IRazerProtocolTran
 			RazerLightingEffectV2.Static => new StaticColorEffect(color1),
 			RazerLightingEffectV2.Breathing => colorCount switch
 			{
-				0 => RandomColorPulseEffect.SharedInstance,
-				1 => new ColorPulseEffect(color1),
-				_ => new TwoColorPulseEffect(color1, color2),
+				0 => RandomColorBreathingEffect.SharedInstance,
+				1 => new MultiColorBreathingEffect([color1]),
+				_ => new MultiColorBreathingEffect([color1, color2]),
 			},
 			RazerLightingEffectV2.SpectrumCycle => SpectrumCycleEffect.SharedInstance,
 			RazerLightingEffectV2.Wave => SpectrumWaveEffect.SharedInstance,
