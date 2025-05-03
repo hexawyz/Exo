@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Ipc;
@@ -15,6 +16,7 @@ using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.Windows.Globalization;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
