@@ -16,17 +16,19 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 	public object? MaximumValue { get; }
 	public object? DefaultValue { get; }
 
-	public object? InitialValue
+	private object? InitialValue
 	{
 		get => _initialValue;
-		private set
+		set
 		{
-			bool wasChanged = IsChanged;
-			if (SetValue(ref _initialValue, value, ChangedProperty.InitialValue))
+			if (!Equals(_initialValue, value))
 			{
+				bool wasChanged = IsChanged;
+				_initialValue = value;
 				if (!wasChanged)
 				{
-					_value = _initialValue;
+					_value = value;
+					NotifyPropertyChanged(ChangedProperty.Value);
 				}
 				else
 				{
@@ -49,7 +51,7 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 		}
 	}
 
-	public override bool IsChanged => Value is null ? InitialValue is not null : !Value.Equals(InitialValue);
+	public override bool IsChanged => Value is null ? InitialValue is not null : !Equals(Value, InitialValue);
 
 	protected override void Reset() => Value = InitialValue;
 
