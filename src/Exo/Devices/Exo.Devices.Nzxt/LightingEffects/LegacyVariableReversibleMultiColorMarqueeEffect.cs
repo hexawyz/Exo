@@ -9,7 +9,7 @@ namespace Exo.Devices.Nzxt.LightingEffects;
 
 /// <summary>Represents a color effect where a block of color is moving from start to end.</summary>
 [TypeId(0x82E3BA40, 0x7557, 0x4D51, 0xAE, 0xDD, 0x9C, 0xBF, 0xA2, 0x7E, 0x10, 0x7B)]
-public readonly partial struct LegacyVariableReversibleMultiColorMarqueeEffect(ImmutableArray<RgbColor> colors, PredeterminedEffectSpeed speed, EffectDirection1D direction, byte size) : ILightingEffect
+public readonly partial struct LegacyReversibleVariableMultiColorMarqueeEffect(ImmutableArray<RgbColor> colors, PredeterminedEffectSpeed speed, EffectDirection1D direction, byte size) : ILightingEffect
 {
 	[Display(Name = "Colors")]
 	[Array(1, 8)]

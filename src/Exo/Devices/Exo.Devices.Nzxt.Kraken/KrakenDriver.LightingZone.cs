@@ -14,7 +14,7 @@ public partial class KrakenDriver
 		ILightingZoneEffect<StaticColorEffect>,
 		ILightingZoneEffect<VariableMultiColorCycleEffect>,
 		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
-		ILightingZoneEffect<LegacyVariableReversibleMultiColorMarqueeEffect>,
+		ILightingZoneEffect<LegacyReversibleVariableMultiColorMarqueeEffect>,
 		ILightingZoneEffect<VariableMultiColorPulseEffect>,
 		ILightingZoneEffect<VariableMultiColorBreathingEffect>,
 		ILightingZoneEffect<CandleEffect>,
@@ -85,7 +85,7 @@ public partial class KrakenDriver
 			case KrakenEffect.SpectrumWave:
 				return new ReversibleVariableSpectrumWaveEffect((speedIndex = SpectrumWaveSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & 0x02) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.Marquee:
-				return new LegacyVariableReversibleMultiColorMarqueeEffect(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (speedIndex = LiquidCoolerSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & 0x02) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward, _size);
+				return new LegacyReversibleVariableMultiColorMarqueeEffect(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (speedIndex = LiquidCoolerSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & 0x02) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward, _size);
 			case KrakenEffect.CoveringMarquee:
 				return new CoveringMarqueeEffect(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (speedIndex = LiquidCoolerSpeeds.IndexOf(_speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & 0x02) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.Pulse:
@@ -320,7 +320,7 @@ public partial class KrakenDriver
 			}
 		}
 
-		void ILightingZoneEffect<LegacyVariableReversibleMultiColorMarqueeEffect>.ApplyEffect(in LegacyVariableReversibleMultiColorMarqueeEffect effect)
+		void ILightingZoneEffect<LegacyReversibleVariableMultiColorMarqueeEffect>.ApplyEffect(in LegacyReversibleVariableMultiColorMarqueeEffect effect)
 		{
 			if (effect.Colors.IsDefault || effect.Colors.Length is < 1 or > 8) throw new ArgumentException("The effect requires between one to eight colors.");
 
@@ -507,7 +507,7 @@ public partial class KrakenDriver
 			return false;
 		}
 
-		bool ILightingZoneEffect<LegacyVariableReversibleMultiColorMarqueeEffect>.TryGetCurrentEffect(out LegacyVariableReversibleMultiColorMarqueeEffect effect)
+		bool ILightingZoneEffect<LegacyReversibleVariableMultiColorMarqueeEffect>.TryGetCurrentEffect(out LegacyReversibleVariableMultiColorMarqueeEffect effect)
 		{
 			if (_effectId == KrakenEffect.Marquee &&
 				_colorCount >= 1 &&
