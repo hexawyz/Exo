@@ -92,14 +92,15 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 	protected override void Reset()
 	{
 		bool wasChanged = IsChanged;
-		for (int i = 0; i < _initialValueCount; i++)
+		for (uint i = 0; i < _initialValueCount; i++)
 		{
 			var initialValue = _initialValues[i];
 			if (i < _elements.Count)
 			{
-				if (!EqualityComparer<T>.Default.Equals(initialValue, _elements[i].Value))
+				var element = _elements[(int)i];
+				if (!EqualityComparer<T>.Default.Equals(initialValue, element.Value))
 				{
-					_elements[i].Value = initialValue;
+					element.SetValue(initialValue, false);
 				}
 			}
 			else
@@ -107,6 +108,11 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 				_elements.Add(new(this, initialValue));
 			}
 		}
+		for (uint i = (uint)_elements.Count; --i >= _initialValueCount;)
+		{
+			_elements.RemoveAt((int)i);
+		}
+		_changedValueCount = 0;
 		OnChangeStateChange(wasChanged);
 	}
 
@@ -120,7 +126,7 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 		if (_elements.Count < PropertyInformation.MaximumElementCount)
 		{
 			bool wasChanged = IsChanged;
-			_elements.Add(new(this, _initialValues[_elements.Count]));
+			_elements.Add(new(this, _defaultItemValue));
 			// Either we added an element catching up with the set of initial values and that's one less change,
 			// or we added an element past the set of initial values and that's an additional change.
 			if (wasChanged)
@@ -163,6 +169,8 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 	public override int ReadInitialValue(ReadOnlySpan<byte> data)
 	{
 		bool wasChanged = IsChanged;
+		bool couldAddElement = CanAddElement;
+		bool couldRemoveElement = CanRemoveElement;
 		uint itemSize = (uint)ItemSize;
 		uint elementCount;
 		uint offset = 0;
@@ -209,7 +217,7 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 						// If the old initial value was the same as the current value, we update the current value so that it stays "not changed".
 						if (EqualityComparer<T>.Default.Equals(oldInitialValue, elementValue))
 						{
-							element.Value = newInitialValue;
+							element.SetValue(newInitialValue, false);
 						}
 					}
 				}
@@ -266,20 +274,16 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 		// Finally, if the array was initially unchanged AND we got a change in the number of initial values, do actually update the live elements to reflect this
 		if (!wasChanged && elementCount != _initialValueCount && _initialValueCount == _elements.Count)
 		{
-			bool canAddElementChanged;
-			bool canRemoveElementChanged;
 			if (elementCount > _elements.Count)
 			{
-				canRemoveElementChanged = CanRemoveElement;
 				for (i = (uint)_elements.Count; i < elementCount; i++)
 				{
 					_elements.Add(new(this, _initialValues[i]));
+					_changedValueCount--;
 				}
-				canAddElementChanged = _elements.Count == PropertyInformation.MaximumElementCount;
 			}
 			else
 			{
-				canAddElementChanged = CanAddElement;
 				for (i = (uint)_elements.Count; i > elementCount; i--)
 				{
 					if (_elements.Count == PropertyInformation.MinimumElementCount)
@@ -287,14 +291,16 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 						throw new InvalidOperationException("Trying to remove too many elements during an update.");
 					}
 					_elements.RemoveAt((int)i);
+					_changedValueCount--;
 				}
-				canRemoveElementChanged = _elements.Count == PropertyInformation.MinimumElementCount;
 			}
-			if (canAddElementChanged) _addCommand.RaiseCanExecuteChanged();
-			if (canRemoveElementChanged) _removeCommand.RaiseCanExecuteChanged();
 		}
+		bool canAddElementChanged = CanAddElement != couldAddElement;
+		bool canRemoveElementChanged = CanRemoveElement != couldRemoveElement;
 		_initialValueCount = elementCount;
 		OnChangeStateChange(wasChanged);
+		if (canAddElementChanged) _addCommand.RaiseCanExecuteChanged();
+		if (canRemoveElementChanged) _removeCommand.RaiseCanExecuteChanged();
 		return (int)offset;
 	}
 
@@ -313,6 +319,23 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 			WriteValue(buffer, element.Value);
 			writer.Write(buffer);
 		}
+	}
+
+	internal void OnValueChanged(ArrayElementViewModel<T> element, T oldValue, T newValue)
+	{
+		int index = _elements.IndexOf(element);
+		if (index < 0 || index >= _initialValueCount) return;
+		bool wasChanged = IsChanged;
+		ref var initialValue = ref _initialValues[index];
+		if (EqualityComparer<T>.Default.Equals(initialValue, newValue))
+		{
+			_changedValueCount--;
+		}
+		else if (EqualityComparer<T>.Default.Equals(initialValue, oldValue))
+		{
+			_changedValueCount++;
+		}
+		OnChangeStateChange(wasChanged);
 	}
 
 	protected abstract T ReadValue(ReadOnlySpan<byte> source);
