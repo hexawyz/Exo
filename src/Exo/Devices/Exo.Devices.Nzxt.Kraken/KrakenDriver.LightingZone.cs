@@ -4,7 +4,6 @@ using Exo.ColorFormats;
 using Exo.Devices.Nzxt.LightingEffects;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
-using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Nzxt.Kraken;
 
@@ -17,18 +16,18 @@ public partial class KrakenDriver
 		ILightingZoneEffect<VariableMultiColorCycleEffect>,
 		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
 		ILightingZoneEffect<LegacyReversibleVariableMultiColorMarqueeEffect>,
+		ILightingZoneEffect<ReversibleVariableMultiColorCoveringMarqueeEffect>,
 		ILightingZoneEffect<AlternatingEffect>,
 		ILightingZoneEffect<VariableMultiColorPulseEffect>,
 		ILightingZoneEffect<VariableMultiColorBreathingEffect>,
-		ILightingZoneEffect<VariableColorBlinkEffect>,
 		ILightingZoneEffect<CandleEffect>,
+		ILightingZoneEffect<StarryNightEffect>,
+		ILightingZoneEffect<VariableColorBlinkEffect>,
 		ILightingZoneEffect<ReversibleVariableRainbowWaveEffect>,
 		ILightingZoneEffect<ReversibleVariableSuperRainbowEffect>,
 		ILightingZoneEffect<ReversibleVariableRainbowPulseEffect>,
-		ILightingZoneEffect<StarryNightEffect>,
 		ILightingZoneEffect<TaiChiEffect>,
 		ILightingZoneEffect<LiquidCoolerEffect>,
-		ILightingZoneEffect<CoveringMarqueeEffect>,
 		ILightingZoneEffect<ReversibleVariableColorLoadingEffect>
 	{
 		const byte DefaultStaticSpeed = 0x32;
@@ -106,7 +105,7 @@ public partial class KrakenDriver
 			case KrakenEffect.Marquee:
 				return new LegacyReversibleVariableMultiColorMarqueeEffect(new(_colors.AsSpan(0, _colorCount)), (speedIndex = LiquidCoolerSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward, _size);
 			case KrakenEffect.CoveringMarquee:
-				return new CoveringMarqueeEffect(new(_colors.AsSpan(0, _colorCount)), (speedIndex = LiquidCoolerSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
+				return new ReversibleVariableMultiColorCoveringMarqueeEffect(new(_colors.AsSpan(0, _colorCount)), (speedIndex = LiquidCoolerSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.Alternating:
 				// There are a few deviations from the implementation of other effects for this one.
 				// First one is that the default speed will be "medium fast" instead of "medium slow" (to try matching the "normal" setting of CAM)
@@ -512,7 +511,7 @@ public partial class KrakenDriver
 			}
 		}
 
-		void ILightingZoneEffect<CoveringMarqueeEffect>.ApplyEffect(in CoveringMarqueeEffect effect)
+		void ILightingZoneEffect<ReversibleVariableMultiColorCoveringMarqueeEffect>.ApplyEffect(in ReversibleVariableMultiColorCoveringMarqueeEffect effect)
 		{
 			if (effect.Colors.Count is < 1 or > 8) throw new ArgumentException("The effect requires between one to eight colors.");
 
@@ -817,7 +816,7 @@ public partial class KrakenDriver
 			return false;
 		}
 
-		bool ILightingZoneEffect<CoveringMarqueeEffect>.TryGetCurrentEffect(out CoveringMarqueeEffect effect)
+		bool ILightingZoneEffect<ReversibleVariableMultiColorCoveringMarqueeEffect>.TryGetCurrentEffect(out ReversibleVariableMultiColorCoveringMarqueeEffect effect)
 		{
 			if (_effectId == KrakenEffect.CoveringMarquee &&
 				_colorCount >= 1 &&
