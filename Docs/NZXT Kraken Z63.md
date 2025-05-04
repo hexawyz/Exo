@@ -898,7 +898,7 @@ So, after more testing, I'm confident enough that the buffer is always initializ
 
 I also do suspect that the parameter that stays at the value `04` might allow showing different effects. (Especially because `04` is the covering marquee effect in the "simple" effect logic)
 I only did one random try with the value `03` and nothing happened, though.
-I tested various values of this setting and nothing useful happened. However, during my testing, I may have stuck one off the leds to be permanently offset to green and couldn't find what exact command did this.
+I tested various values of this setting and nothing useful happened. However, during my testing, I may have stuck the first led(s) to be permanently offset to green and couldn't find what exact command did this.
 (It was when the led buffer was set to full yellow for the first 20 colors)
 
 ### Setting a multicolor effect `22 04`

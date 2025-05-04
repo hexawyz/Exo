@@ -304,16 +304,16 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		}
 	}
 
-	public async ValueTask SetEffectFrameAsync(byte channel, byte frameIndex, byte parameter1, ushort speed, byte frameDuration, byte zoneCount, byte parameter6, byte parameter7, ReadOnlyMemory<RgbColor> colors, CancellationToken cancellationToken)
+	public async ValueTask SetEffectFrameAsync(byte channel, byte frameIndex, byte parameter1, ushort speed, byte frameDuration, ReadOnlyMemory<KrakenFragmentedZoneSettings> zones, CancellationToken cancellationToken)
 	{
 		EnsureNotDisposed();
 		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
-		if ((uint)colors.Length != 8) throw new ArgumentException(null, nameof(colors));
+		if ((uint)(zones.Length - 1) > 11) throw new ArgumentException(null, nameof(zones));
 
 		var tcs = new FunctionTaskCompletionSource(LedAddressableSendFrameFunctionId);
 		if (Interlocked.CompareExchange(ref _ledAddressableTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
 
-		static void PrepareRequest(Span<byte> buffer, byte channel, byte frameIndex, byte parameter1, ushort speed, byte frameDuration, byte zoneCount, byte parameter6, byte parameter7, ReadOnlySpan<RgbColor> colors)
+		static void PrepareRequest(Span<byte> buffer, byte channel, byte frameIndex, byte parameter1, ushort speed, byte frameDuration, ReadOnlySpan<KrakenFragmentedZoneSettings> zones)
 		{
 			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
 			buffer[0] = LedAddressableRequestMessageId;
@@ -323,10 +323,13 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			buffer[4] = parameter1;
 			LittleEndian.Write(ref buffer[5], speed);
 			buffer[7] = frameDuration;
-			buffer[15] = zoneCount;
-			buffer[16] = parameter6;
-			buffer[17] = parameter7;
-			CopyColors(buffer[28..64], colors);
+			buffer[15] = (byte)zones.Length;
+			for (int i = 0; i < zones.Length; i++)
+			{
+				ref readonly var zone = ref zones[i];
+				buffer[16 + i] = zone.GetLedCountAndDirection();
+				Unsafe.As<byte, RgbColor>(ref buffer[28 + i * 3]) = zone.Color;
+			}
 		}
 
 		var buffer = WriteBuffer;
@@ -336,7 +339,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			{
 				try
 				{
-					PrepareRequest(buffer.Span, channel, frameIndex, parameter1, speed, frameDuration, zoneCount, parameter6, parameter7, colors.Span);
+					PrepareRequest(buffer.Span, channel, frameIndex, parameter1, speed, frameDuration, zones.Span);
 					await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
 				}
 				finally
@@ -1194,8 +1197,8 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		(
 			messageId switch
 			{
-				LedAddressableRequestMessageId => _ledAddressableTaskCompletionSource is { } tcs && tcs.FunctionId == functionId ? tcs : null,
-				LedMulticolorRequestMessageId => _ledMulticolorTaskCompletionSource is { } tcs && tcs.FunctionId == functionId ? tcs : null,
+				LedAddressableRequestMessageId => _ledAddressableTaskCompletionSource is { } tcs && tcs.FunctionId == functionId ? tcs : null,
+				LedMulticolorRequestMessageId => _ledMulticolorTaskCompletionSource is { } tcs && tcs.FunctionId == functionId ? tcs : null,
 				ScreenSettingsRequestMessageId => functionId switch
 				{
 					ScreenSettingsSetBrightnessFunctionId => _setBrightnessTaskCompletionSource,
@@ -1213,4 +1216,22 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 
 	public KrakenReadings GetLastReadings()
 		=> Unsafe.BitCast<ulong, KrakenReadings>(Volatile.Read(ref _lastReadings));
+}
+
+internal readonly struct KrakenFragmentedZoneSettings
+{
+	private readonly byte _ledCountAndDirection;
+	private readonly RgbColor _color;
+
+	public KrakenFragmentedZoneSettings(bool isReversed, byte ledCount, RgbColor color)
+	{
+		_ledCountAndDirection = isReversed ? (byte)(ledCount | 0x80) : ledCount;
+		_color = color;
+	}
+
+	public bool IsReversed => (sbyte)_ledCountAndDirection < 0;
+	public byte LedCount => (byte)(_ledCountAndDirection & 0x7F);
+	public RgbColor Color => _color;
+
+	public byte GetLedCountAndDirection() => _ledCountAndDirection;
 }
