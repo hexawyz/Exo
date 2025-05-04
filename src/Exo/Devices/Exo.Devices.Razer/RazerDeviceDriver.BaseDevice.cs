@@ -203,7 +203,7 @@ public abstract partial class RazerDeviceDriver
 					break;
 				case MultiColorBreathingEffect colorBreathingEffect:
 					var colors = colorBreathingEffect.Colors;
-					switch (colors.Length)
+					switch (colors.Count)
 					{
 					case 2:
 						await transport.SetBreathingEffectParametersV1Async(_ledId, colors[0], colors[1], cancellationToken);
@@ -252,7 +252,7 @@ public abstract partial class RazerDeviceDriver
 
 			void ILightingZoneEffect<MultiColorBreathingEffect>.ApplyEffect(in MultiColorBreathingEffect effect)
 			{
-				if (effect.Colors.IsDefaultOrEmpty || effect.Colors.Length > 2) throw new ArgumentException(null, nameof(effect));
+				if (effect.Colors.Count == 0) throw new ArgumentException(null, nameof(effect));
 				SetCurrentEffect(effect);
 			}
 
@@ -309,7 +309,7 @@ public abstract partial class RazerDeviceDriver
 					DisabledEffect staticColorEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Disabled, 0, default, default, cancellationToken),
 					StaticColorEffect staticColorEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
 					RandomColorBreathingEffect => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 3, default, default, cancellationToken),
-					MultiColorBreathingEffect colorBreathingEffect => colorBreathingEffect.Colors.Length switch
+					MultiColorBreathingEffect colorBreathingEffect => colorBreathingEffect.Colors.Count switch
 					{
 						2 => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 2, colorBreathingEffect.Colors[0], colorBreathingEffect.Colors[1], cancellationToken),
 						1 => transport.SetEffectV1Async(RazerLightingEffectV1.Breathing, 1, colorBreathingEffect.Colors[0], default, cancellationToken),
@@ -350,7 +350,7 @@ public abstract partial class RazerDeviceDriver
 					DisabledEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Disabled, 0, default, default, cancellationToken),
 					StaticColorEffect staticColorEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Static, 1, staticColorEffect.Color, staticColorEffect.Color, cancellationToken),
 					RandomColorBreathingEffect => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 0, default, default, cancellationToken),
-					MultiColorBreathingEffect colorBreathingEffect => colorBreathingEffect.Colors.Length switch
+					MultiColorBreathingEffect colorBreathingEffect => colorBreathingEffect.Colors.Count switch
 					{
 						2 => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 2, colorBreathingEffect.Colors[0], colorBreathingEffect.Colors[1], cancellationToken),
 						1 => transport.SetEffectV2Async(profileId != 0, RazerLightingEffectV2.Breathing, 1, colorBreathingEffect.Colors[0], default, cancellationToken),
@@ -379,7 +379,7 @@ public abstract partial class RazerDeviceDriver
 
 			void ILightingZoneEffect<MultiColorBreathingEffect>.ApplyEffect(in MultiColorBreathingEffect effect)
 			{
-				if (effect.Colors.IsDefaultOrEmpty || effect.Colors.Length > 2) throw new ArgumentException(null, nameof(effect));
+				if (effect.Colors.Count == 0) throw new ArgumentException(null, nameof(effect));
 				SetCurrentEffect(effect);
 			}
 
@@ -434,7 +434,7 @@ public abstract partial class RazerDeviceDriver
 
 			void ILightingZoneEffect<MultiColorBreathingEffect>.ApplyEffect(in MultiColorBreathingEffect effect)
 			{
-				if (effect.Colors.IsDefaultOrEmpty || effect.Colors.Length > 2) throw new ArgumentException(null, nameof(effect));
+				if (effect.Colors.Count == 0) throw new ArgumentException(null, nameof(effect));
 				SetCurrentEffect(effect);
 			}
 
