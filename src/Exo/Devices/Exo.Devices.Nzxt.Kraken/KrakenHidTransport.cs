@@ -48,8 +48,10 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 	// Wonder what are the other functions and if similar, what are the differences
 	private const byte LedInfoGetLedFunctionId = 0x03;
 
+	private const byte LedAddressableEnableFramesFunctionId = 0x03;
 	private const byte LedAddressableSendBuffer1FunctionId = 0x10;
 	private const byte LedAddressableSendBuffer2FunctionId = 0x11;
+	private const byte LedAddressableSendFrameFunctionId = 0x20;
 	private const byte LedAddressableApplyFunctionId = 0xa0;
 
 	private const byte LedMulticolorSetEffectFunctionId = 0x04;
@@ -292,6 +294,96 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 				finally
 				{
 					buffer.Span[2..16].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _ledAddressableTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask SetEffectFrameAsync(byte channel, byte frameIndex, byte parameter1, byte parameter2, byte parameter3, byte parameter4, byte parameter5, byte parameter6, byte parameter7, ReadOnlyMemory<RgbColor> colors, CancellationToken cancellationToken)
+	{
+		EnsureNotDisposed();
+		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
+		if ((uint)colors.Length != 8) throw new ArgumentException(null, nameof(colors));
+
+		var tcs = new FunctionTaskCompletionSource(LedAddressableSendFrameFunctionId);
+		if (Interlocked.CompareExchange(ref _ledAddressableTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer, byte channel, byte frameIndex, byte parameter1, byte parameter2, byte parameter3, byte parameter4, byte parameter5, byte parameter6, byte parameter7, ReadOnlySpan<RgbColor> colors)
+		{
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
+			buffer[0] = LedAddressableRequestMessageId;
+			buffer[1] = LedAddressableSendFrameFunctionId;
+			buffer[2] = channel;
+			buffer[3] = frameIndex;
+			buffer[4] = parameter1;
+			buffer[5] = parameter2;
+			buffer[6] = parameter3;
+			buffer[7] = parameter4;
+			buffer[7] = parameter4;
+			buffer[15] = parameter5;
+			buffer[16] = parameter6;
+			buffer[17] = parameter7;
+			CopyColors(buffer[28..64], colors);
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, channel, frameIndex, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, colors.Span);
+					await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..64].Clear();
+				}
+			}
+			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			Volatile.Write(ref _ledAddressableTaskCompletionSource, null);
+		}
+	}
+
+	public async ValueTask ApplyFrameEffectAsync(byte channel, byte frameCount, CancellationToken cancellationToken)
+	{
+		EnsureNotDisposed();
+		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
+
+		var tcs = new FunctionTaskCompletionSource(LedAddressableEnableFramesFunctionId);
+		if (Interlocked.CompareExchange(ref _ledAddressableTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
+
+		static void PrepareRequest(Span<byte> buffer, byte channel, byte frameCount)
+		{
+			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
+			buffer[0] = LedAddressableRequestMessageId;
+			buffer[1] = LedAddressableEnableFramesFunctionId;
+			buffer[2] = channel;
+			buffer[3] = frameCount;
+		}
+
+		var buffer = WriteBuffer;
+		try
+		{
+			using (await _writeLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+			{
+				try
+				{
+					PrepareRequest(buffer.Span, channel, frameCount);
+					await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
+				}
+				finally
+				{
+					buffer.Span[2..4].Clear();
 				}
 			}
 			await WaitOrCancelAsync(tcs, cancellationToken).ConfigureAwait(false);
