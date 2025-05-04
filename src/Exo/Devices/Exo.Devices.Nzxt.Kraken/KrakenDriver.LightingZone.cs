@@ -104,7 +104,7 @@ public partial class KrakenDriver
 			case KrakenEffect.SpectrumWave:
 				return new ReversibleVariableSpectrumWaveEffect((speedIndex = SpectrumWaveSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.Marquee:
-				return new LegacyReversibleVariableMultiColorMarqueeEffect(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (speedIndex = LiquidCoolerSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward, _size);
+				return new LegacyReversibleVariableMultiColorMarqueeEffect(new(_colors.AsSpan(0, _colorCount)), (speedIndex = LiquidCoolerSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward, _size);
 			case KrakenEffect.CoveringMarquee:
 				return new CoveringMarqueeEffect(_colors.AsSpan(0, _colorCount).ToImmutableArray(), (speedIndex = LiquidCoolerSpeeds.IndexOf(speed)) >= 0 ? (PredeterminedEffectSpeed)speedIndex : PredeterminedEffectSpeed.MediumSlow, (_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 			case KrakenEffect.Alternating:
@@ -491,19 +491,19 @@ public partial class KrakenDriver
 
 		void ILightingZoneEffect<LegacyReversibleVariableMultiColorMarqueeEffect>.ApplyEffect(in LegacyReversibleVariableMultiColorMarqueeEffect effect)
 		{
-			if (effect.Colors.IsDefault || effect.Colors.Length is < 1 or > 8) throw new ArgumentException("The effect requires between one to eight colors.");
+			if (effect.Colors.Count is < 1 or > 8) throw new ArgumentException("The effect requires between one to eight colors.");
 
 			if (_effectId != KrakenEffect.Marquee ||
-				_colorCount != effect.Colors.Length ||
-				!_colors.AsSpan(0, _colorCount).SequenceEqual(effect.Colors.AsSpan()) ||
+				_colorCount != effect.Colors.Count ||
+				!_colors.AsSpan(0, _colorCount).SequenceEqual(effect.Colors) ||
 				MarqueeSpeeds.IndexOf(_speed) is int speedIndex && (speedIndex < 0 || (PredeterminedEffectSpeed)speedIndex != effect.Speed) ||
 				_flags != (effect.Direction != EffectDirection1D.Forward ? (LightingEffectFlags.Unknown1 | LightingEffectFlags.Reversed) : LightingEffectFlags.Unknown1) ||
 				_parameter2 != 0x00 ||
 				_size != effect.Size)
 			{
 				_effectId = KrakenEffect.Marquee;
-				effect.Colors.AsSpan().CopyTo(_colors);
-				_colorCount = (byte)effect.Colors.Length;
+				effect.Colors.CopyTo(_colors);
+				_colorCount = (byte)effect.Colors.Count;
 				_speed = MarqueeSpeeds[(int)effect.Speed];
 				_flags = effect.Direction != EffectDirection1D.Forward ? (LightingEffectFlags.Unknown1 | LightingEffectFlags.Reversed) : LightingEffectFlags.Unknown1;
 				_parameter2 = 0x00;
@@ -806,7 +806,7 @@ public partial class KrakenDriver
 			{
 				effect = new
 				(
-					_colors.AsSpan(0, _colorCount).ToImmutableArray(),
+					new(_colors.AsSpan(0, _colorCount)),
 					(PredeterminedEffectSpeed)speedIndex,
 					(_flags & LightingEffectFlags.Reversed) != 0 ? EffectDirection1D.Backward : EffectDirection1D.Forward,
 					_size

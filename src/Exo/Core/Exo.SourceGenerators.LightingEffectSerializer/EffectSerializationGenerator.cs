@@ -249,8 +249,26 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 					sb.Append("\t\t\tsize = ").Append(fixedLength.ToString());
 					foreach (var (elementSize, member) in variableMembers)
 					{
-						sb.AppendLine(" +")
-							.Append("\t\t\t\t(value.").Append(member.Name).Append(".IsDefault ? 0 : global::Exo.BufferWriter.GetVariableLength((uint)value.").Append(member.Name).Append(".Length) + (uint)value.").Append(member.Name).Append(".Length * (uint)global::System.Runtime.CompilerServices.Unsafe.SizeOf<").Append(GetMemberElementType(member)).Append(">())");
+						string lengthPropertyName = member.IsFixedList ? "Count" : "Length";
+						sb.AppendLine(" +").Append("\t\t\t\t");
+						if (!member.IsFixedList)
+						{
+							sb.Append("(value.")
+								.Append(member.Name)
+								.Append(".IsDefault ? 0 : ");
+						}
+						sb.Append("global::Exo.BufferWriter.GetVariableLength((uint)value.")
+							.Append(member.Name)
+							.Append(".")
+							.Append(lengthPropertyName)
+							.Append(") + (uint)value.")
+							.Append(member.Name)
+							.Append(".")
+							.Append(lengthPropertyName)
+							.Append(" * (uint)global::System.Runtime.CompilerServices.Unsafe.SizeOf<")
+							.Append(GetMemberElementType(member))
+							.Append(">()");
+						if (!member.IsFixedList) sb.Append(")");
 					}
 					sb.AppendLine(";")
 						.AppendLine("\t\t\treturn true;");
@@ -272,17 +290,26 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 				bool isVariableArray = member.MinimumElementCount != member.MaximumElementCount;
 				if (isVariableArray)
 				{
-					sb.Append(indent).Append("if (value.").Append(member.Name).AppendLine(".IsDefaultOrEmpty)")
-						.Append(indent).AppendLine("{")
-						.Append(indent).AppendLine("\twriter.Write((byte)0);")
-						.Append(indent).AppendLine("}")
-						.Append(indent).AppendLine("else")
-						.Append(indent).AppendLine("{")
-						.Append(indent).Append("\twriter.WriteVariable((uint)value.").Append(member.Name).AppendLine(".Length);")
-						.Append(indent).Append("\tforeach (var item in value.").Append(member.Name).AppendLine(")")
-						.Append(indent).AppendLine("\t{");
-
-					indent += "\t\t";
+					if (member.IsFixedList)
+					{
+						sb.Append(indent).Append("writer.WriteVariable((uint)value.").Append(member.Name).AppendLine(".Count);")
+							.Append(indent).Append("foreach (var item in ((global::System.ReadOnlySpan<").Append(GetMemberElementType(member)).Append(">)value.").Append(member.Name).AppendLine("))")
+							.Append(indent).AppendLine("{");
+						indent += "\t";
+					}
+					else
+					{
+						sb.Append(indent).Append("if (value.").Append(member.Name).AppendLine(".IsDefaultOrEmpty)")
+							.Append(indent).AppendLine("{")
+							.Append(indent).AppendLine("\twriter.Write((byte)0);")
+							.Append(indent).AppendLine("}")
+							.Append(indent).AppendLine("else")
+							.Append(indent).AppendLine("{")
+							.Append(indent).Append("\twriter.WriteVariable((uint)value.").Append(member.Name).AppendLine(".Length);")
+							.Append(indent).Append("\tforeach (var item in value.").Append(member.Name).AppendLine(")")
+							.Append(indent).AppendLine("\t{");
+						indent += "\t\t";
+					}
 					valueName = "item";
 				}
 				else
@@ -352,9 +379,16 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 				}
 				if (isVariableArray)
 				{
-					indent = indent.Substring(0, indent.Length - 2);
-					sb.Append(indent).AppendLine("\t}")
-						.Append(indent).AppendLine("}");
+					if (member.IsFixedList)
+					{
+						indent = indent.Substring(0, indent.Length - 1);
+					}
+					else
+					{
+						indent = indent.Substring(0, indent.Length - 2);
+						sb.Append(indent).AppendLine("\t}");
+					}
+					sb.Append(indent).AppendLine("}");
 				}
 			}
 			sb.AppendLine("\t\t}")
@@ -379,20 +413,32 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 					string memberType = GetMemberElementType(member);
 					if (isVariableArray)
 					{
-						sb.Append(indent).AppendLine("count = reader.ReadVariableUInt32();")
-							.Append(indent).Append(memberType).Append("[] ").Append(member.SerializationVariableName).AppendLine(";")
-							.Append(indent).AppendLine("if (count == 0)")
-							.Append(indent).AppendLine("{")
-							.Append(indent).Append("\t").Append(member.SerializationVariableName).AppendLine(" = [];")
-							.Append(indent).AppendLine("}")
-							.Append(indent).AppendLine("else")
-							.Append(indent).AppendLine("{")
-							.Append(indent).Append("\t").Append(member.SerializationVariableName).Append(" = new ").Append(memberType).AppendLine("[count];")
-							.Append(indent).AppendLine("\tfor (uint i = 0; i < count; i++)")
-							.Append(indent).AppendLine("\t{")
-							.Append(indent).Append("\t\t").Append(member.SerializationVariableName).Append("[i] = ");
-
-						indent += "\t\t";
+						sb.Append(indent).AppendLine("count = reader.ReadVariableUInt32();");
+						if (member.IsFixedList)
+						{
+							// NB: We try to avoid unnecessary initialization of the structure. May be more expensive than always clearing everything in some cases.
+							sb.Append(indent).Append("global::Exo.FixedList").Append(member.MaximumElementCount).Append("<").Append(memberType).Append("> ").Append(member.SerializationVariableName).AppendLine(";")
+								.Append(indent).Append("global::Exo.FixedList").Append(member.MaximumElementCount).Append("<").Append(memberType).Append(">.UnsafePrepare(count, out ").Append(member.SerializationVariableName).AppendLine(");")
+								.Append(indent).AppendLine("for (uint i = 0; i < count; i++)")
+								.Append(indent).AppendLine("{")
+								.Append(indent).Append("\t").Append(member.SerializationVariableName).Append(".Add(");
+							indent += "\t";
+						}
+						else
+						{
+							sb.Append(indent).Append(memberType).Append("[] ").Append(member.SerializationVariableName).AppendLine(";")
+								.Append(indent).AppendLine("if (count == 0)")
+								.Append(indent).AppendLine("{")
+								.Append(indent).Append("\t").Append(member.SerializationVariableName).AppendLine(" = [];")
+								.Append(indent).AppendLine("}")
+								.Append(indent).AppendLine("else")
+								.Append(indent).AppendLine("{")
+								.Append(indent).Append("\t").Append(member.SerializationVariableName).Append(" = new ").Append(memberType).AppendLine("[count];")
+								.Append(indent).AppendLine("\tfor (uint i = 0; i < count; i++)")
+								.Append(indent).AppendLine("\t{")
+								.Append(indent).Append("\t\t").Append(member.SerializationVariableName).Append("[i] = ");
+							indent += "\t\t";
+						}
 					}
 					else
 					{
@@ -412,88 +458,102 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 					switch (member.DataType)
 					{
 					case LightingDataType.UInt8:
-						sb.Append(typeCast).AppendLine("reader.ReadByte();");
+						sb.Append(typeCast).Append("reader.ReadByte()");
 						break;
 					case LightingDataType.SInt8:
-						sb.Append(typeCast).AppendLine("(sbyte)reader.ReadByte()");
+						sb.Append(typeCast).Append("(sbyte)reader.ReadByte()");
 						break;
 					case LightingDataType.UInt16:
-						sb.Append(typeCast).AppendLine("reader.Read<ushort>();");
+						sb.Append(typeCast).Append("reader.Read<ushort>()");
 						break;
 					case LightingDataType.SInt16:
-						sb.Append(typeCast).AppendLine("(short)reader.Read<ushort>();");
+						sb.Append(typeCast).Append("(short)reader.Read<ushort>()");
 						break;
 					case LightingDataType.UInt32:
-						sb.Append(typeCast).AppendLine("reader.Read<uint>();");
+						sb.Append(typeCast).Append("reader.Read<uint>()");
 						break;
 					case LightingDataType.SInt32:
-						sb.Append(typeCast).AppendLine("(int)reader.Read<uint>();");
+						sb.Append(typeCast).Append("(int)reader.Read<uint>()");
 						break;
 					case LightingDataType.UInt64:
-						sb.Append(typeCast).AppendLine("reader.Read<ulong>();");
+						sb.Append(typeCast).Append("reader.Read<ulong>()");
 						break;
 					case LightingDataType.SInt64:
-						sb.Append(typeCast).AppendLine("(long)reader.Read<ulong>();");
+						sb.Append(typeCast).Append("(long)reader.Read<ulong>()");
 						break;
 					case LightingDataType.UInt128:
-						sb.AppendLine("reader.Read<global::System.UInt128>();");
+						sb.Append("reader.Read<global::System.UInt128>()");
 						break;
 					case LightingDataType.SInt128:
-						sb.AppendLine("(global::System.Int128)reader.Read<global::System.UInt128>();");
+						sb.Append("(global::System.Int128)reader.Read<global::System.UInt128>()");
 						break;
 					case LightingDataType.Float16:
-						sb.AppendLine("reader.Read<global::System.Half>();");
+						sb.Append("reader.Read<global::System.Half>()");
 						break;
 					case LightingDataType.Float32:
-						sb.AppendLine("reader.Read<float>();");
+						sb.Append("reader.Read<float>()");
 						break;
 					case LightingDataType.Float64:
-						sb.AppendLine("reader.Read<double>();");
+						sb.Append("reader.Read<double>()");
 						break;
 					case LightingDataType.Boolean:
-						sb.AppendLine("reader.ReadBoolean();");
+						sb.Append("reader.ReadBoolean()");
 						break;
 					case LightingDataType.DateTime:
 					case LightingDataType.TimeSpan:
-						sb.Append(typeCast).AppendLine("new((long)reader.Read<ulong>());");
+						sb.Append(typeCast).Append("new((long)reader.Read<ulong>())");
 						break;
 					case LightingDataType.Guid:
-						sb.AppendLine("reader.ReadGuid();");
+						sb.Append("reader.ReadGuid()");
 						break;
 					case LightingDataType.EffectDirection1D:
-						sb.AppendLine("(global::Exo.Lighting.Effects.EffectDirection1D)reader.ReadByte();");
+						sb.Append("(global::Exo.Lighting.Effects.EffectDirection1D)reader.ReadByte()");
 						break;
 					case LightingDataType.ColorGrayscale8:
-						sb.Append(typeCast).AppendLine("reader.ReadByte();");
+						sb.Append(typeCast).Append("reader.ReadByte()");
 						break;
 					case LightingDataType.ColorGrayscale16:
-						sb.Append(typeCast).AppendLine("reader.Read<ushort>();");
+						sb.Append(typeCast).Append("reader.Read<ushort>()");
 						break;
 					case LightingDataType.String:
-						sb.AppendLine("reader.ReadVariableString();");
+						sb.Append("reader.ReadVariableString()");
 						break;
 					case LightingDataType.ColorRgb24:
-						sb.AppendLine("new(reader.ReadByte(), reader.ReadByte(), reader.ReadByte());");
+						sb.Append("new(reader.ReadByte(), reader.ReadByte(), reader.ReadByte())");
 						break;
 					default:
 						throw new InvalidOperationException("Unsupported data type.");
 					}
 					if (isVariableArray)
 					{
-						indent = indent.Substring(0, indent.Length - 2);
-						sb.Append(indent).AppendLine("\t}")
-							.Append(indent).AppendLine("}");
+						if (member.IsFixedList)
+						{
+							indent = indent.Substring(0, indent.Length - 1);
+							sb.AppendLine(");")
+								.Append(indent).AppendLine("}");
+						}
+						else
+						{
+							indent = indent.Substring(0, indent.Length - 2);
+							sb.AppendLine(";")
+								.Append(indent).AppendLine("\t}")
+								.Append(indent).AppendLine("}");
+						}
+					}
+					else
+					{
+						sb.AppendLine(";");
 					}
 				}
 				sb.Append("\t\t\tvalue = new(");
 				if (effect.Members.Count > 0)
 				{
 					var members = effect.Members;
-					OutputMemberVariable(sb, members[0]);
+					OutputMemberConstructorParameter(sb, members[0]);
 					for (int i = 1; i < members.Count; i++)
 					{
 						sb.Append(", ");
-						OutputMemberVariable(sb, members[i]);
+						OutputMemberConstructorParameter(sb, members[i]);
 					}
 				}
 				sb.AppendLine(");");
@@ -507,40 +567,48 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		context.AddSource(effect.FullName + ".Serializer.Generated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
 	}
 
-	private static string GetMemberElementType(SerializedMemberInfo member) => member.EnumDataTypeName is not null ?
-							member.EnumDataTypeName :
-							member.DataType switch
-							{
-								LightingDataType.UInt8 => "byte",
-								LightingDataType.SInt8 => "sbyte",
-								LightingDataType.UInt16 => "ushort",
-								LightingDataType.SInt16 => "short",
-								LightingDataType.UInt32 => "uint",
-								LightingDataType.SInt32 => "int",
-								LightingDataType.UInt64 => "ulong",
-								LightingDataType.SInt64 => "long",
-								LightingDataType.UInt128 => "global::System.UInt128",
-								LightingDataType.SInt128 => "global::System.Int128",
-								LightingDataType.Float16 => "global::System.Half",
-								LightingDataType.Float32 => "float",
-								LightingDataType.Float64 => "double",
-								LightingDataType.Boolean => "bool",
-								LightingDataType.Guid => "global::System.Guid",
-								LightingDataType.TimeSpan => "global::System.TimeSpan",
-								LightingDataType.DateTime => "global::System.DateTime",
-								LightingDataType.String => "global::System.String",
-								LightingDataType.EffectDirection1D => "global::Exo.Lighting.Effects.EffectDirection1D",
-								LightingDataType.ColorRgb24 => "global::Exo.ColorFormats.RgbColor",
-								LightingDataType.ColorRgbw32 => "global::Exo.ColorFormats.RgbwColor",
-								LightingDataType.ColorArgb32 => "global::Exo.ColorFormats.ArgbColor",
-								_ => throw new NotImplementedException($"Data type not implemented: {member.DataType}."),
-							};
+	private static string GetMemberElementType(SerializedMemberInfo member)
+		=> member.EnumDataTypeName is not null ?
+			member.EnumDataTypeName :
+			member.DataType switch
+			{
+				LightingDataType.UInt8 => "byte",
+				LightingDataType.SInt8 => "sbyte",
+				LightingDataType.UInt16 => "ushort",
+				LightingDataType.SInt16 => "short",
+				LightingDataType.UInt32 => "uint",
+				LightingDataType.SInt32 => "int",
+				LightingDataType.UInt64 => "ulong",
+				LightingDataType.SInt64 => "long",
+				LightingDataType.UInt128 => "global::System.UInt128",
+				LightingDataType.SInt128 => "global::System.Int128",
+				LightingDataType.Float16 => "global::System.Half",
+				LightingDataType.Float32 => "float",
+				LightingDataType.Float64 => "double",
+				LightingDataType.Boolean => "bool",
+				LightingDataType.Guid => "global::System.Guid",
+				LightingDataType.TimeSpan => "global::System.TimeSpan",
+				LightingDataType.DateTime => "global::System.DateTime",
+				LightingDataType.String => "global::System.String",
+				LightingDataType.EffectDirection1D => "global::Exo.Lighting.Effects.EffectDirection1D",
+				LightingDataType.ColorRgb24 => "global::Exo.ColorFormats.RgbColor",
+				LightingDataType.ColorRgbw32 => "global::Exo.ColorFormats.RgbwColor",
+				LightingDataType.ColorArgb32 => "global::Exo.ColorFormats.ArgbColor",
+				_ => throw new NotImplementedException($"Data type not implemented: {member.DataType}."),
+			};
 
-	private static void OutputMemberVariable(StringBuilder sb, SerializedMemberInfo member)
+	private static void OutputMemberConstructorParameter(StringBuilder sb, SerializedMemberInfo member)
 	{
 		if (member.MinimumElementCount != member.MaximumElementCount)
 		{
-			sb.Append("global::System.Runtime.InteropServices.ImmutableCollectionsMarshal.AsImmutableArray(").Append(member.SerializationVariableName).Append(")");
+			if (member.IsFixedList)
+			{
+				sb.Append("in ").Append(member.SerializationVariableName);
+			}
+			else
+			{
+				sb.Append("global::System.Runtime.InteropServices.ImmutableCollectionsMarshal.AsImmutableArray(").Append(member.SerializationVariableName).Append(")");
+			}
 		}
 		else
 		{
@@ -701,6 +769,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			int minimumElementCount = 1;
 			int maximumElementCount = 1;
 			bool arrayLimitsSpecified = false;
+			bool isFixedList = false;
 			string? displayName = null;
 			LightingDataType? dataType = null;
 			string? enumDataTypeName = null;
@@ -870,6 +939,24 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 								}
 							}
 						}
+						else if (memberType.ContainingNamespace.ToDisplayString() == "Exo" && memberType.Name.StartsWith("FixedList"))
+						{
+							int listCapacity = int.Parse(memberType.Name.Substring("FixedList".Length), CultureInfo.InvariantCulture);
+							if (arrayLimitsSpecified && (listCapacity == minimumElementCount || listCapacity != maximumElementCount))
+							{
+								problems.Add(new(ProblemKind.ForbiddenArrayLimits, member.Name));
+							}
+							maximumElementCount = listCapacity;
+							if (maximumElementCount > 0)
+							{
+								if (memberType.TypeArguments[0] is INamedTypeSymbol elementType)
+								{
+									dataType = GetDataType(elementType);
+								}
+							}
+							isFixedList = true;
+							isEligibleForSerializationBypass = false;
+						}
 						else if (memberType.ContainingNamespace.ToDisplayString() == "System.Collections.Immutable" && memberType.Name.StartsWith("ImmutableArray"))
 						{
 							if (!arrayLimitsSpecified)
@@ -917,6 +1004,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 					enumDataTypeName,
 					minimumElementCount,
 					maximumElementCount,
+					isFixedList,
 					defaultValue,
 					minimumValue,
 					maximumValue,
@@ -1193,7 +1281,20 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 
 	private record struct SerializedMemberInfo
 	{
-		public SerializedMemberInfo(string name, string displayName, LightingDataType dataType, string? enumDataTypeName, int minimumElementCount, int maximumElementCount, object? defaultValue, object? minimumValue, object? maximumValue, EquatableReadOnlyList<EnumValueInfo> enumValues)
+		public SerializedMemberInfo
+		(
+			string name,
+			string displayName,
+			LightingDataType dataType,
+			string? enumDataTypeName,
+			int minimumElementCount,
+			int maximumElementCount,
+			bool isFixedList,
+			object? defaultValue,
+			object? minimumValue,
+			object? maximumValue,
+			EquatableReadOnlyList<EnumValueInfo> enumValues
+		)
 		{
 			if (name is null) throw new ArgumentNullException(nameof(name));
 			if (name.Length == 0) throw new ArgumentException(null, nameof(name));
@@ -1205,6 +1306,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			EnumDataTypeName = enumDataTypeName;
 			MinimumElementCount = minimumElementCount;
 			MaximumElementCount = maximumElementCount;
+			IsFixedList = isFixedList;
 			DefaultValue = defaultValue;
 			MinimumValue = minimumValue;
 			MaximumValue = maximumValue;
@@ -1218,6 +1320,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		public string? EnumDataTypeName { get; }
 		public int MinimumElementCount { get; }
 		public int MaximumElementCount { get; }
+		public bool IsFixedList { get; }
 		public object? DefaultValue { get; }
 		public object? MinimumValue { get; }
 		public object? MaximumValue { get; }
