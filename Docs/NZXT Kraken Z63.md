@@ -850,14 +850,14 @@ Now, the contents of the "frames" above seem a bit hard to understand, but I've 
 If we try white, the result seems more easily understandable:
 
 ````
-22 20 01 00 04 39 00 01 00000000000000 02 09 89 00000000000000000000 7f7f7f 7f7f7f 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
-22 20 01 01 04 39 00 01 00000000000000 02 09 89 00000000000000000000 323232 323232 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
-22 20 01 02 04 39 00 01 00000000000000 02 09 89 00000000000000000000 0c0c0c 0c0c0c 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
-22 20 01 03 04 39 00 05 00000000000000 02 09 89 00000000000000000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
-22 20 01 04 04 39 00 01 00000000000000 02 89 09 00000000000000000000 7f7f7f 7f7f7f 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
-22 20 01 05 04 39 00 01 00000000000000 02 89 09 00000000000000000000 323232 323232 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
-22 20 01 06 04 39 00 01 00000000000000 02 89 09 00000000000000000000 0c0c0c 0c0c0c 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
-22 20 01 07 04 39 00 05 00000000000000 02 89 09 00000000000000000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
+22 20 01 00 04 3900 01 00000000000000 02 09 89 00000000000000000000 7f7f7f 7f7f7f 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
+22 20 01 01 04 3900 01 00000000000000 02 09 89 00000000000000000000 323232 323232 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
+22 20 01 02 04 3900 01 00000000000000 02 09 89 00000000000000000000 0c0c0c 0c0c0c 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
+22 20 01 03 04 3900 05 00000000000000 02 09 89 00000000000000000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
+22 20 01 04 04 3900 01 00000000000000 02 89 09 00000000000000000000 7f7f7f 7f7f7f 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
+22 20 01 05 04 3900 01 00000000000000 02 89 09 00000000000000000000 323232 323232 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
+22 20 01 06 04 3900 01 00000000000000 02 89 09 00000000000000000000 0c0c0c 0c0c0c 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
+22 20 01 07 04 3900 05 00000000000000 02 89 09 00000000000000000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000 000000
 ````
 
 This at least makes the place where some colors appear clear. I've delimited places where I assume other colors could be present, but it will be hard to know for sure without doing some tests.
@@ -869,6 +869,7 @@ After investigating this effect, I can tell confidently a few things:
 * If we increase the duration parameter (e.g. I used 20), we can see that the effect is filling out the LED area from both ends
 * The parameters that are `09` or `89` use the most significant bit to indicate the effect direction
 * My fan has 18 LEDs. I can therefore conclude that the value `09` or `89` corresponds to that.
+* The parameter with value `3900` is the speed, siliar to what exists for normal effects. If would be something like number of clock ticks between each animation tick.
 
 Things are very weird when the "duration" is very low such as in the preset from CAM, and every zone seems to behave somewhat differently.
 Basically, we can see the colors mix up. I would assume that each animation does run for a few extra frames and this causes weirdness.
@@ -893,11 +894,12 @@ This means that some colors can be provided outside of the effect itself (such a
 For example, in the commands sent above by CAM, the total duration of each direction would be `8`, which meant that there would always be one parasitic color remaining (as there are 9 colors per side).
 Also maybe why I didn't understand what their "wings" effect was doing. The visual is kinda fucked up.
 
-I will need to investigate more on which colors from the original buffer are actually used as a starting point for the effect.
-It seemed like it coule be only one color for each zone, and not the entire buffer. (Possibly a bug)
+So, after more testing, I'm confident enough that the buffer is always initialized to contain the colors that are set using the addressable command.
 
-I also do suspect that the parameter that stays at the value `04` might allow showing different effects.
+I also do suspect that the parameter that stays at the value `04` might allow showing different effects. (Especially because `04` is the covering marquee effect in the "simple" effect logic)
 I only did one random try with the value `03` and nothing happened, though.
+I tested various values of this setting and nothing useful happened. However, during my testing, I may have stuck one off the leds to be permanently offset to green and couldn't find what exact command did this.
+(It was when the led buffer was set to full yellow for the first 20 colors)
 
 ### Setting a multicolor effect `22 04`
 

@@ -304,7 +304,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		}
 	}
 
-	public async ValueTask SetEffectFrameAsync(byte channel, byte frameIndex, byte parameter1, byte parameter2, byte parameter3, byte parameter4, byte parameter5, byte parameter6, byte parameter7, ReadOnlyMemory<RgbColor> colors, CancellationToken cancellationToken)
+	public async ValueTask SetEffectFrameAsync(byte channel, byte frameIndex, byte parameter1, ushort speed, byte frameDuration, byte zoneCount, byte parameter6, byte parameter7, ReadOnlyMemory<RgbColor> colors, CancellationToken cancellationToken)
 	{
 		EnsureNotDisposed();
 		if ((nuint)((nint)channel - 1) > 7) throw new ArgumentOutOfRangeException(nameof(channel));
@@ -313,7 +313,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 		var tcs = new FunctionTaskCompletionSource(LedAddressableSendFrameFunctionId);
 		if (Interlocked.CompareExchange(ref _ledAddressableTaskCompletionSource, tcs, null) is not null) throw new InvalidOperationException();
 
-		static void PrepareRequest(Span<byte> buffer, byte channel, byte frameIndex, byte parameter1, byte parameter2, byte parameter3, byte parameter4, byte parameter5, byte parameter6, byte parameter7, ReadOnlySpan<RgbColor> colors)
+		static void PrepareRequest(Span<byte> buffer, byte channel, byte frameIndex, byte parameter1, ushort speed, byte frameDuration, byte zoneCount, byte parameter6, byte parameter7, ReadOnlySpan<RgbColor> colors)
 		{
 			// NB: Write buffer is assumed to be cleared from index 2, and this part should always be cleared before releasing the write lock.
 			buffer[0] = LedAddressableRequestMessageId;
@@ -321,11 +321,9 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			buffer[2] = channel;
 			buffer[3] = frameIndex;
 			buffer[4] = parameter1;
-			buffer[5] = parameter2;
-			buffer[6] = parameter3;
-			buffer[7] = parameter4;
-			buffer[7] = parameter4;
-			buffer[15] = parameter5;
+			LittleEndian.Write(ref buffer[5], speed);
+			buffer[7] = frameDuration;
+			buffer[15] = zoneCount;
 			buffer[16] = parameter6;
 			buffer[17] = parameter7;
 			CopyColors(buffer[28..64], colors);
@@ -338,7 +336,7 @@ internal sealed class KrakenHidTransport : IAsyncDisposable
 			{
 				try
 				{
-					PrepareRequest(buffer.Span, channel, frameIndex, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, colors.Span);
+					PrepareRequest(buffer.Span, channel, frameIndex, parameter1, speed, frameDuration, zoneCount, parameter6, parameter7, colors.Span);
 					await _stream.WriteAsync(buffer, default).ConfigureAwait(false);
 				}
 				finally
