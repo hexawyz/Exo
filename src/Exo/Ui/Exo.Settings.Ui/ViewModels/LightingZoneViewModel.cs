@@ -122,7 +122,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 			{
 				_isNewEffect = false;
 				OnChangeStateChange(wasChanged);
-				AssignPropertyInitialValues();
+				AssignPropertyInitialValues(false);
 			}
 			else
 			{
@@ -244,13 +244,13 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		{
 			_isNewEffect = false;
 			OnChangeStateChange(wasChanged);
-			AssignPropertyInitialValues();
+			AssignPropertyInitialValues(false);
 		}
 
 		IsNotBusy = true;
 	}
 
-	private void AssignPropertyInitialValues()
+	private void AssignPropertyInitialValues(bool shouldReset)
 	{
 		var effect = _initialEffect;
 		if (effect is not null)
@@ -263,6 +263,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 				if (count <= 0) throw new InvalidOperationException("Properties must write at least one byte.");
 				count += property.PaddingLength;
 				data = data[count..];
+				if (shouldReset) property.Reset();
 			}
 		}
 	}
@@ -283,7 +284,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 			bool wasChanged = IsChanged;
 			_isNewEffect = false;
 			OnChangeStateChange(wasChanged);
-			AssignPropertyInitialValues();
+			AssignPropertyInitialValues(true);
 		}
 	}
 

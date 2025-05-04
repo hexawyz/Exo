@@ -96,7 +96,7 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 		_removeCommand = new(this);
 	}
 
-	protected override void Reset()
+	internal override void Reset()
 	{
 		bool wasChanged = IsChanged;
 		for (uint i = 0; i < _initialValueCount; i++)
@@ -173,7 +173,7 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 
 	protected virtual int ItemSize => Unsafe.SizeOf<T>();
 
-	public override int ReadInitialValue(ReadOnlySpan<byte> data)
+	internal override int ReadInitialValue(ReadOnlySpan<byte> data)
 	{
 		bool wasChanged = IsChanged;
 		bool couldAddElement = CanAddElement;
@@ -315,7 +315,7 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 		return (int)offset;
 	}
 
-	public override void WriteValue(BinaryWriter writer)
+	internal override void WriteValue(BinaryWriter writer)
 	{
 		int itemSize = ItemSize;
 		Span<byte> buffer = stackalloc byte[ItemSize];

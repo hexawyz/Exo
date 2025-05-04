@@ -113,9 +113,9 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 		_paddingLength = paddingLength;
 	}
 
-	protected abstract void Reset();
-	public abstract int ReadInitialValue(ReadOnlySpan<byte> data);
-	public abstract void WriteValue(BinaryWriter writer);
+	internal abstract void Reset();
+	internal abstract int ReadInitialValue(ReadOnlySpan<byte> data);
+	internal abstract void WriteValue(BinaryWriter writer);
 
 	protected sealed override void OnChanged(bool isChanged)
 	{

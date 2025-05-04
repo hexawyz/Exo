@@ -73,16 +73,16 @@ internal sealed class ScalarPropertyViewModel : PropertyViewModel
 
 	public override bool IsChanged => Value is null ? InitialValue is not null : !Equals(Value, InitialValue);
 
-	protected override void Reset() => Value = InitialValue;
+	internal override void Reset() => Value = InitialValue;
 
-	public override int ReadInitialValue(ReadOnlySpan<byte> data)
+	internal override int ReadInitialValue(ReadOnlySpan<byte> data)
 	{
 		var (value, length) = ReadValue(DataType, data);
 		InitialValue = value;
 		return length;
 	}
 
-	public override void WriteValue(BinaryWriter writer)
+	internal override void WriteValue(BinaryWriter writer)
 	{
 		WriteValue(DataType, _value!, writer);
 	}
