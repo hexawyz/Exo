@@ -14,9 +14,15 @@ public readonly partial struct VariableMultiColorPulseEffect(ImmutableArray<RgbC
 	[Display(Name = "Colors")]
 	[Array(1, 8)]
 	[DefaultValue("#51007A,")]
-	public ImmutableArray<RgbColor> Colors { get; } = colors;
+	public ImmutableArray<RgbColor> Colors { get; } = colors; // TODO: MaxLengthArray
 	[Display(Name = "Speed")]
 	[Range(0, 5)]
 	[DefaultValue(2)]
 	public PredeterminedEffectSpeed Speed { get; } = speed;
+
+	public static implicit operator VariableMultiColorPulseEffect(ColorPulseEffect effect)
+		=> new([effect.Color], PredeterminedEffectSpeed.MediumFast);
+
+	public static implicit operator VariableMultiColorPulseEffect(VariableColorPulseEffect effect)
+		=> new([effect.Color], effect.Speed);
 }

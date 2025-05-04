@@ -15,4 +15,7 @@ public readonly partial struct VariableColorPulseEffect(RgbColor color, Predeter
 	[Range(0, 5)]
 	[DefaultValue(3)]
 	public PredeterminedEffectSpeed Speed { get; } = speed;
+
+	public static implicit operator VariableColorPulseEffect(ColorPulseEffect effect)
+		=> new(effect.Color, PredeterminedEffectSpeed.MediumFast);
 }
