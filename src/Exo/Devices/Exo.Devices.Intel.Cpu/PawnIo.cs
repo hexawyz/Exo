@@ -60,6 +60,7 @@ internal sealed class PawnIo : IDisposable
 	private static bool TryLoadLibrary(out nint handle)
 	{
 		// There might be a problem with the installer, as on my system, the registry key ended up in the WoW64 world…
+#pragma warning disable CA1416 // Validate platform compatibility
 		if ((Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\PawnIO", "Install_Dir", null) ??
 			Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\PawnIO", "Install_Dir", null)) is string { Length: > 0 } pawnIoPath)
 		{
@@ -72,6 +73,7 @@ internal sealed class PawnIo : IDisposable
 			{
 			}
 		}
+#pragma warning restore CA1416 // Validate platform compatibility
 
 		handle = default;
 		return false;
