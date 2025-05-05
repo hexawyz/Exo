@@ -220,15 +220,10 @@ internal sealed class AcpiSystemManagementBus : ISystemManagementBus, IMotherboa
 			}
 		);
 
-		// TODO
-		// NB: I'm not entirely sure about this part, as I've not needed to use the method, but judging by the signature, this should be right.
-		var buffer = (byte[])result.OutParameters["ret"].Value;
-
-		int length = Unsafe.ReadUnaligned<int>(ref buffer[0]);
-
-		if ((uint)length > 256) throw new InvalidOperationException();
-
-		return buffer.AsSpan(4, length).ToArray();
+		var buffer = (CimInstance)result.OutParameters["ret"].Value;
+		if ((ushort)buffer.CimInstanceProperties["Status"].Value != 0) throw new InvalidOperationException();
+		ushort length = (ushort)buffer.CimInstanceProperties["Length"].Value;
+		return ((byte[])buffer.CimInstanceProperties["Bytes"].Value)[0..length];
 	}
 
 	public async ValueTask QuickWriteAsync(byte address)
