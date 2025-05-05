@@ -100,13 +100,13 @@ case "coolers":
 	break;
 case "lighting-effects":
 	{
-		if (await JsonSerializer.DeserializeAsync<Dictionary<Guid, LightingEffectMetadata>>(sourceFile, jsonSerializerOptions) is not { } sensorMetadata)
+		if (await JsonSerializer.DeserializeAsync<Dictionary<Guid, LightingEffectMetadata>>(sourceFile, jsonSerializerOptions) is not { } lightingEffectMetadata)
 		{
 			throw new InvalidDataException();
 		}
 
 		byte[] keyBuffer = new byte[16];
-		foreach (var kvp in sensorMetadata)
+		foreach (var kvp in lightingEffectMetadata)
 		{
 			kvp.Key.TryWriteBytes(keyBuffer);
 			builder.AddFile(keyBuffer, MetadataSerializer.Serialize(kvp.Value));
@@ -115,13 +115,13 @@ case "lighting-effects":
 	break;
 case "lighting-zones":
 	{
-		if (await JsonSerializer.DeserializeAsync<Dictionary<Guid, LightingZoneMetadata>>(sourceFile, jsonSerializerOptions) is not { } sensorMetadata)
+		if (await JsonSerializer.DeserializeAsync<Dictionary<Guid, LightingZoneMetadata>>(sourceFile, jsonSerializerOptions) is not { } lightingZoneMetadata)
 		{
 			throw new InvalidDataException();
 		}
 
 		byte[] keyBuffer = new byte[16];
-		foreach (var kvp in sensorMetadata)
+		foreach (var kvp in lightingZoneMetadata)
 		{
 			kvp.Key.TryWriteBytes(keyBuffer);
 			builder.AddFile(keyBuffer, MetadataSerializer.Serialize(kvp.Value));

@@ -290,16 +290,19 @@ public static class MetadataSerializer
 
 	private static byte[] Serialize(in LightingEffectMetadata value)
 	{
-		var array = new byte[16];
+		var array = new byte[20];
 		value.NameStringId.TryWriteBytes(array);
+		LittleEndian.Write(ref array[16], value.DisplayOrder);
 		return array;
 	}
 
 	private static byte[] Serialize(in LightingZoneMetadata value)
 	{
-		var array = new byte[20];
+		var array = new byte[22];
 		value.NameStringId.TryWriteBytes(array);
 		LittleEndian.Write(ref array[16], (uint)value.DisplayOrder);
+		array[20] = (byte)value.ComponentType;
+		array[21] = (byte)value.Shape;
 		return array;
 	}
 
@@ -340,6 +343,7 @@ public static class MetadataSerializer
 		=> new LightingEffectMetadata
 		{
 			NameStringId = new Guid(data[..16]),
+			DisplayOrder = MemoryMarshal.Read<ushort>(data[16..]),
 		};
 
 	private static LightingZoneMetadata DeserializeLightingZoneMetadata(ReadOnlySpan<byte> data)
@@ -409,12 +413,15 @@ public interface IExoMetadata
 public readonly struct LightingEffectMetadata : IExoMetadata
 {
 	public required Guid NameStringId { get; init; }
+	public required uint DisplayOrder { get; init; }
 }
 
 public readonly struct LightingZoneMetadata : IExoMetadata
 {
 	public required Guid NameStringId { get; init; }
 	public required int DisplayOrder { get; init; }
+	public LightingZoneComponentType ComponentType { get; init; }
+	public LightingZoneShape Shape { get; init; }
 }
 
 public readonly struct CoolerMetadata : IExoMetadata
@@ -456,4 +463,33 @@ public enum SensorCategory : byte
 	Voltage = 10,
 	Current = 11,
 	Frequency = 12,
+}
+
+/// <summary>Indicates the type of component that is associated with this lighting zone.</summary>
+/// <remarks>This information will be used by the UI to show a better icon.</remarks>
+public enum LightingZoneComponentType : byte
+{
+	Unknown = 0,
+	Indicator = 1,
+	Logo = 2,
+	Strip = 3,
+	Fan = 4,
+	Pump = 5,
+	Ram = 6,
+	Button = 7,
+}
+
+/// <summary>Indicates the general shape of a lighting zone.</summary>
+/// <remarks>This will allow the UI to provide a better presentation for the lighting zone when necessary.</remarks>
+public enum LightingZoneShape : byte
+{
+	Other = 0,
+	Dot,
+	Line,
+	Square,
+	Rectangle,
+	Ring,
+	Disc,
+	Text,
+	Chevron,
 }

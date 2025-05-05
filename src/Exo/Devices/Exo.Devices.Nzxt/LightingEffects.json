@@ -1,58 +1,72 @@
 {
-	// Tai Chi
-	"d8c6dce9-2902-452f-9121-d96b7eed1ba0": {
-		"nameStringId": "b69df8f3-f523-47b6-aaef-019ec54e2269"
-	},
-	// Liquid Cooler
-	"1916b46a-c93c-4c38-acf5-ac0a0e65a7c4": {
-		"nameStringId": "f5bb11ab-4c51-4169-a2a5-e3e0c058536c"
-	},
-	// Candle
-	"9ee4b83b-fb32-4b05-970a-e8f039a51b6e": {
-		"nameStringId": "d6a93d44-9fc3-4a8e-8ee5-9cfdcae1f1d6"
-	},
-	// Starry Night
-	"7a02f99b-c515-44db-95a0-d7b8eaf397ce": {
-		"nameStringId": "090ab98e-64f1-4bef-9d53-e3fa3ea41469"
-	},
-	// Starry Night
-	"9460fd35-6933-42c5-a8c6-9a6b34ee3f3e": {
-		"nameStringId": "975431b8-b26b-40dc-84fb-a4c017a8ccce"
-	},
 	// Color Cycle (Fade)
 	"a66fce58-4256-4746-8a86-6533f6ae3efb": {
-		"nameStringId": "dd4b72a6-9cbd-431a-9468-869d5df17fa9"
+		"nameStringId": "dd4b72a6-9cbd-431a-9468-869d5df17fa9",
+		"displayOrder": 20
 	},
 	// Pulse
 	"ddedb156-d897-4ad5-9566-721af1ad46b0": {
-		"nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197"
+		"nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197",
+		"displayOrder": 25
 	},
 	// Breathing
 	"6d01ab73-37af-4a1a-8ff4-efc3940f7bf9": {
-		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd"
+		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd",
+		"displayOrder": 35
 	},
 	// Marquee
 	"82e3ba40-7557-4d51-aedd-9cbfa27e107b": {
-		"nameStringId": "cc7546f7-ef4d-4346-a996-ff2c5021e1dc"
+		"nameStringId": "cc7546f7-ef4d-4346-a996-ff2c5021e1dc",
+		"displayOrder": 65
+	},
+	// Covering Marquee
+	"9460fd35-6933-42c5-a8c6-9a6b34ee3f3e": {
+		"nameStringId": "975431b8-b26b-40dc-84fb-a4c017a8ccce",
+		"displayOrder": 66
 	},
 	// Alternating
 	"586043b8-5506-48a9-9689-c17f67d040c2": {
-		"nameStringId": "c94de156-781f-4b47-b9bf-a52e25e19f86"
+		"nameStringId": "c94de156-781f-4b47-b9bf-a52e25e19f86",
+		"displayOrder": 67
+	},
+	// Tai Chi
+	"d8c6dce9-2902-452f-9121-d96b7eed1ba0": {
+		"nameStringId": "b69df8f3-f523-47b6-aaef-019ec54e2269",
+		"displayOrder": 68
+	},
+	// Liquid Cooler
+	"1916b46a-c93c-4c38-acf5-ac0a0e65a7c4": {
+		"nameStringId": "f5bb11ab-4c51-4169-a2a5-e3e0c058536c",
+		"displayOrder": 69
+	},
+	// Candle
+	"9ee4b83b-fb32-4b05-970a-e8f039a51b6e": {
+		"nameStringId": "d6a93d44-9fc3-4a8e-8ee5-9cfdcae1f1d6",
+		"displayOrder": 70
+	},
+	// Starry Night
+	"7a02f99b-c515-44db-95a0-d7b8eaf397ce": {
+		"nameStringId": "090ab98e-64f1-4bef-9d53-e3fa3ea41469",
+		"displayOrder": 71
 	},
 	// Rainbow Wave
 	"efc68baa-98ae-4123-a6fa-56a6bc202878": {
-		"nameStringId": "d38bd62e-b814-418a-bc60-ef86b7afa53b"
+		"nameStringId": "d38bd62e-b814-418a-bc60-ef86b7afa53b",
+		"displayOrder": 106
 	},
 	// Super Rainbow
 	"a2ac5968-ebe6-4007-be24-681a77d9caaf": {
-		"nameStringId": "fd7eacde-c9e2-4c66-86be-402ee6599525"
+		"nameStringId": "fd7eacde-c9e2-4c66-86be-402ee6599525",
+		"displayOrder": 107
 	},
 	// Rainbow Pulse
 	"f26b97ab-38ee-4f7d-9318-0c67ffc16657": {
-		"nameStringId": "088cd010-0de4-42ab-96a6-534ea55875fc"
+		"nameStringId": "088cd010-0de4-42ab-96a6-534ea55875fc",
+		"displayOrder": 108
 	},
 	// Loading
 	"40e1dd95-6de2-40c3-a847-e927bfbb341c": {
-		"nameStringId": "caa7aa14-5984-480f-9c76-6b91a45459c0"
+		"nameStringId": "caa7aa14-5984-480f-9c76-6b91a45459c0",
+		"displayOrder": 200
 	}
 }

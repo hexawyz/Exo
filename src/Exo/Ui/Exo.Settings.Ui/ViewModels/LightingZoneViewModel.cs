@@ -214,22 +214,6 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		}
 	}
 
-	private static bool IsUInt32Compatible(LightingDataType dataType)
-	{
-		switch (dataType)
-		{
-		case LightingDataType.UInt8:
-		case LightingDataType.SInt8:
-		case LightingDataType.UInt16:
-		case LightingDataType.SInt16:
-		case LightingDataType.UInt32:
-		case LightingDataType.SInt32:
-			return true;
-		default:
-			return false;
-		}
-	}
-
 	internal void OnEffectUpdated(LightingEffect? effect)
 	{
 		bool wasChanged = IsChanged;

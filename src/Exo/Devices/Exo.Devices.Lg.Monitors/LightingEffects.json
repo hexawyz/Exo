@@ -1,18 +1,22 @@
 {
 	// Exo.Lighting.Effects.StaticColorPreset1Effect
 	"85397afd-ffc7-4c0c-9145-6df91d556866": {
-		"nameStringId": "3b82b788-7d41-46d5-ab3d-73234cdb6a19"
+		"nameStringId": "3b82b788-7d41-46d5-ab3d-73234cdb6a19",
+		"displayOrder": 3
 	},
 	// Exo.Lighting.Effects.StaticColorPreset2Effect
 	"52f39ee8-b4cd-492b-b99b-f49abb4cfb71": {
-		"nameStringId": "4fb0c3e9-e883-4a00-ac81-58595331c664"
+		"nameStringId": "4fb0c3e9-e883-4a00-ac81-58595331c664",
+		"displayOrder": 4
 	},
 	// Exo.Lighting.Effects.StaticColorPreset3Effect
 	"511ba640-295b-425d-b18a-ebed49c0a648": {
-		"nameStringId": "1df7475a-ea63-4327-96f7-fc116b648c27"
+		"nameStringId": "1df7475a-ea63-4327-96f7-fc116b648c27",
+		"displayOrder": 5
 	},
 	// Exo.Lighting.Effects.StaticColorPreset4Effect
 	"2959b1e6-c0d4-4d5b-a80b-c06d7e2c4b74": {
-		"nameStringId": "735a35ba-8249-47cd-bb2f-0f470cd35562"
+		"nameStringId": "735a35ba-8249-47cd-bb2f-0f470cd35562",
+		"displayOrder": 6
 	}
 }

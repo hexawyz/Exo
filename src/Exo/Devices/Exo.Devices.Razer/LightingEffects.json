@@ -1,14 +1,17 @@
 {
 	// Exo.Devices.Razer.LightingEffects.SynchronizedEffect
 	"7b58f6d8-e492-452c-a747-43d1a9c46177": {
-		"nameStringId": "62492f89-62cf-4d1b-af66-875b3795cb4d"
+		"nameStringId": "62492f89-62cf-4d1b-af66-875b3795cb4d",
+		"displayOrder": 501
 	},
 	// Exo.Devices.Razer.LightingEffects.MultiColorBreathingEffect
 	"45e154d6-1946-4215-a44f-975cb76deeae": {
-		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd"
+		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd",
+		"displayOrder": 32
 	},
 	// Exo.Devices.Razer.LightingEffects.RandomColorPulseEffect
 	"b7ce4e5e-4983-4d3b-a0d1-eeb228283776": {
-		"nameStringId": "501a894f-7516-4ed5-8555-a00c7bd1fd84"
+		"nameStringId": "501a894f-7516-4ed5-8555-a00c7bd1fd84",
+		"displayOrder": 25
 	}
 }
