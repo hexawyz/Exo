@@ -14,8 +14,10 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 	private static readonly Guid DisabledEffectId = new(0x6B972C66, 0x0987, 0x4A0F, 0xA2, 0x0F, 0xCB, 0xFC, 0x1B, 0x0F, 0x3D, 0x4B);
 
 	private readonly LightingDeviceViewModel _device;
+	private readonly ObservableCollection<LightingEffectViewModel> _supportedEffects;
+	private readonly ReadOnlyObservableCollection<LightingEffectViewModel> _readOnlySupportedEffects;
 
-	public ReadOnlyCollection<LightingEffectViewModel> SupportedEffects { get; }
+	public ReadOnlyObservableCollection<LightingEffectViewModel> SupportedEffects => _readOnlySupportedEffects;
 
 	private LightingEffect? _initialEffect;
 	private LightingEffectViewModel? _currentEffect;
@@ -61,16 +63,35 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		_properties = ReadOnlyCollection<PropertyViewModel>.Empty;
 		_resetCommand = new(this);
 		Id = lightingZoneInformation.ZoneId;
-		SupportedEffects = new ReadOnlyCollection<LightingEffectViewModel>
-		(
-			Array.ConvertAll
-			(
-				ImmutableCollectionsMarshal.AsArray(lightingZoneInformation.SupportedEffectTypeIds)!,
-				_device.LightingViewModel.GetEffect
-			)
-		);
+		_supportedEffects = new();
+		foreach (var effectId in ImmutableCollectionsMarshal.AsArray(lightingZoneInformation.SupportedEffectTypeIds)!)
+		{
+			var effect = _device.LightingViewModel.GetEffect(effectId);
+			_supportedEffects.Insert(FindInsertPosition(_supportedEffects, effect.DisplayOrder), effect);
+		}
+		_readOnlySupportedEffects = new(_supportedEffects);
 		Name = displayName;
 		DisplayOrder = displayOrder;
+	}
+
+	private static int FindInsertPosition(ObservableCollection<LightingEffectViewModel> effects, uint displayOrder)
+	{
+		if (effects.Count == 0) return 0;
+
+		int min = 0;
+		int max = effects.Count - 1;
+
+		if (effects[min].DisplayOrder > displayOrder) return min;
+		if (effects[max].DisplayOrder <= displayOrder) return effects.Count;
+
+		while (max > min)
+		{
+			int med = (min + max) >> 1;
+			uint order = effects[med].DisplayOrder;
+			if (order > displayOrder) max = med - 1;
+			else min = med + 1;
+		}
+		return effects[min].DisplayOrder == displayOrder ? min + 1 : min;
 	}
 
 	public override bool IsChanged => _initialEffect?.EffectId != _currentEffect?.EffectId || _isNewEffect || _changedPropertyCount != 0;

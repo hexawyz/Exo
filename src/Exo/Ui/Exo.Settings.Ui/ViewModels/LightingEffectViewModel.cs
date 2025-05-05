@@ -8,16 +8,20 @@ internal sealed class LightingEffectViewModel
 {
 	private LightingEffectInformation _effectInformation;
 	private readonly string _displayName;
+	private readonly uint _displayOrder;
 
-	public LightingEffectViewModel(LightingEffectInformation effectInformation, string displayName)
+	public LightingEffectViewModel(LightingEffectInformation effectInformation, string displayName, uint displayOrder)
 	{
 		_effectInformation = effectInformation;
 		_displayName = displayName;
+		_displayOrder = displayOrder;
 	}
 
 	public Guid EffectId => _effectInformation.EffectId;
 
 	public string DisplayName => _displayName;
+
+	public uint DisplayOrder => _displayOrder;
 
 	internal void OnMetadataUpdated(LightingEffectInformation effectInformation)
 	{

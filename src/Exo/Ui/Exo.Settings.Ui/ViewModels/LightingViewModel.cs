@@ -167,13 +167,15 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 		else
 		{
 			string? displayName = null;
+			uint displayOrder = uint.MaxValue;
 			if (_metadataService.TryGetLightingEffectMetadata("", "", effectInformation.EffectId, out var metadata))
 			{
 				displayName = _metadataService.GetString(CultureInfo.CurrentCulture, metadata.NameStringId);
+				displayOrder = metadata.DisplayOrder;
 			}
 			displayName ??= string.Create(CultureInfo.InvariantCulture, $"Effect {effectInformation.EffectId:B}.");
 
-			_effectViewModelById.TryAdd(effectInformation.EffectId, new(effectInformation, displayName));
+			_effectViewModelById.TryAdd(effectInformation.EffectId, new(effectInformation, displayName, displayOrder));
 		}
 	}
 

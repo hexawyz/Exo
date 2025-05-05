@@ -475,7 +475,7 @@ public enum LightingZoneComponentType : byte
 	Strip = 3,
 	Fan = 4,
 	Pump = 5,
-	Ram = 6,
+	MemoryStick = 6,
 	Button = 7,
 }
 
