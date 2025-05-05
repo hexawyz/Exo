@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Globalization;
 using Exo.Lighting;
+using Exo.Metadata;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
@@ -182,15 +183,19 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	public LightingEffectViewModel GetEffect(Guid effectId)
 		=> _effectViewModelById.TryGetValue(effectId, out var effect) ? effect : throw new InvalidOperationException("Missing effect information.");
 
-	public (string DisplayName, int DisplayOrder) GetZoneMetadata(Guid zoneId)
+	public (string DisplayName, int DisplayOrder, LightingZoneComponentType ComponentType, LightingZoneShape Shape) GetZoneMetadata(Guid zoneId)
 	{
 		string? displayName = null;
 		int displayOrder = 0;
+		LightingZoneComponentType componentType = 0;
+		LightingZoneShape shape = 0;
 		if (_metadataService.TryGetLightingZoneMetadata("", "", zoneId, out var metadata))
 		{
 			displayName = _metadataService.GetString(CultureInfo.CurrentCulture, metadata.NameStringId);
 			displayOrder = metadata.DisplayOrder;
+			componentType = metadata.ComponentType;
+			shape = metadata.Shape;
 		}
-		return (displayName ?? $"Unknown {zoneId:B}", displayOrder);
+		return (displayName ?? $"Unknown {zoneId:B}", displayOrder, componentType, shape);
 	}
 }

@@ -66,6 +66,7 @@
 
 			<lconverters:IntegerPercentValueConverter x:Key="IntegerPercentValueConverter" />
 			<lconverters:DeviceCategoryToGlyphConverter x:Key="DeviceCategoryToGlyphConverter" />
+			<lconverters:LightingZoneComponentTypeToGlyphConverter x:Key="LightingZoneComponentTypeToGlyphConverter" />
 			<lconverters:NullabilityToBooleanConverter x:Key="NullabilityToBooleanConverter" />
 			<lconverters:NullabilityToVisibilityConverter x:Key="NullabilityToVisibilityConverter" />
 			<lconverters:IntegerToVisibilityConverter x:Key="IntegerToVisibilityConverter" />

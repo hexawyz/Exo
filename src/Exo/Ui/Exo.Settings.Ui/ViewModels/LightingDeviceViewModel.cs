@@ -121,8 +121,8 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		_resetChangesCommand = new(this);
 		LightingZoneViewModel CreateZoneViewModel(LightingZoneInformation lightingZone)
 		{
-			var (displayName, displayOrder) = LightingViewModel.GetZoneMetadata(lightingZone.ZoneId);
-			return new LightingZoneViewModel(this, lightingZone, displayName, displayOrder);
+			var (displayName, displayOrder, componentType, shape) = LightingViewModel.GetZoneMetadata(lightingZone.ZoneId);
+			return new LightingZoneViewModel(this, lightingZone, displayName, displayOrder, componentType, shape);
 		}
 		LightingZoneViewModel[] CreateZoneViewModels(ImmutableArray<LightingZoneInformation> lightingZones)
 		{

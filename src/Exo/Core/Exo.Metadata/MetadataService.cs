@@ -350,7 +350,9 @@ public static class MetadataSerializer
 		=> new LightingZoneMetadata
 		{
 			NameStringId = new Guid(data[..16]),
-			DisplayOrder = (int)LittleEndian.ReadUInt32(in data[16])
+			DisplayOrder = (int)LittleEndian.ReadUInt32(in data[16]),
+			ComponentType = (LightingZoneComponentType)data[20],
+			Shape = (LightingZoneShape)data[21],
 		};
 
 	private static CoolerMetadata DeserializeCoolerMetadata(ReadOnlySpan<byte> data)

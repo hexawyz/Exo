@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
 using Exo.Lighting;
+using Exo.Metadata;
 using Exo.Service;
 using Windows.UI;
 
@@ -56,8 +57,10 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 
 	public string Name { get; }
 	public int DisplayOrder { get; }
+	public LightingZoneComponentType ComponentType { get; }
+	public LightingZoneShape Shape { get; }
 
-	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation, string displayName, int displayOrder)
+	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation, string displayName, int displayOrder, LightingZoneComponentType componentType, LightingZoneShape shape)
 	{
 		_device = device;
 		_properties = ReadOnlyCollection<PropertyViewModel>.Empty;
@@ -72,6 +75,8 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		_readOnlySupportedEffects = new(_supportedEffects);
 		Name = displayName;
 		DisplayOrder = displayOrder;
+		ComponentType = componentType;
+		Shape = shape;
 	}
 
 	private static int FindInsertPosition(ObservableCollection<LightingEffectViewModel> effects, uint displayOrder)
