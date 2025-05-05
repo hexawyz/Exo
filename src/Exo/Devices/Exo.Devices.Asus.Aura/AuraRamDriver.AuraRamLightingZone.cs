@@ -35,22 +35,13 @@ public partial class AuraRamDriver
 	private abstract class AuraRamLightingZone :
 		ILightingZone,
 		ILightingZoneEffect<DisabledEffect>,
-		ILightingZoneEffect<StaticColorEffect>,
-		ILightingZoneEffect<ColorPulseEffect>,
 		ILightingZoneEffect<VariableColorPulseEffect>,
-		ILightingZoneEffect<ColorFlashEffect>,
 		ILightingZoneEffect<VariableColorFlashEffect>,
-		ILightingZoneEffect<SpectrumCycleEffect>,
 		ILightingZoneEffect<VariableSpectrumCycleEffect>,
-		ILightingZoneEffect<SpectrumWaveEffect>,
 		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
-		ILightingZoneEffect<VariableSpectrumWaveEffect>,
 		ILightingZoneEffect<SpectrumCyclePulseEffect>,
-		ILightingZoneEffect<ColorWaveEffect>,
 		ILightingZoneEffect<ReversibleVariableColorWaveEffect>,
-		ILightingZoneEffect<VariableColorWaveEffect>,
 		ILightingZoneEffect<SpectrumCycleWaveEffect>,
-		ILightingZoneEffect<ColorChaseEffect>,
 		ILightingZoneEffect<ReversibleVariableColorChaseEffect>,
 		ILightingZoneEffect<VariableColorChaseEffect>,
 		ILightingZoneEffect<SpectrumCycleChaseEffect>,
@@ -271,16 +262,9 @@ public partial class AuraRamDriver
 		}
 
 		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<ColorPulseEffect>.TryGetCurrentEffect(out ColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<ColorFlashEffect>.TryGetCurrentEffect(out ColorFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.TryGetCurrentEffect(out ReversibleVariableSpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<ColorWaveEffect>.TryGetCurrentEffect(out ColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<SpectrumCyclePulseEffect>.TryGetCurrentEffect(out SpectrumCyclePulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<SpectrumCycleWaveEffect>.TryGetCurrentEffect(out SpectrumCycleWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<ColorChaseEffect>.TryGetCurrentEffect(out ColorChaseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<SpectrumCycleChaseEffect>.TryGetCurrentEffect(out SpectrumCycleChaseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<WideSpectrumCycleChaseEffect>.TryGetCurrentEffect(out WideSpectrumCycleChaseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<AlternateSpectrumEffect>.TryGetCurrentEffect(out AlternateSpectrumEffect effect) => CurrentEffect.TryGetEffect(out effect);
@@ -288,9 +272,7 @@ public partial class AuraRamDriver
 		bool ILightingZoneEffect<VariableColorFlashEffect>.TryGetCurrentEffect(out VariableColorFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<VariableColorPulseEffect>.TryGetCurrentEffect(out VariableColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<VariableColorChaseEffect>.TryGetCurrentEffect(out VariableColorChaseEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<VariableSpectrumWaveEffect>.TryGetCurrentEffect(out VariableSpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<VariableSpectrumCycleEffect>.TryGetCurrentEffect(out VariableSpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<VariableColorWaveEffect>.TryGetCurrentEffect(out VariableColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ReversibleVariableColorWaveEffect>.TryGetCurrentEffect(out ReversibleVariableColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ReversibleVariableColorChaseEffect>.TryGetCurrentEffect(out ReversibleVariableColorChaseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 
@@ -419,17 +401,10 @@ public partial class AuraRamDriver
 			}
 		}
 
-		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect) => ApplySingleColorEffect(AuraEffect.Static, DefaultFrameDelay, false, effect);
-		void ILightingZoneEffect<ColorPulseEffect>.ApplyEffect(in ColorPulseEffect effect) => ApplySingleColorEffect(AuraEffect.Pulse, DefaultFrameDelay, false, effect);
-		void ILightingZoneEffect<ColorFlashEffect>.ApplyEffect(in ColorFlashEffect effect) => ApplySingleColorEffect(AuraEffect.Flash, DefaultFrameDelay, false, effect);
-		void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorCycle, DefaultFrameDelay, false, effect);
-		void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorWave, DefaultFrameDelay, false, effect);
 		void ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.ApplyEffect(in ReversibleVariableSpectrumWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorWave, DefaultFrameDelays[(byte)effect.Speed], effect.Direction != EffectDirection1D.Forward, effect);
 		void ILightingZoneEffect<SpectrumCyclePulseEffect>.ApplyEffect(in SpectrumCyclePulseEffect effect) => ApplyPredefinedEffect(AuraEffect.CyclePulse, DefaultFrameDelay, false, effect);
-		void ILightingZoneEffect<ColorWaveEffect>.ApplyEffect(in ColorWaveEffect effect) => ApplySingleColorEffect(AuraEffect.Wave, DefaultFrameDelay, false, effect);
 		void ILightingZoneEffect<ReversibleVariableColorWaveEffect>.ApplyEffect(in ReversibleVariableColorWaveEffect effect) => ApplySingleColorEffect(AuraEffect.Wave, DefaultFrameDelays[(byte)effect.Speed], effect.Direction != EffectDirection1D.Forward, effect);
 		void ILightingZoneEffect<SpectrumCycleWaveEffect>.ApplyEffect(in SpectrumCycleWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleWave, DefaultFrameDelay, false, effect);
-		void ILightingZoneEffect<ColorChaseEffect>.ApplyEffect(in ColorChaseEffect effect) => ApplySingleColorEffect(AuraEffect.Chase, DefaultFrameDelay, false, effect);
 		void ILightingZoneEffect<ReversibleVariableColorChaseEffect>.ApplyEffect(in ReversibleVariableColorChaseEffect effect) => ApplySingleColorEffect(AuraEffect.Chase, DefaultFrameDelays[(byte)effect.Speed], effect.Direction != EffectDirection1D.Forward, effect);
 		void ILightingZoneEffect<SpectrumCycleChaseEffect>.ApplyEffect(in SpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleChase, DefaultFrameDelay, false, effect);
 		void ILightingZoneEffect<WideSpectrumCycleChaseEffect>.ApplyEffect(in WideSpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.WideCycleChase, DefaultFrameDelay, false, effect);
@@ -438,10 +413,6 @@ public partial class AuraRamDriver
 		void ILightingZoneEffect<VariableColorFlashEffect>.ApplyEffect(in VariableColorFlashEffect effect) => ApplySingleColorEffect(AuraEffect.Flash, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 		void ILightingZoneEffect<VariableColorPulseEffect>.ApplyEffect(in VariableColorPulseEffect effect) => ApplySingleColorEffect(AuraEffect.Pulse, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 		void ILightingZoneEffect<VariableSpectrumCycleEffect>.ApplyEffect(in VariableSpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorCycle, DefaultFrameDelays[(byte)effect.Speed], false, effect);
-		void ILightingZoneEffect<VariableSpectrumWaveEffect>.ApplyEffect(in VariableSpectrumWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorWave, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 		void ILightingZoneEffect<VariableColorChaseEffect>.ApplyEffect(in VariableColorChaseEffect effect) => ApplySingleColorEffect(AuraEffect.Chase, DefaultFrameDelays[(byte)effect.Speed], false, effect);
-		void ILightingZoneEffect<VariableColorWaveEffect>.ApplyEffect(in VariableColorWaveEffect effect) => ApplySingleColorEffect(AuraEffect.Wave, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 	}
 }
-
-

@@ -39,7 +39,10 @@ public static class EffectSerializer
 				state.Metadata = metadata;
 			}
 			state.RegisterDeserializer<TEffect>();
-			_effectBroadcaster.Push(metadata);
+			if (isUpdated)
+			{
+				_effectBroadcaster.Push(metadata);
+			}
 		}
 	}
 
@@ -210,6 +213,7 @@ public static class EffectSerializer
 
 	private sealed class RegisteredEffectState : IDisposable
 	{
+		// TODO: ConditionalWeakTable< Type, SetConvertedEffect >
 		public LightingEffectInformation Metadata;
 		private DependentHandle _dependentHandle;
 

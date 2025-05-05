@@ -32,6 +32,12 @@ public partial class AuraRamDriver
 			case AuraEffect.Static:
 				CurrentEffect = new Static5ColorEffect(swappedColors);
 				break;
+			case AuraEffect.Pulse:
+				CurrentEffect = new ColorPulse5Effect(swappedColors);
+				break;
+			case AuraEffect.Flash:
+				CurrentEffect = new ColorFlash5Effect(swappedColors);
+				break;
 			}
 		}
 
