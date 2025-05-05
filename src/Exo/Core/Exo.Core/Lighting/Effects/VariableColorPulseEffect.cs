@@ -6,7 +6,9 @@ namespace Exo.Lighting.Effects;
 
 /// <summary>Represents a light with a pulsing color effect.</summary>
 [TypeId(0x433FC57B, 0x6486, 0x48EA, 0x8F, 0xA1, 0x1D, 0x2A, 0x93, 0xE1, 0x92, 0xCB)]
-public readonly partial struct VariableColorPulseEffect(RgbColor color, PredeterminedEffectSpeed speed) : ISingleColorLightEffect
+public readonly partial struct VariableColorPulseEffect(RgbColor color, PredeterminedEffectSpeed speed) :
+	ISingleColorLightEffect,
+	IConvertibleLightingEffect<ColorPulseEffect, VariableColorPulseEffect>
 {
 	[Display(Name = "Color")]
 	public RgbColor Color { get; } = color;
@@ -16,6 +18,6 @@ public readonly partial struct VariableColorPulseEffect(RgbColor color, Predeter
 	[DefaultValue(3)]
 	public PredeterminedEffectSpeed Speed { get; } = speed;
 
-	public static implicit operator VariableColorPulseEffect(ColorPulseEffect effect)
+	public static implicit operator VariableColorPulseEffect(in ColorPulseEffect effect)
 		=> new(effect.Color, PredeterminedEffectSpeed.MediumFast);
 }

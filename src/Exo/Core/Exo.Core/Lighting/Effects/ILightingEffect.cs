@@ -16,16 +16,35 @@ public interface ILightingEffect
 	static virtual LightingEffectInformation GetEffectMetadata() => throw new NotImplementedException();
 }
 
-public interface ILightingEffect<TEffect> : ILightingEffect, ISerializer<TEffect>
-	where TEffect : struct, ILightingEffect<TEffect>
+public interface ILightingEffect<TSelf> : ILightingEffect, ISerializer<TSelf>
+	where TSelf : struct, ILightingEffect<TSelf>
 {
-	Guid ILightingEffect.GetEffectId() => TEffect.EffectId;
-	bool ILightingEffect.TryGetSize(out uint size) => TEffect.TryGetSize(in Unsafe.Unbox<TEffect>(this), out size);
-	void ILightingEffect.Serialize(ref BufferWriter writer) => TEffect.Serialize(ref writer, in Unsafe.Unbox<TEffect>(this));
+	Guid ILightingEffect.GetEffectId() => TSelf.EffectId;
+	bool ILightingEffect.TryGetSize(out uint size) => TSelf.TryGetSize(in Unsafe.Unbox<TSelf>(this), out size);
+	void ILightingEffect.Serialize(ref BufferWriter writer) => TSelf.Serialize(ref writer, in Unsafe.Unbox<TSelf>(this));
 }
 
 public interface ISingletonLightingEffect : ILightingEffect
 {
 	/// <summary>Gets a boxed instance of the effect.</summary>
 	static abstract ISingletonLightingEffect SharedInstance { get; }
+}
+
+/// <summary>An interface indicating availability of a conversion from an other effect type.</summary>
+/// <remarks>
+/// <para>
+/// Effect conversions should ONLY be provided for effects that are a superset of the original effect.
+/// This will allow converting "generic", feature-limited effects into device-specific, feature-full effects.
+/// </para>
+/// <para>
+/// One of the goal of this feature is to not clutter the effect list for a lighting zone with redundant effects.
+/// It should be possible to set basic effects via API for operations such as "set everything to green", and this conversion mechanism will support that.
+/// </para>
+/// </remarks>
+/// <typeparam name="TSourceEffect">The effect type that represents a feature-subset of the current effect type.</typeparam>
+public interface IConvertibleLightingEffect<TSourceEffect, TSelf> : ILightingEffect<TSelf>
+	where TSourceEffect : struct, ILightingEffect<TSourceEffect>
+	where TSelf : struct, IConvertibleLightingEffect<TSourceEffect, TSelf>
+{
+	public static abstract implicit operator TSelf(in TSourceEffect effect);
 }

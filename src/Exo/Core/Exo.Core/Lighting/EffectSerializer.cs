@@ -43,6 +43,14 @@ public static class EffectSerializer
 		}
 	}
 
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public static void RegisterEffectConversion<TSourceEffect, TDestinationEffect>()
+		where TSourceEffect : struct, ILightingEffect<TSourceEffect>
+		where TDestinationEffect : struct, IConvertibleLightingEffect<TSourceEffect, TDestinationEffect>
+	{
+		// TODO: Implement the actual conversion process.
+	}
+
 	public static bool TryGetEffectMetadata(Guid effectId, [NotNullWhen(true)] out LightingEffectInformation? metadata)
 	{
 		if (EffectStates.TryGetValue(effectId, out var state))

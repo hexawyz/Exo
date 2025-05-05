@@ -28,7 +28,9 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		new("ESG0010", "Invalid maximum value", "The member {1} of type {0} has an invalid value specified for its maximum value.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
 	];
 
-	private const string EffectInterfaceTypeName = "Exo.Lighting.Effects.ILightingEffect";
+	private const string LightingEffectsNamespace = "Exo.Lighting.Effects";
+	private const string EffectInterfaceTypeName = "ILightingEffect";
+	private const string ConvertibleEffectInterfaceTypeName = "IConvertibleLightingEffect";
 
 	private static bool IsTypeId(SimpleNameSyntax nameSyntax) => nameSyntax.Identifier.Text == "TypeId" || nameSyntax.Identifier.Text == "TypeIdAttribute";
 
@@ -60,8 +62,8 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 					{
 						var typeInfo = context.SemanticModel.GetTypeInfo(baseTypeSyntax.Type, cancellationToken);
 						if (typeInfo.Type is null || typeInfo.Type.TypeKind != TypeKind.Interface) return false;
-						if (typeInfo.Type.ToDisplayString() == EffectInterfaceTypeName ||
-							typeInfo.Type.AllInterfaces.Any(i => i.ToDisplayString() == EffectInterfaceTypeName))
+						if (typeInfo.Type.Name == EffectInterfaceTypeName && typeInfo.Type.ContainingNamespace.ToDisplayString() == LightingEffectsNamespace ||
+							typeInfo.Type.AllInterfaces.Any(i => i.Name == EffectInterfaceTypeName && i.ContainingNamespace.ToDisplayString() == LightingEffectsNamespace))
 						{
 							return true;
 						}
@@ -107,9 +109,22 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		foreach (var effect in effects)
 		{
 			sb.Append("\t\t")
-				.Append("EffectSerializer.RegisterEffect<")
+				.Append("EffectSerializer.RegisterEffect<global::")
 				.Append(effect.FullName)
 				.AppendLine(">();");
+		}
+
+		foreach (var effect in effects)
+		{
+			foreach (string effectConversion in effect.EffectConversions)
+			{
+				sb.Append("\t\t")
+					.Append("EffectSerializer.RegisterEffectConversion<global::")
+					.Append(effectConversion)
+					.Append(", global::")
+					.Append(effect.FullName)
+					.AppendLine(">();");
+			}
 		}
 
 		sb.AppendLine("\t}")
@@ -1013,13 +1028,22 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			);
 		}
 
+		var effectConversions = new List<string>();
+		foreach (var interfaceType in effectType.AllInterfaces)
+		{
+			if (interfaceType.Name == ConvertibleEffectInterfaceTypeName && interfaceType.ContainingNamespace.ToDisplayString() == LightingEffectsNamespace)
+			{
+				effectConversions.Add(interfaceType.TypeArguments[0].ToDisplayString());
+			}
+		}
+
 		// Empty structs would still have a minimum size of 1, so we'd better resort to implementing an empty serializer for them in all cases.
 		if (members.Count == 0)
 		{
 			isEligibleForSerializationBypass = false;
 		}
 
-		return new(typeId, effectType.ContainingNamespace.ToDisplayString(), effectType.Name, effectType.ToDisplayString(), !isEligibleForSerializationBypass, new([.. members]), new([.. problems]));
+		return new(typeId, effectType.ContainingNamespace.ToDisplayString(), effectType.Name, effectType.ToDisplayString(), !isEligibleForSerializationBypass, new([.. members]), new([.. effectConversions]), new([.. problems]));
 	}
 
 	private static object? ParseValue(ISymbol member, LightingDataType? dataType, int minimumElementCount, int maximumElementCount, object value, List<ProblemInfo> problems, ValueKind kind)
@@ -1259,7 +1283,17 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 
 	private record struct EffectInfo
 	{
-		public EffectInfo(Guid typeId, string @namespace, string typeName, string fullName, bool requiresExplicitSerialization, EquatableReadOnlyList<SerializedMemberInfo> members, EquatableReadOnlyList<ProblemInfo> problems)
+		public EffectInfo
+		(
+			Guid typeId,
+			string @namespace,
+			string typeName,
+			string fullName,
+			bool requiresExplicitSerialization,
+			EquatableReadOnlyList<SerializedMemberInfo> members,
+			EquatableReadOnlyList<string> effectConversions,
+			EquatableReadOnlyList<ProblemInfo> problems
+		)
 		{
 			TypeId = typeId;
 			Namespace = @namespace;
@@ -1267,6 +1301,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			FullName = fullName;
 			RequiresExplicitSerialization = requiresExplicitSerialization;
 			Members = members;
+			EffectConversions = effectConversions;
 			Problems = problems;
 		}
 
@@ -1276,6 +1311,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		public string FullName { get; }
 		public bool RequiresExplicitSerialization { get; }
 		public EquatableReadOnlyList<SerializedMemberInfo> Members { get; }
+		public EquatableReadOnlyList<string> EffectConversions { get; }
 		public EquatableReadOnlyList<ProblemInfo> Problems { get; }
 	}
 

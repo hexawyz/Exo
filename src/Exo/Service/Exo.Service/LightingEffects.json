@@ -43,6 +43,10 @@
 	"d575547b-f8b0-4f80-98df-e1a9112c7270": {
 		"nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197"
 	},
+	// Exo.Lighting.Effects.ColorBreathingEffect
+	"83f205b0-d73f-4a22-bddf-dce1fde20710": {
+		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd"
+	},
 	// Exo.Lighting.Effects.ColorBlinkEffect
 	"46be7d40-8a97-486c-97cd-07e931f46ab9": {
 		"nameStringId": "965a4868-b74e-4674-b43f-2086daf37906"
@@ -79,6 +83,10 @@
 	"a4fbc975-3cbf-48aa-9bfb-1f1289e7c3a0": {
 		"nameStringId": "8f32de3a-b7c5-459c-9678-5e247af86056"
 	},
+	// Exo.Lighting.Effects.ReversibleVariableColorChaseEffect
+	"bab1b0f1-55f3-46f8-9adc-e6984b381902": {
+		"nameStringId": "5a22c2a6-ff28-4a99-985c-f027cefc305b"
+	},
 	// Exo.Lighting.Effects.ColorWaveEffect
 	"f64133df-043a-4e9f-82ca-6489b8f786a7": {
 		"nameStringId": "c1dc1388-3864-4db9-bffb-40bc78b34442"
@@ -86,6 +94,10 @@
 	// Exo.Lighting.Effects.VariableColorWaveEffect
 	"3798fd63-6b69-4167-ad09-b0062082178c": {
 		"nameStringId": "2c0f5ddb-f374-497b-a873-e8fd7bf6db77"
+	},
+	// Exo.Lighting.Effects.ReversibleVariableColorWaveEffect
+	"2cb30144-2586-4780-956c-43198af2726f": {
+		"nameStringId": "c1dc1388-3864-4db9-bffb-40bc78b34442"
 	},
 	// Exo.Lighting.Effects.SpectrumCycleEffect
 	"2818d561-15fb-43b0-9c2e-9ff508822b7a": {
