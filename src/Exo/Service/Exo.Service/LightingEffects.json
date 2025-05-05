@@ -33,7 +33,7 @@
 	},
 	// Exo.Lighting.Effects.VariableColorPulseEffect
 	"433fc57b-6486-48ea-8fa1-1d2a93e192cb": {
-		"nameStringId": "d30ddfeb-9337-4fde-a303-b63db3a64c2b"
+		"nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197"
 	},
 	// Exo.Lighting.Effects.ColorPulse5Effect
 	"a0e2051c-ab8b-4d8c-a950-fc01ba6c312a": {
@@ -69,7 +69,7 @@
 	},
 	// Exo.Lighting.Effects.VariableColorFlashEffect
 	"f786dd5a-83a7-4b07-9166-d231ef2dde11": {
-		"nameStringId": "ad36bbab-eb53-4610-957a-07ff72d5fc94"
+		"nameStringId": "419e70ee-8355-4cf5-9d18-54835008cdb0"
 	},
 	// Exo.Lighting.Effects.ColorDoubleFlashEffect
 	"2c497719-8477-4fe2-8045-488939d4c913": {
@@ -81,7 +81,7 @@
 	},
 	// Exo.Lighting.Effects.VariableColorChaseEffect
 	"a4fbc975-3cbf-48aa-9bfb-1f1289e7c3a0": {
-		"nameStringId": "8f32de3a-b7c5-459c-9678-5e247af86056"
+		"nameStringId": "5a22c2a6-ff28-4a99-985c-f027cefc305b"
 	},
 	// Exo.Lighting.Effects.ReversibleVariableColorChaseEffect
 	"bab1b0f1-55f3-46f8-9adc-e6984b381902": {
@@ -93,7 +93,7 @@
 	},
 	// Exo.Lighting.Effects.VariableColorWaveEffect
 	"3798fd63-6b69-4167-ad09-b0062082178c": {
-		"nameStringId": "2c0f5ddb-f374-497b-a873-e8fd7bf6db77"
+		"nameStringId": "c1dc1388-3864-4db9-bffb-40bc78b34442"
 	},
 	// Exo.Lighting.Effects.ReversibleVariableColorWaveEffect
 	"2cb30144-2586-4780-956c-43198af2726f": {
@@ -105,7 +105,7 @@
 	},
 	// Exo.Lighting.Effects.VariableSpectrumCycleEffect
 	"712094b5-c5b9-4a2b-9619-e33fb049ee9f": {
-		"nameStringId": "a1c25516-29ca-4e76-9210-6c9afadde4da"
+		"nameStringId": "5ba5b8c5-3fd9-40c5-830a-68f775a9f27b"
 	},
 	// Exo.Lighting.Effects.SpectrumCycleWithBrightnessEffect
 	"7cdbce50-63fa-42a4-92e1-de7d91521f4d": {
@@ -117,7 +117,7 @@
 	},
 	// Exo.Lighting.Effects.VariableSpectrumWaveEffect
 	"d11b8022-2c92-467a-b863-9b703d265a70": {
-		"nameStringId": "621e5d5b-7eb5-4953-b338-3a00a65ea350"
+		"nameStringId": "454153c6-7231-4677-9007-d0f75f4432b6"
 	},
 	// Exo.Lighting.Effects.ReversibleVariableSpectrumWaveEffect
 	"f6a8c369-d230-4e63-b600-a44f1b3bbeca": {

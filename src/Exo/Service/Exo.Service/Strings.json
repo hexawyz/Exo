@@ -223,13 +223,13 @@
 		"en": "Static",
 		"fr": "Statique"
 	},
+	"66893ce9-cf8d-4bb4-b3ba-ee38a51186dd": {
+		"en": "Breathing",
+		"fr": "Respiration"
+	},
 	"f49c1855-5583-4a4f-8272-7f0326a23197": {
 		"en": "Pulse",
 		"fr": "Impulsion"
-	},
-	"d30ddfeb-9337-4fde-a303-b63db3a64c2b": {
-		"en": "Pulse (Speed)",
-		"fr": "Impulsion (Vitesse)"
 	},
 	"965a4868-b74e-4674-b43f-2086daf37906": {
 		"en": "Blink",
@@ -239,10 +239,6 @@
 		"en": "Flash",
 		"fr": "Flashs"
 	},
-	"ad36bbab-eb53-4610-957a-07ff72d5fc94": {
-		"en": "Flash (Speed)",
-		"fr": "Flashs (Vitesse)"
-	},
 	"597bbd76-be6e-4c8f-8e48-cc45cd1c5a30": {
 		"en": "Double Flash",
 		"fr": "Double flashs"
@@ -251,25 +247,13 @@
 		"en": "Chase",
 		"fr": "Chasse"
 	},
-	"8f32de3a-b7c5-459c-9678-5e247af86056": {
-		"en": "Chase (Speed)",
-		"fr": "Chasse (Vitesse)"
-	},
 	"c1dc1388-3864-4db9-bffb-40bc78b34442": {
 		"en": "Wave",
 		"fr": "Vague"
 	},
-	"2c0f5ddb-f374-497b-a873-e8fd7bf6db77": {
-		"en": "Wave (Speed)",
-		"fr": "Vague (Vitesse)"
-	},
 	"5ba5b8c5-3fd9-40c5-830a-68f775a9f27b": {
 		"en": "Spectrum Cycle",
 		"fr": "Cycle spectral"
-	},
-	"a1c25516-29ca-4e76-9210-6c9afadde4da": {
-		"en": "Spectrum Cycle (Speed)",
-		"fr": "Cycle spectral (Vitesse)"
 	},
 	"1dbeeeb3-5738-4503-b3a4-c25a4c519de1": {
 		"en": "Spectrum Cycle (Brightness)",
@@ -279,17 +263,9 @@
 		"en": "Spectrum Wave",
 		"fr": "Vague spectrale"
 	},
-	"621e5d5b-7eb5-4953-b338-3a00a65ea350": {
-		"en": "Spectrum Wave (Speed)",
-		"fr": "Vague spectrale (Vitesse)"
-	},
 	"60e315f9-c41c-4d3e-a813-5031dd0b39ef": {
 		"en": "Reactive",
 		"fr": "Réactif"
-	},
-	"66893ce9-cf8d-4bb4-b3ba-ee38a51186dd": {
-		"en": "Breathing",
-		"fr": "Respiration"
 	},
 	"dd4b72a6-9cbd-431a-9468-869d5df17fa9": {
 		"en": "Color Cycle",
