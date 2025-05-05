@@ -33,6 +33,13 @@ public struct FixedArray10<T>
 	private T _element0;
 }
 
+[InlineArray(12)]
+public struct FixedArray12<T>
+	where T : unmanaged
+{
+	private T _element0;
+}
+
 [InlineArray(16)]
 public struct FixedArray16<T>
 	where T : unmanaged
