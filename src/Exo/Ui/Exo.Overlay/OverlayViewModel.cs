@@ -101,12 +101,12 @@ internal sealed class OverlayViewModel : BindableObject, IAsyncDisposable
 					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEC1D", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.ScrollLockOff:
-					// ic_fluent_arrow_download_20_regular
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0D3", Description = request.DeviceName };
+					// ic_fluent_arrow_download_20_filled
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0D2", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.ScrollLockOn:
-					// ic_fluent_arrow_download_off_20_regular
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0D5", Description = request.DeviceName };
+					// ic_fluent_arrow_download_off_20_filled
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0D4", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.FnLockOff:
 					content = new() { Glyph = "\uE785", Description = request.DeviceName };
