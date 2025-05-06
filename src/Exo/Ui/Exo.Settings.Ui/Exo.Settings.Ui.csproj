@@ -188,6 +188,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Content Include="..\FluentSystemIcons-Resizable.ttf" Link="FluentSystemIcons-Resizable.ttf" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Page Update="Controls\GlyphToggleButton.xaml">
 			<SubType>Designer</SubType>
 		</Page>

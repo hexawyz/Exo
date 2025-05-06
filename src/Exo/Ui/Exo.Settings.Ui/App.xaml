@@ -42,6 +42,8 @@
 				</ResourceDictionary>
 			</ResourceDictionary.ThemeDictionaries>
 
+			<FontFamily x:Key="FluentSystemIcons-Resizable">/FluentSystemIcons-Resizable.ttf#FluentSystemIcons-Resizable</FontFamily>
+
 			<x:Boolean x:Key="FalseValue">False</x:Boolean>
 			<x:Boolean x:Key="TrueValue">True</x:Boolean>
 

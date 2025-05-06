@@ -479,6 +479,7 @@ public enum LightingZoneComponentType : byte
 	Pump = 5,
 	MemoryStick = 6,
 	Button = 7,
+	Tiles = 8,
 }
 
 /// <summary>Indicates the general shape of a lighting zone.</summary>
