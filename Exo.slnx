@@ -57,7 +57,7 @@
       <Platform Solution="*|arm64" Project="ARM64" />
     </Project>
   </Folder>
-  <Folder Name="/Exo/Core/" Id="4f25866e-8db7-912f-aef3-9b2cfe12173a">
+  <Folder Name="/Exo/Core/">
     <Project Path="src/Exo/Core/Exo.Archive.Tests/Exo.Archive.Tests.csproj" />
     <Project Path="src/Exo/Core/Exo.Archive/Exo.Archive.csproj" />
     <Project Path="src/Exo/Core/Exo.Contracts/Exo.Contracts.csproj" />
@@ -73,7 +73,7 @@
     <Project Path="src/Exo/Core/Exo.SourceGenerators.LightingEffectSerializer/Exo.SourceGenerators.LightingEffectSerializer.csproj" Id="7da94579-ac0e-4904-9a3c-32ebcaa7f596" />
     <Project Path="src/Exo/Core/Exo.Utils/Exo.Utils.csproj" />
   </Folder>
-  <Folder Name="/Exo/Devices/" Id="fe0abb33-2571-cddd-7ef1-a13b8dd6465e">
+  <Folder Name="/Exo/Devices/">
     <Project Path="src/Exo/Devices/Exo.Devices.Apple.Keyboard/Exo.Devices.Apple.Keyboard.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Asus.Aura/Exo.Devices.Asus.Aura.csproj" />
     <Project Path="src/Exo/Devices/Exo.Devices.Corsair.PowerSupplies/Exo.Devices.Corsair.PowerSupplies.csproj" />
@@ -93,7 +93,7 @@
     <Project Path="src/Exo/Devices/Exo.Devices.Razer/Exo.Devices.Razer.csproj" />
     <Project Path="src/Exo/Devices/Exo.MonitorDatabaseCompiler/Exo.MonitorDatabaseCompiler.csproj" />
   </Folder>
-  <Folder Name="/Exo/Discovery/" Id="76fbe4c7-5fe3-355e-e7ed-dc9c973067f2">
+  <Folder Name="/Exo/Discovery/">
     <Project Path="src/Exo/Discovery/Exo.Debug/Exo.Debug.csproj" />
     <Project Path="src/Exo/Discovery/Exo.Discovery.Cpu/Exo.Discovery.Cpu.csproj" Id="8be4d23a-da8d-4174-9eb0-be3c08a1c0c7" />
     <Project Path="src/Exo/Discovery/Exo.Discovery.DnsSd/Exo.Discovery.DnsSd.csproj" />
@@ -104,7 +104,7 @@
     <Project Path="src/Exo/Discovery/Exo.Discovery.SmBios/Exo.Discovery.SmBios.csproj" />
     <Project Path="src/Exo/Discovery/Exo.Discovery.System/Exo.Discovery.System.csproj" />
   </Folder>
-  <Folder Name="/Exo/Service/" Id="02fe5b6d-f809-b674-df1e-803b16124d92">
+  <Folder Name="/Exo/Service/">
     <Project Path="src/Exo/Service/Exo.Cli/Exo.Cli.csproj" />
     <Project Path="src/Exo/Service/Exo.DeviceNotifications.Tester/Exo.DeviceNotifications.Tester.csproj" />
     <Project Path="src/Exo/Service/Exo.DeviceNotifications/Exo.DeviceNotifications.csproj" />
@@ -115,7 +115,8 @@
     <Project Path="src/Exo/Service/Exo.Service/Exo.Service.csproj" />
     <Project Path="src/Exo/Service/Exo.ServiceProcess.ServiceController/Exo.ServiceProcess.ServiceController.csproj" />
   </Folder>
-  <Folder Name="/Exo/Ui/" Id="d7c8b3ce-0fec-fa3b-585d-e5395570dd28">
+  <Folder Name="/Exo/Ui/">
+    <File Path="src/Exo/Ui/FluentSystemIcons-Resizable.ttf" />
     <Project Path="src/Exo/Ui/Exo.Overlay/Exo.Overlay.csproj" />
     <Project Path="src/Exo/Ui/Exo.Settings.Ui/Exo.Settings.Ui.csproj">
       <Platform Solution="*|Any CPU" Project="x64" />

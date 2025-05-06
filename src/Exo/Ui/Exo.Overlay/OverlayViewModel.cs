@@ -85,22 +85,28 @@ internal sealed class OverlayViewModel : BindableObject, IAsyncDisposable
 				case OverlayNotificationKind.Custom:
 					break;
 				case OverlayNotificationKind.CapsLockOff:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE975", Description = request.DeviceName };
+					// ic_fluent_keyboard_shift_uppercase_20_regular
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEA0F", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.CapsLockOn:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE974", Description = request.DeviceName };
+					// ic_fluent_keyboard_shift_uppercase_20_filled
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEA0E", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.NumLockOff:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEB65", Description = request.DeviceName };
+					// ic_fluent_number_symbol_square_20_regular
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEC1E", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.NumLockOn:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEB64", Description = request.DeviceName };
+					// ic_fluent_number_symbol_square_20_filled
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uEC1D", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.ScrollLockOff:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0BE", Description = request.DeviceName };
+					// ic_fluent_arrow_download_20_regular
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0D3", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.ScrollLockOn:
-					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0BC", Description = request.DeviceName };
+					// ic_fluent_arrow_download_off_20_regular
+					content = new() { Font = GlyphFont.FluentSystemIcons, Glyph = "\uE0D5", Description = request.DeviceName };
 					break;
 				case OverlayNotificationKind.FnLockOff:
 					content = new() { Glyph = "\uE785", Description = request.DeviceName };

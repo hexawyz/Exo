@@ -20,10 +20,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Remove="FluentSystemIcons-Resizable.ttf" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<Compile Include="..\..\Service\Exo.Service.Core\Constants.cs" Link="Definitions\Constants.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\MenuChangeNotification.cs" Link="Definitions\MenuChangeNotification.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\MenuItemType.cs" Link="Definitions\MenuItemType.cs" />
@@ -31,6 +27,10 @@
 		<Compile Include="..\..\Service\Exo.Service.Core\OverlayNotificationKind.cs" Link="Definitions\OverlayNotificationKind.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\OverlayRequest.cs" Link="Definitions\OverlayRequest.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\WatchNotificationKind.cs" Link="Definitions\WatchNotificationKind.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Resource Include="..\FluentSystemIcons-Resizable.ttf" Link="FluentSystemIcons-Resizable.ttf" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -45,10 +45,6 @@
 		<PackageReference Include="Microsoft.Extensions.Logging" />
 		<PackageReference Include="Microsoft.Extensions.Logging.EventLog" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Resource Include="FluentSystemIcons-Resizable.ttf" />
 	</ItemGroup>
 
 	<ItemGroup>
