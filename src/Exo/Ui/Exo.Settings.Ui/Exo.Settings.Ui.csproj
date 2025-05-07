@@ -151,6 +151,9 @@
 		<Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
 		<Content Include="Assets\StoreLogo.png" />
 		<Content Include="Assets\Wide310x150Logo.scale-200.png" />
+		<Content Include="..\FluentSystemIcons-Resizable.ttf" Link="FluentSystemIcons-Resizable.ttf">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -185,10 +188,6 @@
 		<ProjectReference Include="..\..\Core\Exo.Ipc\Exo.Ipc.csproj" />
 		<ProjectReference Include="..\Exo.Ui.Core\Exo.Ui.Core.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Utils\Exo.Utils.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Content Include="..\FluentSystemIcons-Resizable.ttf" Link="FluentSystemIcons-Resizable.ttf" />
 	</ItemGroup>
 
 	<ItemGroup>
