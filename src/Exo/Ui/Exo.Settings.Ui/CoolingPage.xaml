@@ -1,83 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
-    x:Class="Exo.Settings.Ui.CoolingPage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+  x:Class="Exo.Settings.Ui.CoolingPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:Exo.Settings.Ui"
+  xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
-    <ItemsControl ItemsSource="{Binding Cooling.Devices}">
-        <ItemsControl.ItemTemplate>
-            <DataTemplate>
-                <Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{Binding IsAvailable, Mode=OneWay}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                    <Expander.Header>
-                        <StackPanel Orientation="Horizontal">
-                            <FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
-                            <TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
-                        </StackPanel>
-                    </Expander.Header>
-                    <!-- NB: The MinHeight compensates for a bug where the ItemsView would somehow not show for the second device (?) -->
-                    <ItemsControl ItemsSource="{Binding Coolers}" MinHeight="1">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Expander Margin="{StaticResource VerticalItemSpacing}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                                    <Expander.Header>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <FontIcon Grid.Column="0" Glyph="&#xE9CA;" />
-                                            <TextBlock Grid.Column="1" Text="{Binding DisplayName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
-                                            <TextBlock
-                                                Grid.Column="3"
-                                                x:Uid="CoolerCurrentSpeed"
-                                                Margin="6,0,0,0"
-                                                Visibility="{Binding SpeedSensor.LiveDetails, Converter={StaticResource NullabilityToVisibilityConverter}}"
-                                                Text="{Binding SpeedSensor.LiveDetails.CurrentValue}" />
-                                        </Grid>
-                                    </Expander.Header>
-                                    <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Row="0" Grid.Column="0" x:Uid="CoolerCoolingModeLabel" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
-                                            <ComboBox Grid.Row="0" Grid.Column="1" Margin="{StaticResource RowContentLabelMargin}" ItemsSource="{Binding CoolingModes}" SelectedItem="{Binding CurrentCoolingMode, Mode=TwoWay}" HorizontalAlignment="Stretch">
-                                                <ComboBox.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding CoolingMode, Converter={StaticResource StringResourceConverter}, ConverterParameter=CoolingModes}" />
-                                                    </DataTemplate>
-                                                </ComboBox.ItemTemplate>
-                                            </ComboBox>
-                                            <Button Grid.Row="0" Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
-                                                <FontIcon Glyph="&#xE777;" />
-                                            </Button>
-                                        </Grid>
-                                        <ContentControl
-                                            HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Stretch"
-                                            Content="{Binding CurrentCoolingMode, Mode=OneWay}"
-                                            ContentTemplateSelector="{StaticResource CoolingParametersTemplateSelector}" />
-                                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
-                                            <Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
-                                            <Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Expander>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Expander>
-            </DataTemplate>
-        </ItemsControl.ItemTemplate>
-    </ItemsControl>
+	<ItemsControl ItemsSource="{Binding Cooling.Devices}">
+		<ItemsControl.ItemTemplate>
+			<DataTemplate>
+				<Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{Binding IsAvailable, Mode=OneWay}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+					<Expander.Header>
+						<StackPanel Orientation="Horizontal">
+							<FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
+							<TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
+						</StackPanel>
+					</Expander.Header>
+					<!-- NB: The MinHeight compensates for a bug where the ItemsView would somehow not show for the second device (?) -->
+					<ItemsControl ItemsSource="{Binding Coolers}" MinHeight="1">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<Expander Margin="{StaticResource VerticalItemSpacing}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+									<Expander.Header>
+										<Grid>
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition Width="Auto" />
+												<ColumnDefinition Width="Auto" />
+												<ColumnDefinition Width="*" />
+												<ColumnDefinition Width="Auto" />
+											</Grid.ColumnDefinitions>
+											<FontIcon Grid.Column="0" Glyph="&#xE9CA;" />
+											<TextBlock Grid.Column="1" Text="{Binding DisplayName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
+											<TextBlock
+                        Grid.Column="3"
+                        x:Uid="CoolerCurrentSpeed"
+                        Margin="6,0,0,0"
+                        Visibility="{Binding SpeedSensor.LiveDetails, Converter={StaticResource NullabilityToVisibilityConverter}}"
+                        Text="{Binding SpeedSensor.LiveDetails.CurrentValue}" />
+										</Grid>
+									</Expander.Header>
+									<StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
+										<Grid>
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+												<ColumnDefinition Width="*" />
+												<ColumnDefinition Width="Auto" />
+											</Grid.ColumnDefinitions>
+											<TextBlock Grid.Row="0" Grid.Column="0" x:Uid="CoolerCoolingModeLabel" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
+											<ComboBox Grid.Row="0" Grid.Column="1" Margin="{StaticResource RowContentLabelMargin}" ItemsSource="{Binding CoolingModes}" SelectedItem="{Binding CurrentCoolingMode, Mode=TwoWay}" HorizontalAlignment="Stretch">
+												<ComboBox.ItemTemplate>
+													<DataTemplate>
+														<TextBlock Text="{Binding CoolingMode, Converter={StaticResource StringResourceConverter}, ConverterParameter=CoolingModes}" />
+													</DataTemplate>
+												</ComboBox.ItemTemplate>
+											</ComboBox>
+											<Button Grid.Row="0" Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
+												<FontIcon Glyph="&#xE777;" />
+											</Button>
+										</Grid>
+										<ContentControl
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Stretch"
+                      Content="{Binding CurrentCoolingMode, Mode=OneWay}"
+                      ContentTemplateSelector="{StaticResource CoolingParametersTemplateSelector}" />
+										<StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
+											<Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
+											<Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
+										</StackPanel>
+									</StackPanel>
+								</Expander>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</Expander>
+			</DataTemplate>
+		</ItemsControl.ItemTemplate>
+	</ItemsControl>
 </Page>

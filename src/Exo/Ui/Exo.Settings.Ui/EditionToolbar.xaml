@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <UserControl
-    x:Class="Exo.Settings.Ui.EditionToolbar"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
-    xmlns:services="using:Exo.Settings.Ui.Services"
-    mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance services:EditionService, IsDesignTimeCreatable=True}">
+  x:Class="Exo.Settings.Ui.EditionToolbar"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+  xmlns:services="using:Exo.Settings.Ui.Services"
+  mc:Ignorable="d"
+  d:DataContext="{d:DesignInstance services:EditionService, IsDesignTimeCreatable=True}">
 
-    <StackPanel
-        Grid.Row="1"
-        Margin="{StaticResource RowLabelMargin}"
-        Orientation="Horizontal">
-        <FontIcon VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Glyph="&#xE790;" />
-        <controls:ColorPickerButton
-            VerticalAlignment="Center"
-            Margin="{StaticResource RowContentMargin}"
-            SelectedColor="{Binding Color, Mode=TwoWay}"
-            ColorPickerStyle="{StaticResource RgbLightingColorPickerStyle}"
-            Loaded="OnColorPickerButtonLoaded" />
-    </StackPanel>
+	<StackPanel
+    Grid.Row="1"
+    Margin="{StaticResource RowLabelMargin}"
+    Orientation="Horizontal">
+		<FontIcon VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Glyph="&#xE790;" />
+		<controls:ColorPickerButton
+      VerticalAlignment="Center"
+      Margin="{StaticResource RowContentMargin}"
+      SelectedColor="{Binding Color, Mode=TwoWay}"
+      ColorPickerStyle="{StaticResource RgbLightingColorPickerStyle}"
+      Loaded="OnColorPickerButtonLoaded" />
+	</StackPanel>
 </UserControl>

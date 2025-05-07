@@ -1,285 +1,285 @@
 <?xml version="1.0" encoding="utf-8"?>
 <UserControl
-    x:Class="Exo.Settings.Ui.MonitorRgbSettingsControl"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:lconverters="using:Exo.Settings.Ui.Converters"
-    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance vm:MonitorDeviceFeaturesViewModel, IsDesignTimeCreatable=False}"
-    IsEnabled="{Binding IsReady}">
+  x:Class="Exo.Settings.Ui.MonitorRgbSettingsControl"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:Exo.Settings.Ui"
+  xmlns:lconverters="using:Exo.Settings.Ui.Converters"
+  xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DataContext="{d:DesignInstance vm:MonitorDeviceFeaturesViewModel, IsDesignTimeCreatable=False}"
+  IsEnabled="{Binding IsReady}">
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="*" />
+			<ColumnDefinition Width="Auto" />
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
 
-        <FontIcon
-            Grid.Row="0"
-            Grid.Column="0"
-            x:Uid="MonitorRedVideoGainLabel"
-            Margin="{StaticResource RowContentLabelMargin}"
-            Glyph="&#xED67;"
-            Foreground="Red"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Stretch"
-            Visibility="{Binding RedVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-        <Slider
-            Grid.Row="0"
-            Grid.Column="1"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding RedVideoGainSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Value="{Binding Value, Mode=TwoWay}"
-            Maximum="{Binding MaximumValue, Mode=OneTime}"
-            Minimum="{Binding MinimumValue, Mode=OneTime}"
-            HorizontalContentAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            Style="{StaticResource ColorSliderStyle}"
-            Background="{StaticResource RedGainLinearGradientBrush}">
-            <Slider.ThumbToolTipValueConverter>
-                <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
-            </Slider.ThumbToolTipValueConverter>
-        </Slider>
-        <Button
-            Grid.Row="0"
-            Grid.Column="2"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding RedVideoGainSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Command="{Binding ResetCommand}"
-            CommandParameter="{Binding}">
-            <FontIcon Glyph="&#xE777;" />
-        </Button>
+		<FontIcon
+      Grid.Row="0"
+      Grid.Column="0"
+      x:Uid="MonitorRedVideoGainLabel"
+      Margin="{StaticResource RowContentLabelMargin}"
+      Glyph="&#xED67;"
+      Foreground="Red"
+      VerticalAlignment="Center"
+      HorizontalAlignment="Stretch"
+      Visibility="{Binding RedVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+		<Slider
+      Grid.Row="0"
+      Grid.Column="1"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding RedVideoGainSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Value="{Binding Value, Mode=TwoWay}"
+      Maximum="{Binding MaximumValue, Mode=OneTime}"
+      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      HorizontalContentAlignment="Stretch"
+      HorizontalAlignment="Stretch"
+      Style="{StaticResource ColorSliderStyle}"
+      Background="{StaticResource RedGainLinearGradientBrush}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+		<Button
+      Grid.Row="0"
+      Grid.Column="2"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding RedVideoGainSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Command="{Binding ResetCommand}"
+      CommandParameter="{Binding}">
+			<FontIcon Glyph="&#xE777;" />
+		</Button>
 
-        <FontIcon
-            Grid.Row="1"
-            Grid.Column="0"
-            Margin="{StaticResource RowContentLabelMargin}"
-            Glyph="&#xED67;"
-            Foreground="Black"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Stretch"
-            Visibility="{Binding RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-        <FontIcon
-            Grid.Row="1"
-            Grid.Column="0"
-            x:Uid="MonitorRedVideoBlackLevelLabel"
-            Margin="{StaticResource RowContentLabelMargin}"
-            Glyph="&#xED66;"
-            Foreground="Red"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Stretch"
-            Visibility="{Binding RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-        <Slider
-            Grid.Row="1"
-            Grid.Column="1"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding RedVideoBlackLevelSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Value="{Binding Value, Mode=TwoWay}"
-            Maximum="{Binding MaximumValue, Mode=OneTime}"
-            Minimum="{Binding MinimumValue, Mode=OneTime}"
-            HorizontalContentAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            Style="{StaticResource ColorSliderStyle}"
-            Background="{StaticResource RedBlackLevelLinearGradientBrush}">
-            <Slider.ThumbToolTipValueConverter>
-                <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
-            </Slider.ThumbToolTipValueConverter>
-        </Slider>
-        <Button
-            Grid.Row="1"
-            Grid.Column="2"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding RedVideoBlackLevelSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Command="{Binding ResetCommand}"
-            CommandParameter="{Binding}">
-            <FontIcon Glyph="&#xE777;" />
-        </Button>
+		<FontIcon
+      Grid.Row="1"
+      Grid.Column="0"
+      Margin="{StaticResource RowContentLabelMargin}"
+      Glyph="&#xED67;"
+      Foreground="Black"
+      VerticalAlignment="Center"
+      HorizontalAlignment="Stretch"
+      Visibility="{Binding RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+		<FontIcon
+      Grid.Row="1"
+      Grid.Column="0"
+      x:Uid="MonitorRedVideoBlackLevelLabel"
+      Margin="{StaticResource RowContentLabelMargin}"
+      Glyph="&#xED66;"
+      Foreground="Red"
+      VerticalAlignment="Center"
+      HorizontalAlignment="Stretch"
+      Visibility="{Binding RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+		<Slider
+      Grid.Row="1"
+      Grid.Column="1"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding RedVideoBlackLevelSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Value="{Binding Value, Mode=TwoWay}"
+      Maximum="{Binding MaximumValue, Mode=OneTime}"
+      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      HorizontalContentAlignment="Stretch"
+      HorizontalAlignment="Stretch"
+      Style="{StaticResource ColorSliderStyle}"
+      Background="{StaticResource RedBlackLevelLinearGradientBrush}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+		<Button
+      Grid.Row="1"
+      Grid.Column="2"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding RedVideoBlackLevelSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Command="{Binding ResetCommand}"
+      CommandParameter="{Binding}">
+			<FontIcon Glyph="&#xE777;" />
+		</Button>
 
-        <FontIcon
-            Grid.Row="2"
-            Grid.Column="0"
-            x:Uid="MonitorGreenVideoGainLabel"
-            Margin="{StaticResource RowContentLabelMargin}"
-            Glyph="&#xED67;"
-            Foreground="Lime"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Stretch"
-            Visibility="{Binding GreenVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-        <Slider
-            Grid.Row="2"
-            Grid.Column="1"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding GreenVideoGainSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Value="{Binding Value, Mode=TwoWay}"
-            Maximum="{Binding MaximumValue, Mode=OneTime}"
-            Minimum="{Binding MinimumValue, Mode=OneTime}"
-            HorizontalContentAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            Style="{StaticResource ColorSliderStyle}"
-            Background="{StaticResource GreenGainLinearGradientBrush}">
-            <Slider.ThumbToolTipValueConverter>
-                <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
-            </Slider.ThumbToolTipValueConverter>
-        </Slider>
-        <Button
-            Grid.Row="2"
-            Grid.Column="2"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding GreenVideoGainSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Command="{Binding ResetCommand}"
-            CommandParameter="{Binding}">
-            <FontIcon Glyph="&#xE777;" />
-        </Button>
+		<FontIcon
+      Grid.Row="2"
+      Grid.Column="0"
+      x:Uid="MonitorGreenVideoGainLabel"
+      Margin="{StaticResource RowContentLabelMargin}"
+      Glyph="&#xED67;"
+      Foreground="Lime"
+      VerticalAlignment="Center"
+      HorizontalAlignment="Stretch"
+      Visibility="{Binding GreenVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+		<Slider
+      Grid.Row="2"
+      Grid.Column="1"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding GreenVideoGainSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Value="{Binding Value, Mode=TwoWay}"
+      Maximum="{Binding MaximumValue, Mode=OneTime}"
+      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      HorizontalContentAlignment="Stretch"
+      HorizontalAlignment="Stretch"
+      Style="{StaticResource ColorSliderStyle}"
+      Background="{StaticResource GreenGainLinearGradientBrush}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+		<Button
+      Grid.Row="2"
+      Grid.Column="2"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding GreenVideoGainSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Command="{Binding ResetCommand}"
+      CommandParameter="{Binding}">
+			<FontIcon Glyph="&#xE777;" />
+		</Button>
 
-        <FontIcon
-            Grid.Row="3"
-            Grid.Column="0"
-            Margin="{StaticResource RowContentLabelMargin}"
-            Glyph="&#xED67;"
-            Foreground="Black"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Stretch"
-            Visibility="{Binding GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-        <FontIcon
-            Grid.Row="3"
-            Grid.Column="0"
-            x:Uid="MonitorGreenVideoBlackLevelLabel"
-            Margin="{StaticResource RowContentLabelMargin}"
-            Glyph="&#xED66;"
-            Foreground="Lime"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Stretch"
-            Visibility="{Binding GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-        <Slider
-            Grid.Row="3"
-            Grid.Column="1"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding GreenVideoBlackLevelSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Value="{Binding Value, Mode=TwoWay}"
-            Maximum="{Binding MaximumValue, Mode=OneTime}"
-            Minimum="{Binding MinimumValue, Mode=OneTime}"
-            HorizontalContentAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            Style="{StaticResource ColorSliderStyle}"
-            Background="{StaticResource GreenBlackLevelLinearGradientBrush}">
-            <Slider.ThumbToolTipValueConverter>
-                <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
-            </Slider.ThumbToolTipValueConverter>
-        </Slider>
-        <Button
-            Grid.Row="3"
-            Grid.Column="2"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding GreenVideoBlackLevelSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Command="{Binding ResetCommand}"
-            CommandParameter="{Binding}">
-            <FontIcon Glyph="&#xE777;" />
-        </Button>
+		<FontIcon
+      Grid.Row="3"
+      Grid.Column="0"
+      Margin="{StaticResource RowContentLabelMargin}"
+      Glyph="&#xED67;"
+      Foreground="Black"
+      VerticalAlignment="Center"
+      HorizontalAlignment="Stretch"
+      Visibility="{Binding GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+		<FontIcon
+      Grid.Row="3"
+      Grid.Column="0"
+      x:Uid="MonitorGreenVideoBlackLevelLabel"
+      Margin="{StaticResource RowContentLabelMargin}"
+      Glyph="&#xED66;"
+      Foreground="Lime"
+      VerticalAlignment="Center"
+      HorizontalAlignment="Stretch"
+      Visibility="{Binding GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+		<Slider
+      Grid.Row="3"
+      Grid.Column="1"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding GreenVideoBlackLevelSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Value="{Binding Value, Mode=TwoWay}"
+      Maximum="{Binding MaximumValue, Mode=OneTime}"
+      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      HorizontalContentAlignment="Stretch"
+      HorizontalAlignment="Stretch"
+      Style="{StaticResource ColorSliderStyle}"
+      Background="{StaticResource GreenBlackLevelLinearGradientBrush}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+		<Button
+      Grid.Row="3"
+      Grid.Column="2"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding GreenVideoBlackLevelSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Command="{Binding ResetCommand}"
+      CommandParameter="{Binding}">
+			<FontIcon Glyph="&#xE777;" />
+		</Button>
 
-        <FontIcon
-            Grid.Row="4"
-            Grid.Column="0"
-            x:Uid="MonitorBlueVideoGainLabel"
-            Margin="{StaticResource RowContentLabelMargin}"
-            Glyph="&#xED67;"
-            Foreground="Blue"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Stretch"
-            Visibility="{Binding BlueVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-        <Slider
-            Grid.Row="4"
-            Grid.Column="1"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding BlueVideoGainSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Value="{Binding Value, Mode=TwoWay}"
-            Maximum="{Binding MaximumValue, Mode=OneTime}"
-            Minimum="{Binding MinimumValue, Mode=OneTime}"
-            HorizontalContentAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            Style="{StaticResource ColorSliderStyle}"
-            Background="{StaticResource BlueGainLinearGradientBrush}">
-            <Slider.ThumbToolTipValueConverter>
-                <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
-            </Slider.ThumbToolTipValueConverter>
-        </Slider>
-        <Button
-            Grid.Row="4"
-            Grid.Column="2"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding BlueVideoGainSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Command="{Binding ResetCommand}"
-            CommandParameter="{Binding}">
-            <FontIcon Glyph="&#xE777;" />
-        </Button>
+		<FontIcon
+      Grid.Row="4"
+      Grid.Column="0"
+      x:Uid="MonitorBlueVideoGainLabel"
+      Margin="{StaticResource RowContentLabelMargin}"
+      Glyph="&#xED67;"
+      Foreground="Blue"
+      VerticalAlignment="Center"
+      HorizontalAlignment="Stretch"
+      Visibility="{Binding BlueVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+		<Slider
+      Grid.Row="4"
+      Grid.Column="1"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding BlueVideoGainSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Value="{Binding Value, Mode=TwoWay}"
+      Maximum="{Binding MaximumValue, Mode=OneTime}"
+      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      HorizontalContentAlignment="Stretch"
+      HorizontalAlignment="Stretch"
+      Style="{StaticResource ColorSliderStyle}"
+      Background="{StaticResource BlueGainLinearGradientBrush}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+		<Button
+      Grid.Row="4"
+      Grid.Column="2"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding BlueVideoGainSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Command="{Binding ResetCommand}"
+      CommandParameter="{Binding}">
+			<FontIcon Glyph="&#xE777;" />
+		</Button>
 
-        <FontIcon
-            Grid.Row="5"
-            Grid.Column="0"
-            Margin="{StaticResource RowContentLabelMargin}"
-            Glyph="&#xED67;"
-            Foreground="Black"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Stretch"
-            Visibility="{Binding BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-        <FontIcon
-            Grid.Row="5"
-            Grid.Column="0"
-            x:Uid="MonitorBlueVideoBlackLevelLabel"
-            Margin="{StaticResource RowContentLabelMargin}"
-            Glyph="&#xED66;"
-            Foreground="Blue"
-            VerticalAlignment="Center"
-            HorizontalAlignment="Stretch"
-            Visibility="{Binding BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-        <Slider
-            Grid.Row="5"
-            Grid.Column="1"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding BlueVideoBlackLevelSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Value="{Binding Value, Mode=TwoWay}"
-            Maximum="{Binding MaximumValue, Mode=OneTime}"
-            Minimum="{Binding MinimumValue, Mode=OneTime}"
-            HorizontalContentAlignment="Stretch"
-            HorizontalAlignment="Stretch"
-            Style="{StaticResource ColorSliderStyle}"
-            Background="{StaticResource BlueBlackLevelLinearGradientBrush}">
-            <Slider.ThumbToolTipValueConverter>
-                <lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
-            </Slider.ThumbToolTipValueConverter>
-        </Slider>
-        <Button
-            Grid.Row="5"
-            Grid.Column="2"
-            Margin="{StaticResource RowContentLabelMargin}"
-            DataContext="{Binding BlueVideoBlackLevelSetting}"
-            Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-            Command="{Binding ResetCommand}"
-            CommandParameter="{Binding}">
-            <FontIcon Glyph="&#xE777;" />
-        </Button>
-    </Grid>
+		<FontIcon
+      Grid.Row="5"
+      Grid.Column="0"
+      Margin="{StaticResource RowContentLabelMargin}"
+      Glyph="&#xED67;"
+      Foreground="Black"
+      VerticalAlignment="Center"
+      HorizontalAlignment="Stretch"
+      Visibility="{Binding BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+		<FontIcon
+      Grid.Row="5"
+      Grid.Column="0"
+      x:Uid="MonitorBlueVideoBlackLevelLabel"
+      Margin="{StaticResource RowContentLabelMargin}"
+      Glyph="&#xED66;"
+      Foreground="Blue"
+      VerticalAlignment="Center"
+      HorizontalAlignment="Stretch"
+      Visibility="{Binding BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+		<Slider
+      Grid.Row="5"
+      Grid.Column="1"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding BlueVideoBlackLevelSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Value="{Binding Value, Mode=TwoWay}"
+      Maximum="{Binding MaximumValue, Mode=OneTime}"
+      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      HorizontalContentAlignment="Stretch"
+      HorizontalAlignment="Stretch"
+      Style="{StaticResource ColorSliderStyle}"
+      Background="{StaticResource BlueBlackLevelLinearGradientBrush}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+		<Button
+      Grid.Row="5"
+      Grid.Column="2"
+      Margin="{StaticResource RowContentLabelMargin}"
+      DataContext="{Binding BlueVideoBlackLevelSetting}"
+      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
+      Command="{Binding ResetCommand}"
+      CommandParameter="{Binding}">
+			<FontIcon Glyph="&#xE777;" />
+		</Button>
+	</Grid>
 </UserControl>

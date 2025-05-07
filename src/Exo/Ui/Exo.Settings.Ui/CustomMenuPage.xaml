@@ -1,82 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
-    x:Class="Exo.Settings.Ui.CustomMenuPage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
-    <Page.Resources>
-        <XamlUICommand x:Key="AddTextMenuItemCommand" x:Uid="CustomMenuAddNormalItemCommand" Command="{Binding CustomMenu.AddTextItemCommand}">
-            <XamlUICommand.IconSource>
-                <FontIconSource Glyph="&#xE8AC;" />
-            </XamlUICommand.IconSource>
-        </XamlUICommand>
-        <XamlUICommand x:Key="AddSeparatorMenuItemCommand" x:Uid="CustomMenuAddSeparatorItemCommand" Command="{Binding CustomMenu.AddSeparatorItemCommand}">
-            <XamlUICommand.IconSource>
-                <FontIconSource Glyph="&#xE921;" />
-            </XamlUICommand.IconSource>
-        </XamlUICommand>
-        <XamlUICommand x:Key="AddSubMenuMenuItemCommand" x:Uid="CustomMenuAddSubMenuItemCommand" Command="{Binding CustomMenu.AddSubMenuItemCommand}">
-            <XamlUICommand.IconSource>
-                <FontIconSource Glyph="&#xE8C4;" />
-            </XamlUICommand.IconSource>
-        </XamlUICommand>
-        <StandardUICommand x:Key="DeleteSelectedItemCommand" x:Uid="CustomMenuDeleteSelectedItemCommand" Kind="Delete" Command="{Binding CustomMenu.DeleteSelectedItemCommand}" />
-        <StandardUICommand x:Key="SaveMenuCommand" x:Uid="CustomMenuSaveCommand" Kind="Save" Command="{Binding CustomMenu.ApplyCommand}" />
-    </Page.Resources>
+  x:Class="Exo.Settings.Ui.CustomMenuPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:Exo.Settings.Ui"
+  xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+	<Page.Resources>
+		<XamlUICommand x:Key="AddTextMenuItemCommand" x:Uid="CustomMenuAddNormalItemCommand" Command="{Binding CustomMenu.AddTextItemCommand}">
+			<XamlUICommand.IconSource>
+				<FontIconSource Glyph="&#xE8AC;" />
+			</XamlUICommand.IconSource>
+		</XamlUICommand>
+		<XamlUICommand x:Key="AddSeparatorMenuItemCommand" x:Uid="CustomMenuAddSeparatorItemCommand" Command="{Binding CustomMenu.AddSeparatorItemCommand}">
+			<XamlUICommand.IconSource>
+				<FontIconSource Glyph="&#xE921;" />
+			</XamlUICommand.IconSource>
+		</XamlUICommand>
+		<XamlUICommand x:Key="AddSubMenuMenuItemCommand" x:Uid="CustomMenuAddSubMenuItemCommand" Command="{Binding CustomMenu.AddSubMenuItemCommand}">
+			<XamlUICommand.IconSource>
+				<FontIconSource Glyph="&#xE8C4;" />
+			</XamlUICommand.IconSource>
+		</XamlUICommand>
+		<StandardUICommand x:Key="DeleteSelectedItemCommand" x:Uid="CustomMenuDeleteSelectedItemCommand" Kind="Delete" Command="{Binding CustomMenu.DeleteSelectedItemCommand}" />
+		<StandardUICommand x:Key="SaveMenuCommand" x:Uid="CustomMenuSaveCommand" Kind="Save" Command="{Binding CustomMenu.ApplyCommand}" />
+	</Page.Resources>
 
-    <Grid DataContext="{Binding CustomMenu}">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition MinWidth="100" Width="Auto" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-        <BreadcrumbBar Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding EditedMenuHierarchy, Mode=OneWay}" ItemClicked="OnBreadcrumbBarItemClicked">
-            <BreadcrumbBar.ItemTemplate>
-                <DataTemplate x:DataType="vm:SubMenuMenuItemViewModel">
-                    <TextBlock Text="{Binding Text, Mode=TwoWay}" />
-                </DataTemplate>
-            </BreadcrumbBar.ItemTemplate>
-        </BreadcrumbBar>
-        <CommandBar Grid.Row="1" OverflowButtonVisibility="Collapsed" HorizontalAlignment="Left">
-            <AppBarButton Icon="Add" x:Uid="CustomMenuAddNewItemButton">
-                <AppBarButton.Flyout>
-                    <MenuFlyout>
-                        <MenuFlyoutItem Command="{StaticResource AddTextMenuItemCommand}" />
-                        <MenuFlyoutItem Command="{StaticResource AddSeparatorMenuItemCommand}" />
-                        <MenuFlyoutItem Command="{StaticResource AddSubMenuMenuItemCommand}" />
-                    </MenuFlyout>
-                </AppBarButton.Flyout>
-            </AppBarButton>
-            <AppBarButton Command="{StaticResource DeleteSelectedItemCommand}" />
-            <AppBarSeparator />
-            <AppBarButton Command="{StaticResource SaveMenuCommand}" CommandParameter="{Binding}" />
-        </CommandBar>
-        <ListView
-            Grid.Row="2"
-            Style="{StaticResource MenuPreviewStyle}"
-            Margin="{StaticResource RowLabelMargin}"
-            Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
-            ItemsSource="{Binding EditedMenu.MenuItems, Mode=OneWay}"
-            SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}"
-            ReorderMode="Enabled"
-            AllowDrop="True"
-            CanReorderItems="True" />
-        <TextBox
-            Grid.Row="3"
-            Margin="0,18,0,6"
-            Visibility="{Binding SelectedMenuItemHasText, Converter={StaticResource BooleanToVisibilityConverter}}"
-            Text="{Binding SelectedMenuItem.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-            MaxWidth="{ThemeResource FlyoutThemeMaxWidth}" />
-    </Grid>
+	<Grid DataContext="{Binding CustomMenu}">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition MinWidth="100" Width="Auto" />
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="*" />
+		</Grid.RowDefinitions>
+		<BreadcrumbBar Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding EditedMenuHierarchy, Mode=OneWay}" ItemClicked="OnBreadcrumbBarItemClicked">
+			<BreadcrumbBar.ItemTemplate>
+				<DataTemplate x:DataType="vm:SubMenuMenuItemViewModel">
+					<TextBlock Text="{Binding Text, Mode=TwoWay}" />
+				</DataTemplate>
+			</BreadcrumbBar.ItemTemplate>
+		</BreadcrumbBar>
+		<CommandBar Grid.Row="1" OverflowButtonVisibility="Collapsed" HorizontalAlignment="Left">
+			<AppBarButton Icon="Add" x:Uid="CustomMenuAddNewItemButton">
+				<AppBarButton.Flyout>
+					<MenuFlyout>
+						<MenuFlyoutItem Command="{StaticResource AddTextMenuItemCommand}" />
+						<MenuFlyoutItem Command="{StaticResource AddSeparatorMenuItemCommand}" />
+						<MenuFlyoutItem Command="{StaticResource AddSubMenuMenuItemCommand}" />
+					</MenuFlyout>
+				</AppBarButton.Flyout>
+			</AppBarButton>
+			<AppBarButton Command="{StaticResource DeleteSelectedItemCommand}" />
+			<AppBarSeparator />
+			<AppBarButton Command="{StaticResource SaveMenuCommand}" CommandParameter="{Binding}" />
+		</CommandBar>
+		<ListView
+      Grid.Row="2"
+      Style="{StaticResource MenuPreviewStyle}"
+      Margin="{StaticResource RowLabelMargin}"
+      Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
+      ItemsSource="{Binding EditedMenu.MenuItems, Mode=OneWay}"
+      SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}"
+      ReorderMode="Enabled"
+      AllowDrop="True"
+      CanReorderItems="True" />
+		<TextBox
+      Grid.Row="3"
+      Margin="0,18,0,6"
+      Visibility="{Binding SelectedMenuItemHasText, Converter={StaticResource BooleanToVisibilityConverter}}"
+      Text="{Binding SelectedMenuItem.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+      MaxWidth="{ThemeResource FlyoutThemeMaxWidth}" />
+	</Grid>
 </Page>

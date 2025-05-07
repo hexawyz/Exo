@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ResourceDictionary
-		x:Class="Exo.Settings.Ui.DataTemplates"
-		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-		xmlns:local="using:Exo.Settings.Ui"
-		xmlns:lcontrols="using:Exo.Settings.Ui.Controls"
-		xmlns:lconverters="using:Exo.Settings.Ui.Converters"
-		xmlns:lts="using:Exo.Settings.Ui.DataTemplateSelectors"
-		xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-		xmlns:numerics="using:System.Numerics">
+	x:Class="Exo.Settings.Ui.DataTemplates"
+	xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:local="using:Exo.Settings.Ui"
+	xmlns:lcontrols="using:Exo.Settings.Ui.Controls"
+	xmlns:lconverters="using:Exo.Settings.Ui.Converters"
+	xmlns:lts="using:Exo.Settings.Ui.DataTemplateSelectors"
+	xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+	xmlns:numerics="using:System.Numerics">
 
 	<!-- Monitor setting UI templates -->
 	<DataTemplate x:Key="MonitorBrightnessSettingTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">

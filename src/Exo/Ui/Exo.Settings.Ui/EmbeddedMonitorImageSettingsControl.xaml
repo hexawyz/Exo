@@ -1,104 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
 <UserControl
-    x:Class="Exo.Settings.Ui.EmbeddedMonitorImageSettingsControl"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+  x:Class="Exo.Settings.Ui.EmbeddedMonitorImageSettingsControl"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:Exo.Settings.Ui"
+  xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+  xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d">
 
-    <Grid HorizontalAlignment="Stretch" DataContext="{x:Bind ImageGraphics, Mode=OneWay}">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+	<Grid HorizontalAlignment="Stretch" DataContext="{x:Bind ImageGraphics, Mode=OneWay}">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+		</Grid.RowDefinitions>
 
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock x:Uid="EmbeddedMonitorImageLabel" Margin="{StaticResource RowLabelMargin}" />
-            <!-- In order to make UI a bit denser, a padding of -2,-2,0,-4 is applied on ComboBox items on top of the default padding that would be applied. -->
-            <ComboBox
-                Grid.Column="1"
-                Margin="{StaticResource RowContentLabelMargin}"
-                ItemsSource="{Binding AvailableImages, Mode=OneWay}"
-                SelectedItem="{Binding Image, Mode=TwoWay}"
-                Padding="10,3,0,3"
-                HorizontalAlignment="Stretch">
-                <ComboBox.Resources>
-                    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource DefaultComboBoxItemStyle}">
-                        <Setter Property="Padding" Value="9,3,11,3" />
-                    </Style>
-                </ComboBox.Resources>
-                <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="vm:ImageViewModel">
-                        <StackPanel Orientation="Horizontal">
-                            <Image Source="{x:Bind FileName, Converter={StaticResource FileNameToBitmapImageConverter}, Mode=OneTime}" Stretch="Uniform" Width="26" Height="26" Margin="0,0,6,0" />
-                            <TextBlock Text="{x:Bind Name, Mode=OneTime}" Margin="0,2,0,0" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-            <Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}" CommandParameter="{Binding}">
-                <FontIcon Glyph="&#xE777;" />
-            </Button>
-        </Grid>
-        <!-- TODO: Switch the layout depending on available horizontal space -->
-        <Grid Grid.Row="1" MinHeight="{Binding DisplayHeight}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <controls:ImageCropper
-                x:Name="ImageCropper"
-                CropShape="{Binding Shape, Converter={StaticResource MonitorShapeToCropShapeConverter}}"
-                Source="{Binding Image, Converter={StaticResource ImageToWriteableBitmapConverter}}"
-                ThumbPlacement="Corners"
-                AspectRatio="{Binding AspectRatio}"
-                Padding="20"
-                MinHeight="{Binding DisplayHeight}"
-                Height="{Binding ImageSize.Height}"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Stretch"
-                Loaded="OnImageCropperLoaded"
-                KeyUp="OnImageCropperKeyUp" />
-            <controls:WrapPanel Grid.Column="1" Orientation="Vertical" Padding="{StaticResource RowContentMargin}">
-                <StackPanel Orientation="Horizontal" Margin="{StaticResource RowLabelMargin}">
-                    <TextBlock Text="{Binding CropRectangle.Width}" />
-                    <TextBlock Text="x" />
-                    <TextBlock Text="{Binding CropRectangle.Height}" />
-                </StackPanel>
-                <Button Width="120" Margin="{StaticResource RowLabelMargin}" Command="{Binding AutoCropCommand}" CommandParameter="{StaticResource FalseValue}" HorizontalContentAlignment="Stretch">
-                    <Grid HorizontalAlignment="Stretch">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="&#xE740;" />
-                        <TextBlock Grid.Column="1" Margin="6,0,0,0" HorizontalAlignment="Center" x:Uid="AutoCropMaximumButtonLabel" />
-                    </Grid>
-                </Button>
-                <Button Width="120" Margin="{StaticResource RowLabelMargin}" Command="{Binding AutoCropCommand}" CommandParameter="{StaticResource TrueValue}" HorizontalContentAlignment="Stretch">
-                    <Grid HorizontalAlignment="Stretch">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="&#xE73F;" />
-                        <TextBlock Grid.Column="1" Margin="6,0,0,0" HorizontalAlignment="Center" x:Uid="AutoCropMinimumButtonLabel" />
-                    </Grid>
-                </Button>
-            </controls:WrapPanel>
-        </Grid>
-    </Grid>
+		<Grid>
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+				<ColumnDefinition Width="*" />
+				<ColumnDefinition Width="Auto" />
+			</Grid.ColumnDefinitions>
+			<TextBlock x:Uid="EmbeddedMonitorImageLabel" Margin="{StaticResource RowLabelMargin}" />
+			<!-- In order to make UI a bit denser, a padding of -2,-2,0,-4 is applied on ComboBox items on top of the default padding that would be applied. -->
+			<ComboBox
+        Grid.Column="1"
+        Margin="{StaticResource RowContentLabelMargin}"
+        ItemsSource="{Binding AvailableImages, Mode=OneWay}"
+        SelectedItem="{Binding Image, Mode=TwoWay}"
+        Padding="10,3,0,3"
+        HorizontalAlignment="Stretch">
+				<ComboBox.Resources>
+					<Style TargetType="ComboBoxItem" BasedOn="{StaticResource DefaultComboBoxItemStyle}">
+						<Setter Property="Padding" Value="9,3,11,3" />
+					</Style>
+				</ComboBox.Resources>
+				<ComboBox.ItemTemplate>
+					<DataTemplate x:DataType="vm:ImageViewModel">
+						<StackPanel Orientation="Horizontal">
+							<Image Source="{x:Bind FileName, Converter={StaticResource FileNameToBitmapImageConverter}, Mode=OneTime}" Stretch="Uniform" Width="26" Height="26" Margin="0,0,6,0" />
+							<TextBlock Text="{x:Bind Name, Mode=OneTime}" Margin="0,2,0,0" />
+						</StackPanel>
+					</DataTemplate>
+				</ComboBox.ItemTemplate>
+			</ComboBox>
+			<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}" CommandParameter="{Binding}">
+				<FontIcon Glyph="&#xE777;" />
+			</Button>
+		</Grid>
+		<!-- TODO: Switch the layout depending on available horizontal space -->
+		<Grid Grid.Row="1" MinHeight="{Binding DisplayHeight}">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*" />
+				<ColumnDefinition Width="Auto" />
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="*" />
+				<RowDefinition Height="Auto" />
+			</Grid.RowDefinitions>
+			<controls:ImageCropper
+        x:Name="ImageCropper"
+        CropShape="{Binding Shape, Converter={StaticResource MonitorShapeToCropShapeConverter}}"
+        Source="{Binding Image, Converter={StaticResource ImageToWriteableBitmapConverter}}"
+        ThumbPlacement="Corners"
+        AspectRatio="{Binding AspectRatio}"
+        Padding="20"
+        MinHeight="{Binding DisplayHeight}"
+        Height="{Binding ImageSize.Height}"
+        HorizontalAlignment="Stretch"
+        HorizontalContentAlignment="Stretch"
+        Loaded="OnImageCropperLoaded"
+        KeyUp="OnImageCropperKeyUp" />
+			<controls:WrapPanel Grid.Column="1" Orientation="Vertical" Padding="{StaticResource RowContentMargin}">
+				<StackPanel Orientation="Horizontal" Margin="{StaticResource RowLabelMargin}">
+					<TextBlock Text="{Binding CropRectangle.Width}" />
+					<TextBlock Text="x" />
+					<TextBlock Text="{Binding CropRectangle.Height}" />
+				</StackPanel>
+				<Button Width="120" Margin="{StaticResource RowLabelMargin}" Command="{Binding AutoCropCommand}" CommandParameter="{StaticResource FalseValue}" HorizontalContentAlignment="Stretch">
+					<Grid HorizontalAlignment="Stretch">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto" />
+							<ColumnDefinition Width="*" />
+						</Grid.ColumnDefinitions>
+						<FontIcon Glyph="&#xE740;" />
+						<TextBlock Grid.Column="1" Margin="6,0,0,0" HorizontalAlignment="Center" x:Uid="AutoCropMaximumButtonLabel" />
+					</Grid>
+				</Button>
+				<Button Width="120" Margin="{StaticResource RowLabelMargin}" Command="{Binding AutoCropCommand}" CommandParameter="{StaticResource TrueValue}" HorizontalContentAlignment="Stretch">
+					<Grid HorizontalAlignment="Stretch">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto" />
+							<ColumnDefinition Width="*" />
+						</Grid.ColumnDefinitions>
+						<FontIcon Glyph="&#xE73F;" />
+						<TextBlock Grid.Column="1" Margin="6,0,0,0" HorizontalAlignment="Center" x:Uid="AutoCropMinimumButtonLabel" />
+					</Grid>
+				</Button>
+			</controls:WrapPanel>
+		</Grid>
+	</Grid>
 </UserControl>

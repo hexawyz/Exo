@@ -1,123 +1,123 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
-    x:Class="Exo.Settings.Ui.DevicePage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-    IsEnabled="{Binding Devices.SelectedDevice.IsAvailable}"
-    mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+  x:Class="Exo.Settings.Ui.DevicePage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:Exo.Settings.Ui"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+  IsEnabled="{Binding Devices.SelectedDevice.IsAvailable}"
+  mc:Ignorable="d"
+  d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
-    <StackPanel Orientation="Vertical" HorizontalAlignment="Stretch" DataContext="{Binding Devices.SelectedDevice}">
-        <Expander Margin="{StaticResource VerticalItemSpacing}" Visibility="{Binding DeviceIds, Converter={StaticResource CollectionToVisibilityConverter}, Mode=OneTime}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-            <Expander.Header>
-                <StackPanel Orientation="Horizontal">
-                    <FontIcon Glyph="&#xE8EC;" />
-                    <TextBlock x:Uid="DeviceIdSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
-                </StackPanel>
-            </Expander.Header>
-            <Grid HorizontalAlignment="Stretch" DataContext="{Binding MainDeviceId, Mode=OneTime}">
-                <Grid.Resources>
-                    <Style TargetType="TextBlock">
-                        <Setter Property="Margin" Value="{StaticResource RowLabelMargin}" />
-                    </Style>
-                </Grid.Resources>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Column="0" Grid.Row="0" x:Uid="DeviceIdSource" />
-                <TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Path=Source}" />
-                <TextBlock Grid.Column="0" Grid.Row="1" x:Uid="DeviceIdVendorIdSource" />
-                <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding VendorIdSource}" />
-                <TextBlock Grid.Column="0" Grid.Row="2" x:Uid="DeviceIdVendorId" />
-                <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding VendorId}" />
-                <TextBlock Grid.Column="0" Grid.Row="3" x:Uid="DeviceIdProductId" />
-                <TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding ProductId, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
-                <TextBlock Grid.Column="0" Grid.Row="4" x:Uid="DeviceIdVersion" />
-                <TextBlock Grid.Column="1" Grid.Row="4" Text="{Binding Version, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
-            </Grid>
-        </Expander>
-        <Expander
-            Margin="{StaticResource VerticalItemSpacing}"
-            Visibility="{Binding MouseFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
-            IsExpanded="{Binding MouseFeatures.IsExpanded, Mode=TwoWay}"
-            HorizontalAlignment="Stretch"
-            HorizontalContentAlignment="Stretch">
-            <Expander.Header>
-                <StackPanel Orientation="Horizontal">
-                    <FontIcon Glyph="&#xE7C9;" />
-                    <TextBlock x:Uid="MousePerformanceSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
-                </StackPanel>
-            </Expander.Header>
-            <local:MousePerformanceSettingsControl DataContext="{Binding MouseFeatures, Mode=OneWay}" />
-        </Expander>
-        <Expander
-            Margin="{StaticResource VerticalItemSpacing}"
-            Visibility="{Binding LightFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
-            IsExpanded="{Binding LightFeatures.IsExpanded, Mode=TwoWay}"
-            HorizontalAlignment="Stretch"
-            HorizontalContentAlignment="Stretch">
-            <Expander.Header>
-                <StackPanel Orientation="Horizontal">
-                    <FontIcon Glyph="&#xEA80;" />
-                    <TextBlock x:Uid="LightSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
-                </StackPanel>
-            </Expander.Header>
-            <local:LightSettingsControl DataContext="{Binding LightFeatures.Lights, Mode=OneWay}" />
-        </Expander>
-        <Expander
-            Margin="{StaticResource VerticalItemSpacing}"
-            Visibility="{Binding EmbeddedMonitorFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
-            IsExpanded="{Binding EmbeddedMonitorFeatures.IsExpanded, Mode=TwoWay}"
-            HorizontalAlignment="Stretch"
-            HorizontalContentAlignment="Stretch">
-            <Expander.Header>
-                <StackPanel Orientation="Horizontal">
-                    <FontIcon Glyph="&#xE8B9;" />
-                    <TextBlock x:Uid="EmbeddedMonitorSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
-                </StackPanel>
-            </Expander.Header>
-            <local:EmbeddedMonitorDeviceSettingsControl DataContext="{Binding EmbeddedMonitorFeatures, Mode=OneWay}" />
-        </Expander>
-        <Expander
-            Margin="{StaticResource VerticalItemSpacing}"
-            Visibility="{Binding MonitorFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
-            IsExpanded="{Binding MonitorFeatures.IsExpanded, Mode=TwoWay}"
-            HorizontalAlignment="Stretch"
-            HorizontalContentAlignment="Stretch">
-            <Expander.Header>
-                <StackPanel Orientation="Horizontal">
-                    <FontIcon Glyph="&#xE7F8;" />
-                    <TextBlock x:Uid="MonitorSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
-                </StackPanel>
-            </Expander.Header>
-            <local:MonitorSettingsControl DataContext="{Binding MonitorFeatures, Mode=OneWay}" />
-        </Expander>
-        <Expander
-            Margin="{StaticResource VerticalItemSpacing}"
-            Visibility="{Binding PowerFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
-            IsExpanded="{Binding PowerFeatures.IsExpanded, Mode=TwoWay}"
-            HorizontalAlignment="Stretch"
-            HorizontalContentAlignment="Stretch">
-            <Expander.Header>
-                <StackPanel Orientation="Horizontal">
-                    <FontIcon Glyph="&#xE8BE;" />
-                    <TextBlock x:Uid="PowerManagementSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
-                </StackPanel>
-            </Expander.Header>
-            <local:PowerManagementSettingsControl DataContext="{Binding PowerFeatures, Mode=OneWay}" />
-        </Expander>
-    </StackPanel>
+	<StackPanel Orientation="Vertical" HorizontalAlignment="Stretch" DataContext="{Binding Devices.SelectedDevice}">
+		<Expander Margin="{StaticResource VerticalItemSpacing}" Visibility="{Binding DeviceIds, Converter={StaticResource CollectionToVisibilityConverter}, Mode=OneTime}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+			<Expander.Header>
+				<StackPanel Orientation="Horizontal">
+					<FontIcon Glyph="&#xE8EC;" />
+					<TextBlock x:Uid="DeviceIdSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
+				</StackPanel>
+			</Expander.Header>
+			<Grid HorizontalAlignment="Stretch" DataContext="{Binding MainDeviceId, Mode=OneTime}">
+				<Grid.Resources>
+					<Style TargetType="TextBlock">
+						<Setter Property="Margin" Value="{StaticResource RowLabelMargin}" />
+					</Style>
+				</Grid.Resources>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
+					<ColumnDefinition Width="*" />
+				</Grid.ColumnDefinitions>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto" />
+					<RowDefinition Height="Auto" />
+					<RowDefinition Height="Auto" />
+					<RowDefinition Height="Auto" />
+					<RowDefinition Height="Auto" />
+					<RowDefinition Height="*" />
+				</Grid.RowDefinitions>
+				<TextBlock Grid.Column="0" Grid.Row="0" x:Uid="DeviceIdSource" />
+				<TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Path=Source}" />
+				<TextBlock Grid.Column="0" Grid.Row="1" x:Uid="DeviceIdVendorIdSource" />
+				<TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding VendorIdSource}" />
+				<TextBlock Grid.Column="0" Grid.Row="2" x:Uid="DeviceIdVendorId" />
+				<TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding VendorId}" />
+				<TextBlock Grid.Column="0" Grid.Row="3" x:Uid="DeviceIdProductId" />
+				<TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding ProductId, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
+				<TextBlock Grid.Column="0" Grid.Row="4" x:Uid="DeviceIdVersion" />
+				<TextBlock Grid.Column="1" Grid.Row="4" Text="{Binding Version, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
+			</Grid>
+		</Expander>
+		<Expander
+      Margin="{StaticResource VerticalItemSpacing}"
+      Visibility="{Binding MouseFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      IsExpanded="{Binding MouseFeatures.IsExpanded, Mode=TwoWay}"
+      HorizontalAlignment="Stretch"
+      HorizontalContentAlignment="Stretch">
+			<Expander.Header>
+				<StackPanel Orientation="Horizontal">
+					<FontIcon Glyph="&#xE7C9;" />
+					<TextBlock x:Uid="MousePerformanceSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
+				</StackPanel>
+			</Expander.Header>
+			<local:MousePerformanceSettingsControl DataContext="{Binding MouseFeatures, Mode=OneWay}" />
+		</Expander>
+		<Expander
+      Margin="{StaticResource VerticalItemSpacing}"
+      Visibility="{Binding LightFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      IsExpanded="{Binding LightFeatures.IsExpanded, Mode=TwoWay}"
+      HorizontalAlignment="Stretch"
+      HorizontalContentAlignment="Stretch">
+			<Expander.Header>
+				<StackPanel Orientation="Horizontal">
+					<FontIcon Glyph="&#xEA80;" />
+					<TextBlock x:Uid="LightSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
+				</StackPanel>
+			</Expander.Header>
+			<local:LightSettingsControl DataContext="{Binding LightFeatures.Lights, Mode=OneWay}" />
+		</Expander>
+		<Expander
+      Margin="{StaticResource VerticalItemSpacing}"
+      Visibility="{Binding EmbeddedMonitorFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      IsExpanded="{Binding EmbeddedMonitorFeatures.IsExpanded, Mode=TwoWay}"
+      HorizontalAlignment="Stretch"
+      HorizontalContentAlignment="Stretch">
+			<Expander.Header>
+				<StackPanel Orientation="Horizontal">
+					<FontIcon Glyph="&#xE8B9;" />
+					<TextBlock x:Uid="EmbeddedMonitorSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
+				</StackPanel>
+			</Expander.Header>
+			<local:EmbeddedMonitorDeviceSettingsControl DataContext="{Binding EmbeddedMonitorFeatures, Mode=OneWay}" />
+		</Expander>
+		<Expander
+      Margin="{StaticResource VerticalItemSpacing}"
+      Visibility="{Binding MonitorFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      IsExpanded="{Binding MonitorFeatures.IsExpanded, Mode=TwoWay}"
+      HorizontalAlignment="Stretch"
+      HorizontalContentAlignment="Stretch">
+			<Expander.Header>
+				<StackPanel Orientation="Horizontal">
+					<FontIcon Glyph="&#xE7F8;" />
+					<TextBlock x:Uid="MonitorSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
+				</StackPanel>
+			</Expander.Header>
+			<local:MonitorSettingsControl DataContext="{Binding MonitorFeatures, Mode=OneWay}" />
+		</Expander>
+		<Expander
+      Margin="{StaticResource VerticalItemSpacing}"
+      Visibility="{Binding PowerFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      IsExpanded="{Binding PowerFeatures.IsExpanded, Mode=TwoWay}"
+      HorizontalAlignment="Stretch"
+      HorizontalContentAlignment="Stretch">
+			<Expander.Header>
+				<StackPanel Orientation="Horizontal">
+					<FontIcon Glyph="&#xE8BE;" />
+					<TextBlock x:Uid="PowerManagementSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
+				</StackPanel>
+			</Expander.Header>
+			<local:PowerManagementSettingsControl DataContext="{Binding PowerFeatures, Mode=OneWay}" />
+		</Expander>
+	</StackPanel>
 </Page>

@@ -1,212 +1,212 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Page
-    x:Class="Exo.Settings.Ui.RootPage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Exo.Settings.Ui"
-    xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-    xmlns:converters="using:Exo.Settings.Ui.Converters"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+  x:Class="Exo.Settings.Ui.RootPage"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="using:Exo.Settings.Ui"
+  xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+  xmlns:converters="using:Exo.Settings.Ui.Converters"
+  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  mc:Ignorable="d"
+  d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-        <VisualStateManager.VisualStateGroups>
-            <VisualStateGroup x:Name="TitleBarStates">
-                <VisualState x:Name="Default" />
-                <VisualState x:Name="Compact">
-                    <VisualState.Setters>
-                        <Setter Target="AppTitleBar.Margin" Value="96,0,0,0" />
-                    </VisualState.Setters>
-                </VisualState>
-                <VisualState x:Name="Top">
-                    <VisualState.Setters>
-                        <Setter Target="AppTitleBar.Margin" Value="16,0,0,0" />
-                    </VisualState.Setters>
-                </VisualState>
-            </VisualStateGroup>
-            <VisualStateGroup x:Name="WindowActivationStates">
-                <VisualState x:Name="Activated" />
-                <VisualState x:Name="Deactivated">
-                    <VisualState.Setters>
-                        <Setter Target="AppTitle.Foreground" Value="{ThemeResource TextFillColorTertiaryBrush}" />
-                    </VisualState.Setters>
-                </VisualState>
-            </VisualStateGroup>
-        </VisualStateManager.VisualStateGroups>
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="*" />
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="*" />
+		</Grid.RowDefinitions>
+		<VisualStateManager.VisualStateGroups>
+			<VisualStateGroup x:Name="TitleBarStates">
+				<VisualState x:Name="Default" />
+				<VisualState x:Name="Compact">
+					<VisualState.Setters>
+						<Setter Target="AppTitleBar.Margin" Value="96,0,0,0" />
+					</VisualState.Setters>
+				</VisualState>
+				<VisualState x:Name="Top">
+					<VisualState.Setters>
+						<Setter Target="AppTitleBar.Margin" Value="16,0,0,0" />
+					</VisualState.Setters>
+				</VisualState>
+			</VisualStateGroup>
+			<VisualStateGroup x:Name="WindowActivationStates">
+				<VisualState x:Name="Activated" />
+				<VisualState x:Name="Deactivated">
+					<VisualState.Setters>
+						<Setter Target="AppTitle.Foreground" Value="{ThemeResource TextFillColorTertiaryBrush}" />
+					</VisualState.Setters>
+				</VisualState>
+			</VisualStateGroup>
+		</VisualStateManager.VisualStateGroups>
 
-        <Border
-            x:Name="AppTitleBar"
-            Grid.Column="0"
-            Height="{Binding ElementName=Navigation, Path=CompactPaneLength}"
-            Margin="48,0,0,0"
-            VerticalAlignment="Stretch"
-            AutomationProperties.AutomationId="AppTitleBar"
-            Canvas.ZIndex="1"
-            IsHitTestVisible="True">
-            <Grid VerticalAlignment="Center" Margin="0,0,146,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock
-                    x:Name="AppTitle"
-                    Margin="12,0,0,0"
-                    VerticalAlignment="Center"
-                    Style="{StaticResource CaptionTextBlockStyle}"
-                    Text="{x:Bind AppTitleText}" />
-                <StackPanel x:Name="StatusIconArea" Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
-                    <Grid Grid.Column="2">
-                        <Grid.Resources>
-                            <SolidColorBrush x:Key="DisconnectedColorBrush">Red</SolidColorBrush>
-                            <SolidColorBrush x:Key="ConnectedColorBrush">Lime</SolidColorBrush>
-                            <SolidColorBrush x:Key="VersionMismatchColorBrush">Yellow</SolidColorBrush>
-                            <converters:ConnectionStatusToObjectConverter
-                                x:Key="ConnectionStatusToColorConverter"
-                                DisconnectedValue="{StaticResource DisconnectedColorBrush}"
-                                ConnectedValue="{StaticResource ConnectedColorBrush}"
-                                VersionMismatchValue="{StaticResource VersionMismatchColorBrush}" />
-                            <converters:ConnectionStatusToObjectConverter
-                                x:Key="ConnectionStatusToTextConverter"
-                                DisconnectedValue="Service Disconnected"
-                                ConnectedValue="Service Connected"
-                                VersionMismatchValue="Service Version Mismatch" />
-                        </Grid.Resources>
-                        <ToolTipService.ToolTip>
-                            <ToolTip Content="{Binding ConnectionStatus, Mode=OneWay, Converter={StaticResource ConnectionStatusToTextConverter}}" />
-                        </ToolTipService.ToolTip>
-                        <FontIcon Glyph="&#xF385;" Foreground="Gray" />
-                        <FontIcon Glyph="&#xEA81;" Foreground="{Binding ConnectionStatus, Mode=OneWay, Converter={StaticResource ConnectionStatusToColorConverter}}" />
-                    </Grid>
-                </StackPanel>
-            </Grid>
-        </Border>
+		<Border
+      x:Name="AppTitleBar"
+      Grid.Column="0"
+      Height="{Binding ElementName=Navigation, Path=CompactPaneLength}"
+      Margin="48,0,0,0"
+      VerticalAlignment="Stretch"
+      AutomationProperties.AutomationId="AppTitleBar"
+      Canvas.ZIndex="1"
+      IsHitTestVisible="True">
+			<Grid VerticalAlignment="Center" Margin="0,0,146,0">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="Auto" />
+					<ColumnDefinition Width="*" />
+					<ColumnDefinition Width="Auto" />
+				</Grid.ColumnDefinitions>
+				<TextBlock
+          x:Name="AppTitle"
+          Margin="12,0,0,0"
+          VerticalAlignment="Center"
+          Style="{StaticResource CaptionTextBlockStyle}"
+          Text="{x:Bind AppTitleText}" />
+				<StackPanel x:Name="StatusIconArea" Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+					<Grid Grid.Column="2">
+						<Grid.Resources>
+							<SolidColorBrush x:Key="DisconnectedColorBrush">Red</SolidColorBrush>
+							<SolidColorBrush x:Key="ConnectedColorBrush">Lime</SolidColorBrush>
+							<SolidColorBrush x:Key="VersionMismatchColorBrush">Yellow</SolidColorBrush>
+							<converters:ConnectionStatusToObjectConverter
+                x:Key="ConnectionStatusToColorConverter"
+                DisconnectedValue="{StaticResource DisconnectedColorBrush}"
+                ConnectedValue="{StaticResource ConnectedColorBrush}"
+                VersionMismatchValue="{StaticResource VersionMismatchColorBrush}" />
+							<converters:ConnectionStatusToObjectConverter
+                x:Key="ConnectionStatusToTextConverter"
+                DisconnectedValue="Service Disconnected"
+                ConnectedValue="Service Connected"
+                VersionMismatchValue="Service Version Mismatch" />
+						</Grid.Resources>
+						<ToolTipService.ToolTip>
+							<ToolTip Content="{Binding ConnectionStatus, Mode=OneWay, Converter={StaticResource ConnectionStatusToTextConverter}}" />
+						</ToolTipService.ToolTip>
+						<FontIcon Glyph="&#xF385;" Foreground="Gray" />
+						<FontIcon Glyph="&#xEA81;" Foreground="{Binding ConnectionStatus, Mode=OneWay, Converter={StaticResource ConnectionStatusToColorConverter}}" />
+					</Grid>
+				</StackPanel>
+			</Grid>
+		</Border>
 
-        <NavigationView
-            x:Name="Navigation"
-            Grid.Column="0"
-            Grid.RowSpan="2"
-            Canvas.ZIndex="0"
-            IsTabStop="False"
-            IsSettingsVisible="False"
-            IsTitleBarAutoPaddingEnabled="True"
-            OpenPaneLength="250"
-            IsBackEnabled="{Binding CanNavigateBack}"
-            MenuItemsSource="{Binding NavigationPages}"
-            SelectedItem="{Binding SelectedNavigationPage, Mode=TwoWay}"
-            DisplayModeChanged="OnPaneDisplayModeChanged"
-            ItemInvoked="OnNavigationItemInvoked"
-            BackRequested="OnNavigationBackRequested"
-            PointerPressed="OnNavigationPointerPressed"
-            PointerCanceled="OnNavigationPointerCanceled"
-            PointerCaptureLost="OnNavigationPointerCaptureLost"
-            PointerReleased="OnNavigationPointerReleased">
-            <NavigationView.Resources>
-                <Thickness x:Key="NavigationViewContentMargin">0,48,0,0</Thickness>
-                <Thickness x:Key="NavigationViewMinimalContentMargin">0,48,0,0</Thickness>
-                <Thickness x:Key="NavigationViewContentGridBorderThickness">1,1,0,0</Thickness>
-                <CornerRadius x:Key="NavigationViewContentGridCornerRadius">8,0,0,0</CornerRadius>
-            </NavigationView.Resources>
-            <NavigationView.MenuItemTemplate>
-                <DataTemplate x:DataType="vm:PageViewModel">
-                    <NavigationViewItem Content="{Binding DisplayName}" Tag="{Binding}">
-                        <NavigationViewItem.Icon>
-                            <FontIcon Glyph="{Binding Icon}" />
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                </DataTemplate>
-            </NavigationView.MenuItemTemplate>
+		<NavigationView
+      x:Name="Navigation"
+      Grid.Column="0"
+      Grid.RowSpan="2"
+      Canvas.ZIndex="0"
+      IsTabStop="False"
+      IsSettingsVisible="False"
+      IsTitleBarAutoPaddingEnabled="True"
+      OpenPaneLength="250"
+      IsBackEnabled="{Binding CanNavigateBack}"
+      MenuItemsSource="{Binding NavigationPages}"
+      SelectedItem="{Binding SelectedNavigationPage, Mode=TwoWay}"
+      DisplayModeChanged="OnPaneDisplayModeChanged"
+      ItemInvoked="OnNavigationItemInvoked"
+      BackRequested="OnNavigationBackRequested"
+      PointerPressed="OnNavigationPointerPressed"
+      PointerCanceled="OnNavigationPointerCanceled"
+      PointerCaptureLost="OnNavigationPointerCaptureLost"
+      PointerReleased="OnNavigationPointerReleased">
+			<NavigationView.Resources>
+				<Thickness x:Key="NavigationViewContentMargin">0,48,0,0</Thickness>
+				<Thickness x:Key="NavigationViewMinimalContentMargin">0,48,0,0</Thickness>
+				<Thickness x:Key="NavigationViewContentGridBorderThickness">1,1,0,0</Thickness>
+				<CornerRadius x:Key="NavigationViewContentGridCornerRadius">8,0,0,0</CornerRadius>
+			</NavigationView.Resources>
+			<NavigationView.MenuItemTemplate>
+				<DataTemplate x:DataType="vm:PageViewModel">
+					<NavigationViewItem Content="{Binding DisplayName}" Tag="{Binding}">
+						<NavigationViewItem.Icon>
+							<FontIcon Glyph="{Binding Icon}" />
+						</NavigationViewItem.Icon>
+					</NavigationViewItem>
+				</DataTemplate>
+			</NavigationView.MenuItemTemplate>
 
-            <Grid Padding="{StaticResource NavigationContentPadding}">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+			<Grid Padding="{StaticResource NavigationContentPadding}">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto" />
+					<RowDefinition Height="Auto" />
+					<RowDefinition Height="Auto" />
+					<RowDefinition Height="*" />
+				</Grid.RowDefinitions>
 
-                <ItemsRepeater Margin="{StaticResource NavigationContentHeaderMargin}" ItemsSource="{Binding Notifications, Mode=OneTime}">
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="vm:NotificationViewModel">
-                            <!-- This is quirky… Using x:Bind here as Binding is utterly broken in this case.
-                            It was being completely broken due to interaction between the IsOpen property change and virtualization.
-                            x:Bind has its own share of defects too, but I verified that in this case it works as expected.
-                            Do note that we bind the IsOpen property, which is utterly stupid. It should always be true, but the InfoBar
-                            would override the property to false upon closing, breaking everything when the control is recycled. -->
-                            <InfoBar
-                                Severity="{x:Bind Severity, Converter={StaticResource NotificationSeverityConverter}, Mode=OneTime}"
-                                Title="{x:Bind Title, Mode=OneTime}"
-                                Message="{x:Bind Message, Mode=OneTime}"
-                                IsOpen="{x:Bind IsOpen, Mode=OneTime}"
-                                CloseButtonCommand="{x:Bind CloseCommand, Mode=OneTime}"
-                                CloseButtonCommandParameter="{x:Bind Mode=OneTime}" />
-                        </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
+				<ItemsRepeater Margin="{StaticResource NavigationContentHeaderMargin}" ItemsSource="{Binding Notifications, Mode=OneTime}">
+					<ItemsRepeater.ItemTemplate>
+						<DataTemplate x:DataType="vm:NotificationViewModel">
+							<!-- This is quirky… Using x:Bind here as Binding is utterly broken in this case.
+                It was being completely broken due to interaction between the IsOpen property change and virtualization.
+                x:Bind has its own share of defects too, but I verified that in this case it works as expected.
+                Do note that we bind the IsOpen property, which is utterly stupid. It should always be true, but the InfoBar
+                would override the property to false upon closing, breaking everything when the control is recycled. -->
+							<InfoBar
+                Severity="{x:Bind Severity, Converter={StaticResource NotificationSeverityConverter}, Mode=OneTime}"
+                Title="{x:Bind Title, Mode=OneTime}"
+                Message="{x:Bind Message, Mode=OneTime}"
+                IsOpen="{x:Bind IsOpen, Mode=OneTime}"
+                CloseButtonCommand="{x:Bind CloseCommand, Mode=OneTime}"
+                CloseButtonCommandParameter="{x:Bind Mode=OneTime}" />
+						</DataTemplate>
+					</ItemsRepeater.ItemTemplate>
+				</ItemsRepeater>
 
-                <Grid Grid.Row="1" Margin="{StaticResource NavigationContentHeaderMargin}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <FontIcon Glyph="{Binding CurrentPage.Icon}" Margin="6,4,6,0" />
-                    <TextBlock
-                        Grid.Column="1"
-                        Margin="{StaticResource RowContentMargin}"
-                        Text="{Binding CurrentPage.DisplayName}"
-                        Style="{StaticResource TitleTextBlockStyle}"
-                        TextTrimming="CharacterEllipsis"
-                        TextWrapping="NoWrap" />
-                    <StackPanel
-                        Grid.Column="2"
-                        Margin="6,12,0,0"
-                        Orientation="Horizontal"
-                        VerticalAlignment="Center"
-                        DataContext="{Binding Devices.SelectedDevice}"
-                        Visibility="{Binding SerialNumber, Converter={StaticResource NullabilityToVisibilityConverter}, FallbackValue=Collapsed}">
-                        <TextBlock x:Uid="DeviceSerialNumberLabel" VerticalAlignment="Center" Margin="0,0,4,0" Style="{StaticResource CaptionTextBlockStyle}" />
-                        <TextBlock Text="{Binding Path=SerialNumber}" Style="{StaticResource CaptionTextBlockStyle}" />
-                    </StackPanel>
-                    <FontIcon
-                        Grid.Column="4"
-                        DataContext="{Binding Devices.SelectedDevice.PowerFeatures, Mode=TwoWay}"
-                        Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}"
-                        Glyph="{Binding BatteryState, Converter={StaticResource BatteryStateToGlyphConverter}}"
-                        ToolTipService.ToolTip="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
-                </Grid>
+				<Grid Grid.Row="1" Margin="{StaticResource NavigationContentHeaderMargin}">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto" />
+						<ColumnDefinition Width="Auto" />
+						<ColumnDefinition Width="Auto" />
+						<ColumnDefinition Width="*" />
+						<ColumnDefinition Width="Auto" />
+					</Grid.ColumnDefinitions>
+					<FontIcon Glyph="{Binding CurrentPage.Icon}" Margin="6,4,6,0" />
+					<TextBlock
+            Grid.Column="1"
+            Margin="{StaticResource RowContentMargin}"
+            Text="{Binding CurrentPage.DisplayName}"
+            Style="{StaticResource TitleTextBlockStyle}"
+            TextTrimming="CharacterEllipsis"
+            TextWrapping="NoWrap" />
+					<StackPanel
+            Grid.Column="2"
+            Margin="6,12,0,0"
+            Orientation="Horizontal"
+            VerticalAlignment="Center"
+            DataContext="{Binding Devices.SelectedDevice}"
+            Visibility="{Binding SerialNumber, Converter={StaticResource NullabilityToVisibilityConverter}, FallbackValue=Collapsed}">
+						<TextBlock x:Uid="DeviceSerialNumberLabel" VerticalAlignment="Center" Margin="0,0,4,0" Style="{StaticResource CaptionTextBlockStyle}" />
+						<TextBlock Text="{Binding Path=SerialNumber}" Style="{StaticResource CaptionTextBlockStyle}" />
+					</StackPanel>
+					<FontIcon
+            Grid.Column="4"
+            DataContext="{Binding Devices.SelectedDevice.PowerFeatures, Mode=TwoWay}"
+            Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}"
+            Glyph="{Binding BatteryState, Converter={StaticResource BatteryStateToGlyphConverter}}"
+            ToolTipService.ToolTip="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
+				</Grid>
 
-                <local:EditionToolbar
-                    Grid.Row="2"
-                    Margin="{StaticResource NavigationContentHeaderMargin}"
-                    DataContext="{Binding EditionService}"
-                    Visibility="{Binding ShowToolbar, Converter={StaticResource BooleanToVisibilityConverter}}" />
+				<local:EditionToolbar
+          Grid.Row="2"
+          Margin="{StaticResource NavigationContentHeaderMargin}"
+          DataContext="{Binding EditionService}"
+          Visibility="{Binding ShowToolbar, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-                <ScrollViewer
-                    Grid.Row="3"
-                    VerticalScrollBarVisibility="Auto"
-                    VerticalScrollMode="Auto">
-                    <Frame
-                        x:Name="ContentFrame"
-                        IsNavigationStackEnabled="False"
-                        Padding="{StaticResource NavigationContentScrollViewerPadding}">
-                        <Frame.ContentTransitions>
-                            <NavigationThemeTransition />
-                        </Frame.ContentTransitions>
-                    </Frame>
-                </ScrollViewer>
-            </Grid>
-        </NavigationView>
-    </Grid>
+				<ScrollViewer
+          Grid.Row="3"
+          VerticalScrollBarVisibility="Auto"
+          VerticalScrollMode="Auto">
+					<Frame
+            x:Name="ContentFrame"
+            IsNavigationStackEnabled="False"
+            Padding="{StaticResource NavigationContentScrollViewerPadding}">
+						<Frame.ContentTransitions>
+							<NavigationThemeTransition />
+						</Frame.ContentTransitions>
+					</Frame>
+				</ScrollViewer>
+			</Grid>
+		</NavigationView>
+	</Grid>
 </Page>
