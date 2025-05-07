@@ -4,13 +4,29 @@ namespace Exo.Settings.Ui.ViewModels;
 
 internal sealed class LightingDeviceBrightnessViewModel : ChangeableBindableObject
 {
-	private readonly BrightnessCapabilities _capabilities;
+	private BrightnessCapabilities _capabilities;
 	private byte _initialBrightness;
 	private byte _currentBrightness;
 
 	public LightingDeviceBrightnessViewModel(BrightnessCapabilities capabilities) => _capabilities = capabilities;
 
-	public double MinimumLevelPercent => _capabilities.MinimumValue / (double)_capabilities.MaximumValue;
+	internal void UpdateInformation(BrightnessCapabilities capabilities)
+	{
+		bool isMinimumChanged = capabilities.MinimumValue != _capabilities.MinimumValue;
+		bool isMaximumChanged = capabilities.MaximumValue != _capabilities.MaximumValue;
+
+		if (isMinimumChanged || isMaximumChanged)
+		{
+			_capabilities = capabilities;
+			// TODO: Adjust the current and initial values to force them within the limits. (Being careful about UI side changes)
+			//var currentValue = _currentBrightness;
+			if (isMinimumChanged) NotifyPropertyChanged(ChangedProperty.MinimumLevel);
+			if (isMinimumChanged) NotifyPropertyChanged(ChangedProperty.MaximumLevel);
+		}
+	}
+
+	// TODO: Remove (doesn't seem to be used)
+	//public double MinimumLevelPercent => _capabilities.MinimumValue / (double)_capabilities.MaximumValue;
 
 	public byte MinimumLevel => _capabilities.MinimumValue;
 	public byte MaximumLevel => _capabilities.MaximumValue;

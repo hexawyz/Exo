@@ -15,14 +15,15 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 	private readonly DeviceViewModel _deviceViewModel;
 
 	public LightingViewModel LightingViewModel { get; }
-	public LightingZoneViewModel? UnifiedLightingZone { get; }
-	public ReadOnlyCollection<LightingZoneViewModel> LightingZones { get; }
-	public LightingDeviceBrightnessCapabilitiesViewModel? BrightnessCapabilities { get; }
-	public LightingDeviceBrightnessViewModel? Brightness { get; }
+	private LightingZoneViewModel? _unifiedLightingZone;
+	private readonly ObservableCollection<LightingZoneViewModel> _lightingZones;
+	private readonly ReadOnlyObservableCollection<LightingZoneViewModel> _readOnlyLightingZones;
+	private LightingDeviceBrightnessCapabilitiesViewModel? _brightnessCapabilities;
+	private LightingDeviceBrightnessViewModel? _brightness;
 
 	private readonly Dictionary<Guid, LightingZoneViewModel> _lightingZoneById;
 
-	private readonly LightingPersistenceMode _persistenceMode;
+	private LightingPersistenceMode _persistenceMode;
 
 	private int _changedZoneCount;
 	private int _busyZoneCount;
@@ -45,7 +46,12 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 	private bool IsBrightnessChanged => Brightness?.IsChanged == true;
 	private bool IsUseUnifiedLightingChanged => _useUnifiedLighting != _useUnifiedLightingInitialValue;
 
-	public bool CanToggleUnifiedLighting => UnifiedLightingZone is not null && LightingZones.Count > 0;
+	public LightingZoneViewModel? UnifiedLightingZone => _unifiedLightingZone;
+	public ReadOnlyObservableCollection<LightingZoneViewModel> LightingZones => _readOnlyLightingZones;
+	public LightingDeviceBrightnessCapabilitiesViewModel? BrightnessCapabilities => _brightnessCapabilities;
+	public LightingDeviceBrightnessViewModel? Brightness => _brightness;
+
+	public bool CanToggleUnifiedLighting => _unifiedLightingZone is not null && _lightingZones.Count > 0;
 
 	public bool UseUnifiedLighting
 	{
@@ -55,7 +61,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 			bool wasChanged = IsChanged;
 			if (value)
 			{
-				if (UnifiedLightingZone is null) throw new InvalidOperationException("This device does not support unified lighting.");
+				if (_unifiedLightingZone is null) throw new InvalidOperationException("This device does not support unified lighting.");
 			}
 			else
 			{
@@ -119,34 +125,23 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		LightingViewModel = lightingViewModel;
 		_applyChangesCommand = new(this);
 		_resetChangesCommand = new(this);
-		LightingZoneViewModel CreateZoneViewModel(LightingZoneInformation lightingZone)
-		{
-			var (displayName, displayOrder, componentType, shape) = LightingViewModel.GetZoneMetadata(lightingZone.ZoneId);
-			return new LightingZoneViewModel(this, lightingZone, displayName, displayOrder, componentType, shape);
-		}
-		LightingZoneViewModel[] CreateZoneViewModels(ImmutableArray<LightingZoneInformation> lightingZones)
-		{
-			var viewModels = Array.ConvertAll(ImmutableCollectionsMarshal.AsArray(lightingZones)!, CreateZoneViewModel);
-			Array.Sort
-			(
-				viewModels,
-				static (a, b) =>
-				{
-					int r = Comparer<int>.Default.Compare(a.DisplayOrder, b.DisplayOrder);
-					if (r == 0)
-					{
-						r = Comparer<Guid>.Default.Compare(a.Id, b.Id);
-					}
-					return r;
-				}
-			);
-			return viewModels;
-		}
 		_persistenceMode = lightingDeviceInformation.PersistenceMode;
-		UnifiedLightingZone = lightingDeviceInformation.UnifiedLightingZone is not null ? CreateZoneViewModel(lightingDeviceInformation.UnifiedLightingZone.GetValueOrDefault()) : null;
-		LightingZones = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty ?
-			ReadOnlyCollection<LightingZoneViewModel>.Empty :
-			Array.AsReadOnly(CreateZoneViewModels(lightingDeviceInformation.LightingZones));
+		if (lightingDeviceInformation.UnifiedLightingZone is { } unifiedLightingZone)
+		{
+			var (displayName, displayOrder, componentType, shape) = LightingViewModel.GetZoneMetadata(unifiedLightingZone.ZoneId);
+			_unifiedLightingZone = new(this, unifiedLightingZone, displayName, displayOrder, componentType, shape);
+		}
+		_lightingZones = new();
+		if (!lightingDeviceInformation.LightingZones.IsDefault)
+		{
+			foreach (var lightingZone in lightingDeviceInformation.LightingZones)
+			{
+				var (displayName, displayOrder, componentType, shape) = LightingViewModel.GetZoneMetadata(lightingZone.ZoneId);
+				var vm = new LightingZoneViewModel(this, lightingZone, displayName, displayOrder, componentType, shape);
+				_lightingZones.Insert(IOrderable.FindInsertPosition(_lightingZones, displayOrder), vm);
+			}
+		}
+		_readOnlyLightingZones = new(_lightingZones);
 		_lightingZoneById = new();
 		if (UnifiedLightingZone is not null)
 		{
@@ -161,9 +156,9 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		_useUnifiedLightingInitialValue = _useUnifiedLighting = lightingDeviceInformation.LightingZones.IsDefaultOrEmpty;
 		if (lightingDeviceInformation.BrightnessCapabilities is { } brightnessCapabilities)
 		{
-			BrightnessCapabilities = new(brightnessCapabilities);
-			Brightness = new(brightnessCapabilities);
-			Brightness.PropertyChanged += OnBrightnessPropertyChanged;
+			_brightnessCapabilities = new(brightnessCapabilities);
+			_brightness = new(brightnessCapabilities);
+			_brightness.PropertyChanged += OnBrightnessPropertyChanged;
 		}
 		_deviceViewModel.PropertyChanged += OnDevicePropertyChanged;
 	}
@@ -185,12 +180,129 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		}
 	}
 
-	private static bool CompareProperty(PropertyChangedEventArgs a, PropertyChangedEventArgs b)
-		=> a == b || a.PropertyName == b.PropertyName;
+	// So, basically, lighting devices should never change when the service is running, but since the service persists every detail,
+	// a device can come up later on with updated settings, likely but not necessarily after a driver update. (A controller could have more or less connected devices)
+	internal void UpdateInformation(LightingDeviceInformation information)
+	{
+		if (information.BrightnessCapabilities is { } brightnessCapabilities)
+		{
+			if (_brightnessCapabilities is null || _brightnessCapabilities.MinimumLevel != brightnessCapabilities.MinimumValue || _brightnessCapabilities.MaximumLevel != brightnessCapabilities.MaximumValue)
+			{
+				_brightnessCapabilities = new(brightnessCapabilities);
+				NotifyPropertyChanged(nameof(BrightnessCapabilities));
+			}
+			if (_brightness is null)
+			{
+				_brightness = new(brightnessCapabilities);
+				_brightness.PropertyChanged += OnBrightnessPropertyChanged;
+				NotifyPropertyChanged(nameof(Brightness));
+			}
+			else
+			{
+				_brightness.UpdateInformation(brightnessCapabilities);
+			}
+		}
+		else
+		{
+			if (_brightnessCapabilities is not null)
+			{
+				_brightnessCapabilities = null;
+				NotifyPropertyChanged(nameof(BrightnessCapabilities));
+			}
+			if (_brightness is not null)
+			{
+				_brightness.PropertyChanged -= OnBrightnessPropertyChanged;
+				_brightness = null;
+				NotifyPropertyChanged(nameof(Brightness));
+			}
+		}
+
+		if (_persistenceMode != information.PersistenceMode)
+		{
+			bool canPersistChanges = CanPersistChanges;
+			_persistenceMode = information.PersistenceMode;
+			if (canPersistChanges != CanPersistChanges) NotifyPropertyChanged(nameof(CanPersistChanges));
+		}
+
+		// TODO: Palette
+
+		if (information.UnifiedLightingZone is { } unifiedLightingZone)
+		{
+			if (_unifiedLightingZone is null || _unifiedLightingZone.Id != unifiedLightingZone.ZoneId)
+			{
+				var (displayName, displayOrder, componentType, shape) = LightingViewModel.GetZoneMetadata(unifiedLightingZone.ZoneId);
+				if (_unifiedLightingZone is not null) ClearUnifiedLightingZone();
+				var vm = new LightingZoneViewModel(this, unifiedLightingZone, displayName, displayOrder, componentType, shape);
+				_unifiedLightingZone = vm;
+				_unifiedLightingZone.PropertyChanged += OnLightingZonePropertyChanged;
+				_lightingZoneById.Add(vm.Id, vm);
+				NotifyPropertyChanged(nameof(UnifiedLightingZone));
+			}
+		}
+		else if (_unifiedLightingZone is not null)
+		{
+			ClearUnifiedLightingZone();
+			NotifyPropertyChanged(nameof(UnifiedLightingZone));
+		}
+
+		// To somewhat reduce the number of operation, it is better to first remove all lighting zones that need to be removed.
+		// Most of the time, if there is any change at all, there will be nothing to remove.
+		// I don't think there is a good way to avoid this dictionary, though, but that is probably ok.
+		var lightingZoneByIndex = new Dictionary<Guid, int>();
+		for (int i = 0; i < _lightingZones.Count; i++)
+		{
+			lightingZoneByIndex.Add(_lightingZones[i].Id, i);
+		}
+
+		foreach (var lightingZone in information.LightingZones)
+		{
+			lightingZoneByIndex.Remove(lightingZone.ZoneId);
+		}
+
+		// Once all the lighting zones to remove are identified, we can remove them one by one, starting from the end of the array.
+		// Starting from the end allows for optimizing the remove process by minimizing the number of items moved, but more importantly, it allows using the index we have already noted earlier.
+		if (lightingZoneByIndex.Count > 0)
+		{
+			var indicesToRemove = lightingZoneByIndex.Values.ToArray();
+			Array.Sort(indicesToRemove);
+			for (int i = indicesToRemove.Length; --i > 0;)
+			{
+				int index = indicesToRemove[i];
+				var vm = _lightingZones[index];
+				if (vm.IsChanged) --_changedZoneCount;
+				_lightingZoneById.Remove(vm.Id);
+				_lightingZones.RemoveAt(index);
+			}
+		}
+
+		// Update previous lighting zones or add new ones.
+		foreach (var lightingZone in information.LightingZones)
+		{
+			if (_lightingZoneById.TryGetValue(lightingZone.ZoneId, out var vm))
+			{
+				vm.UpdateInformation(lightingZone);
+			}
+			else
+			{
+				var (displayName, displayOrder, componentType, shape) = LightingViewModel.GetZoneMetadata(lightingZone.ZoneId);
+				vm = new LightingZoneViewModel(this, lightingZone, displayName, displayOrder, componentType, shape);
+				_lightingZones.Insert(IOrderable.FindInsertPosition(_lightingZones, displayOrder), vm);
+				vm.PropertyChanged += OnLightingZonePropertyChanged;
+			}
+		}
+
+		void ClearUnifiedLightingZone()
+		{
+			_lightingZoneById.Remove(_unifiedLightingZone.Id);
+			if (_unifiedLightingZone.IsChanged) --_changedZoneCount;
+			_unifiedLightingZone.PropertyChanged -= OnLightingZonePropertyChanged;
+			_unifiedLightingZone = null;
+		}
+	}
 
 	private void OnDevicePropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (CompareProperty(e, ChangedProperty.FriendlyName) || CompareProperty(e, ChangedProperty.Category) || CompareProperty(e, ChangedProperty.IsAvailable))
+		if (Equals(e, ChangedProperty.FriendlyName) || Equals(e, ChangedProperty.Category) || Equals(e, ChangedProperty.IsAvailable))
 		{
 			NotifyPropertyChanged(e);
 		}

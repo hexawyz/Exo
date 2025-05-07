@@ -4,7 +4,7 @@ using Exo.Lighting;
 namespace Exo.Settings.Ui.ViewModels;
 
 // ⚠️ This class can be instantiated on any thread. Further accesses should come from the UI thread.
-internal sealed class LightingEffectViewModel
+internal sealed class LightingEffectViewModel : IOrderable
 {
 	private LightingEffectInformation _effectInformation;
 	private readonly string _displayName;

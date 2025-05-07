@@ -9,7 +9,7 @@ using Windows.UI;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingZoneViewModel : ChangeableBindableObject
+internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderable
 {
 	private static readonly Guid NotAvailableEffectId = new(0xC771A454, 0xCAE5, 0x41CF, 0x91, 0x21, 0xBE, 0xF8, 0xAD, 0xC3, 0x80, 0xED);
 	private static readonly Guid DisabledEffectId = new(0x6B972C66, 0x0987, 0x4A0F, 0xA2, 0x0F, 0xCB, 0xFC, 0x1B, 0x0F, 0x3D, 0x4B);
@@ -56,11 +56,11 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 	public ICommand ResetCommand => _resetCommand;
 
 	public string Name { get; }
-	public int DisplayOrder { get; }
+	public uint DisplayOrder { get; }
 	public LightingZoneComponentType ComponentType { get; }
 	public LightingZoneShape Shape { get; }
 
-	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation, string displayName, int displayOrder, LightingZoneComponentType componentType, LightingZoneShape shape)
+	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation, string displayName, uint displayOrder, LightingZoneComponentType componentType, LightingZoneShape shape)
 	{
 		_device = device;
 		_properties = ReadOnlyCollection<PropertyViewModel>.Empty;
@@ -70,7 +70,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		foreach (var effectId in ImmutableCollectionsMarshal.AsArray(lightingZoneInformation.SupportedEffectTypeIds)!)
 		{
 			var effect = _device.LightingViewModel.GetEffect(effectId);
-			_supportedEffects.Insert(FindInsertPosition(_supportedEffects, effect.DisplayOrder), effect);
+			_supportedEffects.Insert(IOrderable.FindInsertPosition(_supportedEffects, effect.DisplayOrder), effect);
 		}
 		_readOnlySupportedEffects = new(_supportedEffects);
 		Name = displayName;
@@ -79,24 +79,51 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject
 		Shape = shape;
 	}
 
-	private static int FindInsertPosition(ObservableCollection<LightingEffectViewModel> effects, uint displayOrder)
+	internal void UpdateInformation(LightingZoneInformation information)
 	{
-		if (effects.Count == 0) return 0;
-
-		int min = 0;
-		int max = effects.Count - 1;
-
-		if (effects[min].DisplayOrder > displayOrder) return min;
-		if (effects[max].DisplayOrder <= displayOrder) return effects.Count;
-
-		while (max > min)
+		bool shouldResetInitialEffect = false;
+		bool shouldResetCurrentEffect = false;
+		// Similar logic to the one used for lighting zones. We do the diff while making sure to remove and insert in the proper spots.
+		var effectByIndex = new Dictionary<Guid, int>();
+		var newEffectIds = new List<Guid>();
+		for (int i = 0; i < _supportedEffects.Count; i++)
 		{
-			int med = (min + max) >> 1;
-			uint order = effects[med].DisplayOrder;
-			if (order > displayOrder) max = med - 1;
-			else min = med + 1;
+			effectByIndex.Add(_supportedEffects[i].EffectId, i);
 		}
-		return effects[min].DisplayOrder == displayOrder ? min + 1 : min;
+
+		foreach (var effectId in information.SupportedEffectTypeIds)
+		{
+			if (!effectByIndex.Remove(effectId)) newEffectIds.Add(effectId);
+			shouldResetInitialEffect |= _initialEffect?.EffectId == effectId;
+			shouldResetCurrentEffect |= _currentEffect?.EffectId == effectId;
+		}
+
+		if (effectByIndex.Count > 0)
+		{
+			var indicesToRemove = effectByIndex.Values.ToArray();
+			Array.Sort(indicesToRemove);
+			for (int i = indicesToRemove.Length; --i > 0;)
+			{
+				int index = indicesToRemove[i];
+				_supportedEffects.RemoveAt(index);
+			}
+		}
+
+		foreach (var effectId in newEffectIds)
+		{
+			var effect = _device.LightingViewModel.GetEffect(effectId);
+			_supportedEffects.Insert(IOrderable.FindInsertPosition(_supportedEffects, effect.DisplayOrder), effect);
+		}
+
+		bool wasChanged = IsChanged;
+		if (shouldResetInitialEffect)
+		{
+			OnEffectUpdated(null);
+		}
+		if (shouldResetCurrentEffect)
+		{
+			SetCurrentEffect(_initialEffect is null ? null : _device.LightingViewModel.GetEffect(_initialEffect.EffectId), false, wasChanged);
+		}
 	}
 
 	public override bool IsChanged => _initialEffect?.EffectId != _currentEffect?.EffectId || _isNewEffect || _changedPropertyCount != 0;

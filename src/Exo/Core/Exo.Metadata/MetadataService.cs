@@ -350,7 +350,7 @@ public static class MetadataSerializer
 		=> new LightingZoneMetadata
 		{
 			NameStringId = new Guid(data[..16]),
-			DisplayOrder = (int)LittleEndian.ReadUInt32(in data[16]),
+			DisplayOrder = LittleEndian.ReadUInt32(in data[16]),
 			ComponentType = (LightingZoneComponentType)data[20],
 			Shape = (LightingZoneShape)data[21],
 		};
@@ -421,7 +421,7 @@ public readonly struct LightingEffectMetadata : IExoMetadata
 public readonly struct LightingZoneMetadata : IExoMetadata
 {
 	public required Guid NameStringId { get; init; }
-	public required int DisplayOrder { get; init; }
+	public required uint DisplayOrder { get; init; }
 	public LightingZoneComponentType ComponentType { get; init; }
 	public LightingZoneShape Shape { get; init; }
 }

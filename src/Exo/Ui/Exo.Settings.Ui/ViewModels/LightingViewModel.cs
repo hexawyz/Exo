@@ -131,7 +131,7 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	{
 		if (_lightingDeviceById.TryGetValue(info.DeviceId, out var vm))
 		{
-			// TODO: Update lighting zones ?
+			vm.UpdateInformation(info);
 		}
 		else
 		{
@@ -183,10 +183,10 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	public LightingEffectViewModel GetEffect(Guid effectId)
 		=> _effectViewModelById.TryGetValue(effectId, out var effect) ? effect : throw new InvalidOperationException("Missing effect information.");
 
-	public (string DisplayName, int DisplayOrder, LightingZoneComponentType ComponentType, LightingZoneShape Shape) GetZoneMetadata(Guid zoneId)
+	public (string DisplayName, uint DisplayOrder, LightingZoneComponentType ComponentType, LightingZoneShape Shape) GetZoneMetadata(Guid zoneId)
 	{
 		string? displayName = null;
-		int displayOrder = 0;
+		uint displayOrder = 0;
 		LightingZoneComponentType componentType = 0;
 		LightingZoneShape shape = 0;
 		if (_metadataService.TryGetLightingZoneMetadata("", "", zoneId, out var metadata))

@@ -16,6 +16,8 @@ internal static class ChangedProperty
 	public static readonly PropertyChangedEventArgs ShowToolbar = new(nameof(ShowToolbar));
 	public static readonly PropertyChangedEventArgs Value = new(nameof(Value));
 	public static readonly PropertyChangedEventArgs Level = new(nameof(Level));
+	public static readonly PropertyChangedEventArgs MinimumLevel = new(nameof(MinimumLevel));
+	public static readonly PropertyChangedEventArgs MaximumLevel = new(nameof(MaximumLevel));
 	public static readonly PropertyChangedEventArgs InitialValue = new(nameof(InitialValue));
 	public static readonly PropertyChangedEventArgs MinimumValue = new(nameof(MinimumValue));
 	public static readonly PropertyChangedEventArgs MaximumValue = new(nameof(MaximumValue));
