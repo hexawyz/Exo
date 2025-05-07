@@ -6,7 +6,7 @@ public partial class AuraRamDriver
 	{
 		Off = 0,
 		Static = 1,
-		Pulse = 2,
+		Breathing = 2,
 		Flash = 3,
 		ColorCycle = 4,
 		ColorWave = 5,

@@ -35,8 +35,6 @@ public partial class AuraRamDriver
 	private abstract class AuraRamLightingZone :
 		ILightingZone,
 		ILightingZoneEffect<DisabledEffect>,
-		ILightingZoneEffect<VariableColorPulseEffect>,
-		ILightingZoneEffect<VariableColorFlashEffect>,
 		ILightingZoneEffect<VariableSpectrumCycleEffect>,
 		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
 		ILightingZoneEffect<SpectrumCyclePulseEffect>,
@@ -92,7 +90,7 @@ public partial class AuraRamDriver
 				break;
 			case AuraEffect.Static:
 				goto InitializeMultiColor;
-			case AuraEffect.Pulse:
+			case AuraEffect.Breathing:
 				goto InitializeMultiColor;
 			case AuraEffect.Flash:
 				goto InitializeMultiColor;
@@ -132,10 +130,10 @@ public partial class AuraRamDriver
 			}
 			return;
 		InitializeMultiColor:;
-			InitializeMultiColorCurrentEffect(colors);
+			InitializeMultiColorCurrentEffect(colors, description.FrameDelay);
 		}
 
-		private static PredeterminedEffectSpeed GetEffectSpeed(sbyte frameDelay)
+		internal static PredeterminedEffectSpeed GetEffectSpeed(sbyte frameDelay)
 			=> frameDelay switch
 			{
 				-2 => PredeterminedEffectSpeed.Faster,
@@ -147,7 +145,7 @@ public partial class AuraRamDriver
 				_ => PredeterminedEffectSpeed.MediumSlow,
 			};
 
-		protected abstract void InitializeMultiColorCurrentEffect(ReadOnlySpan<RgbColor> colors);
+		protected abstract void InitializeMultiColorCurrentEffect(ReadOnlySpan<RgbColor> colors, sbyte frameDelay);
 
 		Guid ILightingZone.ZoneId => _zoneId;
 
@@ -268,8 +266,6 @@ public partial class AuraRamDriver
 		bool ILightingZoneEffect<WideSpectrumCycleChaseEffect>.TryGetCurrentEffect(out WideSpectrumCycleChaseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<AlternateSpectrumEffect>.TryGetCurrentEffect(out AlternateSpectrumEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<SparklingSpectrumCycleEffect>.TryGetCurrentEffect(out SparklingSpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<VariableColorFlashEffect>.TryGetCurrentEffect(out VariableColorFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<VariableColorPulseEffect>.TryGetCurrentEffect(out VariableColorPulseEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<VariableSpectrumCycleEffect>.TryGetCurrentEffect(out VariableSpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ReversibleVariableColorWaveEffect>.TryGetCurrentEffect(out ReversibleVariableColorWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ReversibleVariableColorChaseEffect>.TryGetCurrentEffect(out ReversibleVariableColorChaseEffect effect) => CurrentEffect.TryGetEffect(out effect);
@@ -408,8 +404,6 @@ public partial class AuraRamDriver
 		void ILightingZoneEffect<WideSpectrumCycleChaseEffect>.ApplyEffect(in WideSpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.WideCycleChase, DefaultFrameDelay, false, effect);
 		void ILightingZoneEffect<AlternateSpectrumEffect>.ApplyEffect(in AlternateSpectrumEffect effect) => ApplyPredefinedEffect(AuraEffect.Alternate, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 		void ILightingZoneEffect<SparklingSpectrumCycleEffect>.ApplyEffect(in SparklingSpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleRandomFlashes, DefaultFrameDelay, false, effect);
-		void ILightingZoneEffect<VariableColorFlashEffect>.ApplyEffect(in VariableColorFlashEffect effect) => ApplySingleColorEffect(AuraEffect.Flash, DefaultFrameDelays[(byte)effect.Speed], false, effect);
-		void ILightingZoneEffect<VariableColorPulseEffect>.ApplyEffect(in VariableColorPulseEffect effect) => ApplySingleColorEffect(AuraEffect.Pulse, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 		void ILightingZoneEffect<VariableSpectrumCycleEffect>.ApplyEffect(in VariableSpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorCycle, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 	}
 }

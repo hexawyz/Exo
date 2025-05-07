@@ -47,10 +47,20 @@
 	// Exo.Lighting.Effects.ColorPulse5Effect
 	"a0e2051c-ab8b-4d8c-a950-fc01ba6c312a": {
 		"nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197",
-		"displayOrder": 25
+		"displayOrder": 24
 	},
 	// Exo.Lighting.Effects.ColorPulse8Effect
 	"d575547b-f8b0-4f80-98df-e1a9112c7270": {
+		"nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197",
+		"displayOrder": 24
+	},
+	// Exo.Lighting.Effects.Variable5ColorPulseEffect
+	"34ec164f-33a6-4f50-8cb3-e239db41b8db": {
+		"nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197",
+		"displayOrder": 25
+	},
+	// Exo.Lighting.Effects.Variable8ColorPulseEffect
+	"e5403483-217b-4b82-8f3d-03b8c1e048ca": {
 		"nameStringId": "f49c1855-5583-4a4f-8272-7f0326a23197",
 		"displayOrder": 25
 	},
@@ -58,6 +68,31 @@
 	"83f205b0-d73f-4a22-bddf-dce1fde20710": {
 		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd",
 		"displayOrder": 31
+	},
+	// Exo.Lighting.Effects.VariableColorBreathingEffect
+	"b6c72241-ed04-4431-81b6-aea2a6029092": {
+		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd",
+		"displayOrder": 32
+	},
+	// Exo.Lighting.Effects.ColorBreathing5Effect
+	"18c638b6-a168-411c-89e2-267c74e82309": {
+		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd",
+		"displayOrder": 34
+	},
+	// Exo.Lighting.Effects.ColorBreathing8Effect
+	"0a17146f-6ebd-440d-af8c-f54f590d72dc": {
+		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd",
+		"displayOrder": 34
+	},
+	// Exo.Lighting.Effects.Variable5ColorBreathingEffect
+	"c324028f-9157-4bc2-9b87-0a017d0250b2": {
+		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd",
+		"displayOrder": 35
+	},
+	// Exo.Lighting.Effects.Variable8ColorBreathingEffect
+	"cce8bedc-9c6f-46c8-ac2e-d2ed454b14e9": {
+		"nameStringId": "66893ce9-cf8d-4bb4-b3ba-ee38a51186dd",
+		"displayOrder": 35
 	},
 	// Exo.Lighting.Effects.ColorBlinkEffect
 	"46be7d40-8a97-486c-97cd-07e931f46ab9": {
@@ -82,10 +117,20 @@
 	// Exo.Lighting.Effects.ColorFlash5Effect
 	"2fc31dbb-1974-4859-90a3-ce11c9244bb1": {
 		"nameStringId": "419e70ee-8355-4cf5-9d18-54835008cdb0",
-		"displayOrder": 55
+		"displayOrder": 54
 	},
 	// Exo.Lighting.Effects.ColorFlash8Effect
 	"1d3b40f9-ab2a-43f4-8a81-c4bc9033b4a5": {
+		"nameStringId": "419e70ee-8355-4cf5-9d18-54835008cdb0",
+		"displayOrder": 54
+	},
+	// Exo.Lighting.Effects.Variable5ColorFlashEffect
+	"caf919f3-19c1-4706-a45f-7f676e2e29b2": {
+		"nameStringId": "419e70ee-8355-4cf5-9d18-54835008cdb0",
+		"displayOrder": 55
+	},
+	// Exo.Lighting.Effects.ColorFlash8Effect
+	"2da41d23-511a-4071-aab5-65548f45c281": {
 		"nameStringId": "419e70ee-8355-4cf5-9d18-54835008cdb0",
 		"displayOrder": 55
 	},

@@ -25,7 +25,7 @@ public partial class AuraRamDriver :
 	// AFAIK nothing should prevent us from keeping a stick at address 0x77, but we can only use that address as last fallback, if we have a single stick without address assigned.
 	private static ReadOnlySpan<byte> CandidateAddresses => [0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x4F, 0x66, 0x67];
 
-	private static ReadOnlySpan<sbyte> DefaultFrameDelays => [3, 2, 1, 0, -1, -2];
+	protected static ReadOnlySpan<sbyte> DefaultFrameDelays => [3, 2, 1, 0, -1, -2];
 	private const int DefaultFrameDelayIndex = 4;
 	private static sbyte DefaultFrameDelay => DefaultFrameDelays[DefaultFrameDelayIndex];
 
