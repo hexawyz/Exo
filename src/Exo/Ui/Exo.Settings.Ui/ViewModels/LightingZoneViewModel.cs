@@ -94,8 +94,6 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderab
 		foreach (var effectId in information.SupportedEffectTypeIds)
 		{
 			if (!effectByIndex.Remove(effectId)) newEffectIds.Add(effectId);
-			shouldResetInitialEffect |= _initialEffect?.EffectId == effectId;
-			shouldResetCurrentEffect |= _currentEffect?.EffectId == effectId;
 		}
 
 		if (effectByIndex.Count > 0)
@@ -105,7 +103,10 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderab
 			for (int i = indicesToRemove.Length; --i > 0;)
 			{
 				int index = indicesToRemove[i];
+				var effect = _supportedEffects[i];
 				_supportedEffects.RemoveAt(index);
+				shouldResetInitialEffect |= _initialEffect?.EffectId == effect.EffectId;
+				shouldResetCurrentEffect |= _currentEffect?.EffectId == effect.EffectId;
 			}
 		}
 
