@@ -100,7 +100,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderab
 		{
 			var indicesToRemove = effectByIndex.Values.ToArray();
 			Array.Sort(indicesToRemove);
-			for (int i = indicesToRemove.Length; --i > 0;)
+			for (int i = indicesToRemove.Length; --i >= 0;)
 			{
 				int index = indicesToRemove[i];
 				var effect = _supportedEffects[i];

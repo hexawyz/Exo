@@ -265,7 +265,7 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		{
 			var indicesToRemove = lightingZoneByIndex.Values.ToArray();
 			Array.Sort(indicesToRemove);
-			for (int i = indicesToRemove.Length; --i > 0;)
+			for (int i = indicesToRemove.Length; --i >= 0;)
 			{
 				int index = indicesToRemove[i];
 				var vm = _lightingZones[index];
