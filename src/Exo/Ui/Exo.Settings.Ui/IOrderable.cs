@@ -21,6 +21,6 @@ internal interface IOrderable
 			if (order > displayOrder) max = med - 1;
 			else min = med + 1;
 		}
-		return items[min].DisplayOrder == displayOrder ? min + 1 : min;
+		return items[min].DisplayOrder <= displayOrder ? min + 1 : min;
 	}
 }
