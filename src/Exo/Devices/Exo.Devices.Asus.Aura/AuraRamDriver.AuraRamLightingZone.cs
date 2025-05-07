@@ -101,28 +101,28 @@ public partial class AuraRamDriver
 				CurrentEffect = new ReversibleVariableSpectrumWaveEffect(GetEffectSpeed(description.FrameDelay), description.IsReversed ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 				break;
 			case AuraEffect.CyclePulse:
-				CurrentEffect = SpectrumCyclePulseEffect.SharedInstance;
+				CurrentEffect = new SpectrumCyclePulseEffect(GetEffectSpeed(description.FrameDelay));
 				break;
 			case AuraEffect.Wave:
 				CurrentEffect = new ReversibleVariableColorWaveEffect(SwapGreenAndBlue(LocalColors[0]), GetEffectSpeed(description.FrameDelay), description.IsReversed ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 				break;
 			case AuraEffect.CycleWave:
-				CurrentEffect = SpectrumCycleWaveEffect.SharedInstance;
+				CurrentEffect = new SpectrumCycleWaveEffect(GetEffectSpeed(description.FrameDelay));
 				break;
 			case AuraEffect.Chase:
 				CurrentEffect = new ReversibleVariableColorChaseEffect(SwapGreenAndBlue(LocalColors[0]), GetEffectSpeed(description.FrameDelay), description.IsReversed ? EffectDirection1D.Backward : EffectDirection1D.Forward);
 				break;
 			case AuraEffect.CycleChase:
-				CurrentEffect = SpectrumCycleChaseEffect.SharedInstance;
+				CurrentEffect = new SpectrumCycleChaseEffect(GetEffectSpeed(description.FrameDelay));
 				break;
 			case AuraEffect.WideCycleChase:
-				CurrentEffect = WideSpectrumCycleChaseEffect.SharedInstance;
+				CurrentEffect = new WideSpectrumCycleChaseEffect(GetEffectSpeed(description.FrameDelay));
 				break;
 			case AuraEffect.Alternate:
 				CurrentEffect = new AlternateSpectrumEffect(GetEffectSpeed(description.FrameDelay));
 				break;
 			case AuraEffect.CycleRandomFlashes:
-				CurrentEffect = SparklingSpectrumCycleEffect.SharedInstance;
+				CurrentEffect = new SparklingSpectrumCycleEffect(GetEffectSpeed(description.FrameDelay));
 				break;
 			case AuraEffect.Dynamic:
 				CurrentEffect = DisabledEffect.SharedInstance;
@@ -396,14 +396,14 @@ public partial class AuraRamDriver
 		}
 
 		void ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.ApplyEffect(in ReversibleVariableSpectrumWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorWave, DefaultFrameDelays[(byte)effect.Speed], effect.Direction != EffectDirection1D.Forward, effect);
-		void ILightingZoneEffect<SpectrumCyclePulseEffect>.ApplyEffect(in SpectrumCyclePulseEffect effect) => ApplyPredefinedEffect(AuraEffect.CyclePulse, DefaultFrameDelay, false, effect);
+		void ILightingZoneEffect<SpectrumCyclePulseEffect>.ApplyEffect(in SpectrumCyclePulseEffect effect) => ApplyPredefinedEffect(AuraEffect.CyclePulse, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 		void ILightingZoneEffect<ReversibleVariableColorWaveEffect>.ApplyEffect(in ReversibleVariableColorWaveEffect effect) => ApplySingleColorEffect(AuraEffect.Wave, DefaultFrameDelays[(byte)effect.Speed], effect.Direction != EffectDirection1D.Forward, effect);
-		void ILightingZoneEffect<SpectrumCycleWaveEffect>.ApplyEffect(in SpectrumCycleWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleWave, DefaultFrameDelay, false, effect);
+		void ILightingZoneEffect<SpectrumCycleWaveEffect>.ApplyEffect(in SpectrumCycleWaveEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleWave, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 		void ILightingZoneEffect<ReversibleVariableColorChaseEffect>.ApplyEffect(in ReversibleVariableColorChaseEffect effect) => ApplySingleColorEffect(AuraEffect.Chase, DefaultFrameDelays[(byte)effect.Speed], effect.Direction != EffectDirection1D.Forward, effect);
-		void ILightingZoneEffect<SpectrumCycleChaseEffect>.ApplyEffect(in SpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleChase, DefaultFrameDelay, false, effect);
-		void ILightingZoneEffect<WideSpectrumCycleChaseEffect>.ApplyEffect(in WideSpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.WideCycleChase, DefaultFrameDelay, false, effect);
+		void ILightingZoneEffect<SpectrumCycleChaseEffect>.ApplyEffect(in SpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleChase, DefaultFrameDelays[(byte)effect.Speed], false, effect);
+		void ILightingZoneEffect<WideSpectrumCycleChaseEffect>.ApplyEffect(in WideSpectrumCycleChaseEffect effect) => ApplyPredefinedEffect(AuraEffect.WideCycleChase, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 		void ILightingZoneEffect<AlternateSpectrumEffect>.ApplyEffect(in AlternateSpectrumEffect effect) => ApplyPredefinedEffect(AuraEffect.Alternate, DefaultFrameDelays[(byte)effect.Speed], false, effect);
-		void ILightingZoneEffect<SparklingSpectrumCycleEffect>.ApplyEffect(in SparklingSpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleRandomFlashes, DefaultFrameDelay, false, effect);
+		void ILightingZoneEffect<SparklingSpectrumCycleEffect>.ApplyEffect(in SparklingSpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.CycleRandomFlashes, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 		void ILightingZoneEffect<VariableSpectrumCycleEffect>.ApplyEffect(in VariableSpectrumCycleEffect effect) => ApplyPredefinedEffect(AuraEffect.ColorCycle, DefaultFrameDelays[(byte)effect.Speed], false, effect);
 	}
 }
