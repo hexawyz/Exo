@@ -92,7 +92,7 @@ public partial class AuraRamDriver
 				goto InitializeMultiColor;
 			case AuraEffect.Breathing:
 				goto InitializeMultiColor;
-			case AuraEffect.Flash:
+			case AuraEffect.Blink:
 				goto InitializeMultiColor;
 			case AuraEffect.ColorCycle:
 				CurrentEffect = new VariableSpectrumCycleEffect(GetEffectSpeed(description.FrameDelay));

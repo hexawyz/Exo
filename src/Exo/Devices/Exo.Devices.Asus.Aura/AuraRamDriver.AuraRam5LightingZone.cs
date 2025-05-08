@@ -12,7 +12,7 @@ public partial class AuraRamDriver
 		AuraRamLightingZone,
 		ILightingZoneEffect<Static5ColorEffect>,
 		ILightingZoneEffect<Variable5ColorBreathingEffect>,
-		ILightingZoneEffect<Variable5ColorFlashEffect>
+		ILightingZoneEffect<Variable5ColorBlinkEffect>
 	{
 		public AuraRam5LightingZone(AuraRamDriver driver, in DiscoveredModuleDescription description)
 			: base(driver, description)
@@ -35,19 +35,19 @@ public partial class AuraRamDriver
 			case AuraEffect.Breathing:
 				CurrentEffect = new Variable5ColorBreathingEffect(swappedColors, GetEffectSpeed(frameDelay));
 				break;
-			case AuraEffect.Flash:
-				CurrentEffect = new Variable5ColorFlashEffect(swappedColors, GetEffectSpeed(frameDelay));
+			case AuraEffect.Blink:
+				CurrentEffect = new Variable5ColorBlinkEffect(swappedColors, GetEffectSpeed(frameDelay));
 				break;
 			}
 		}
 
 		bool ILightingZoneEffect<Static5ColorEffect>.TryGetCurrentEffect(out Static5ColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<Variable5ColorBreathingEffect>.TryGetCurrentEffect(out Variable5ColorBreathingEffect effect) => CurrentEffect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<Variable5ColorFlashEffect>.TryGetCurrentEffect(out Variable5ColorFlashEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<Variable5ColorBlinkEffect>.TryGetCurrentEffect(out Variable5ColorBlinkEffect effect) => CurrentEffect.TryGetEffect(out effect);
 
 		void ILightingZoneEffect<Static5ColorEffect>.ApplyEffect(in Static5ColorEffect effect) => ApplyColorEffect(AuraEffect.Static, DefaultFrameDelay, effect.Colors, effect);
 		void ILightingZoneEffect<Variable5ColorBreathingEffect>.ApplyEffect(in Variable5ColorBreathingEffect effect) => ApplyColorEffect(AuraEffect.Breathing, DefaultFrameDelays[(byte)effect.Speed], effect.Colors, effect);
-		void ILightingZoneEffect<Variable5ColorFlashEffect>.ApplyEffect(in Variable5ColorFlashEffect effect) => ApplyColorEffect(AuraEffect.Flash, DefaultFrameDelays[(byte)effect.Speed], effect.Colors, effect);
+		void ILightingZoneEffect<Variable5ColorBlinkEffect>.ApplyEffect(in Variable5ColorBlinkEffect effect) => ApplyColorEffect(AuraEffect.Blink, DefaultFrameDelays[(byte)effect.Speed], effect.Colors, effect);
 	}
 }
 

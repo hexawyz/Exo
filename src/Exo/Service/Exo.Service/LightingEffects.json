@@ -104,6 +104,26 @@
 		"nameStringId": "965a4868-b74e-4674-b43f-2086daf37906",
 		"displayOrder": 42
 	},
+	// Exo.Lighting.Effects.ColorBlink5Effect
+	"e673cdfb-c78f-41db-a717-74800afd4e9e": {
+		"nameStringId": "965a4868-b74e-4674-b43f-2086daf37906",
+		"displayOrder": 44
+	},
+	// Exo.Lighting.Effects.ColorBlink8Effect
+	"c3408d21-a029-4a2e-84ba-b8d61d552106": {
+		"nameStringId": "965a4868-b74e-4674-b43f-2086daf37906",
+		"displayOrder": 44
+	},
+	// Exo.Lighting.Effects.Variable5ColorBlinkEffect
+	"774c7cfc-86bf-43dd-af88-4ff1e480da55": {
+		"nameStringId": "965a4868-b74e-4674-b43f-2086daf37906",
+		"displayOrder": 45
+	},
+	// Exo.Lighting.Effects.Variable8ColorBlinkEffect
+	"3b52a6de-5a06-49f0-a1ed-4e2d242e1e8c": {
+		"nameStringId": "965a4868-b74e-4674-b43f-2086daf37906",
+		"displayOrder": 45
+	},
 	// Exo.Lighting.Effects.ColorFlashEffect
 	"a3f80010-5663-4ecf-9c22-036e28478b7e": {
 		"nameStringId": "419e70ee-8355-4cf5-9d18-54835008cdb0",
