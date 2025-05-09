@@ -21,7 +21,10 @@ public sealed partial class LightingPage : Page
 
 	private void OnColorPickerLoaded(object sender, RoutedEventArgs e)
 	{
-		EditColorPicker.Color = _editionService.Color;
+		if (EditColorPicker.Color != _editionService.Color)
+		{
+			EditColorPicker.Color = _editionService.Color;
+		}
 		EditColorPicker.ColorChanged += OnColorChanged;
 		_editionService.PropertyChanged += OnEditionServicePropertyChanged;
 	}
