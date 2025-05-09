@@ -193,19 +193,14 @@
           DataContext="{Binding EditionService}"
           Visibility="{Binding ShowToolbar, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
-				<ScrollViewer
-          Grid.Row="3"
-          VerticalScrollBarVisibility="Auto"
-          VerticalScrollMode="Auto">
-					<Frame
-            x:Name="ContentFrame"
-            IsNavigationStackEnabled="False"
-            Padding="{StaticResource NavigationContentScrollViewerPadding}">
-						<Frame.ContentTransitions>
-							<NavigationThemeTransition />
-						</Frame.ContentTransitions>
-					</Frame>
-				</ScrollViewer>
+				<Frame
+          x:Name="ContentFrame"
+					Grid.Row="3"
+          IsNavigationStackEnabled="False">
+					<Frame.ContentTransitions>
+						<NavigationThemeTransition />
+					</Frame.ContentTransitions>
+				</Frame>
 			</Grid>
 		</NavigationView>
 	</Grid>

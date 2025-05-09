@@ -10,41 +10,45 @@
   mc:Ignorable="d"
   d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
 
-	<ItemsControl ItemsSource="{Binding Devices.Devices}" HorizontalContentAlignment="Stretch">
-		<ItemsControl.Resources>
-			<XamlUICommand x:Key="NavigateCommand" Command="{Binding Devices.NavigateToDeviceCommand}" />
-		</ItemsControl.Resources>
-		<ItemsControl.ItemTemplate>
-			<DataTemplate>
-				<Button
-          Margin="{StaticResource VerticalItemSpacing}"
-          HorizontalAlignment="Stretch"
-          HorizontalContentAlignment="Stretch"
-          Padding="12"
-          Command="{StaticResource NavigateCommand}"
-          CommandParameter="{Binding}"
-          IsEnabled="{Binding IsAvailable}">
-					<Grid HorizontalAlignment="Stretch">
-						<Grid.ColumnDefinitions>
-							<ColumnDefinition Width="Auto" />
-							<ColumnDefinition Width="Auto" />
-							<ColumnDefinition Width="Auto" />
-							<ColumnDefinition Width="*" />
-							<ColumnDefinition Width="Auto" />
-						</Grid.ColumnDefinitions>
-						<FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
-						<TextBlock Grid.Column="1" Text="{Binding FriendlyName}" Margin="{StaticResource TitleTextIconMargin}" />
-						<FontIcon
-              Grid.Column="2"
-              Margin="12,0,0,0"
-              DataContext="{Binding PowerFeatures}"
-              Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}"
-              Glyph="{Binding BatteryState, Converter={StaticResource BatteryStateToGlyphConverter}}"
-              ToolTipService.ToolTip="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
-						<FontIcon Grid.Column="4" Glyph="&#xE76C;" FontSize="{StaticResource CaptionTextBlockFontSize}" />
-					</Grid>
-				</Button>
-			</DataTemplate>
-		</ItemsControl.ItemTemplate>
-	</ItemsControl>
+	<ScrollViewer
+    VerticalScrollBarVisibility="Auto"
+    VerticalScrollMode="Auto">
+		<ItemsControl Margin="{StaticResource NavigationContentScrollViewerPadding}" ItemsSource="{Binding Devices.Devices}" HorizontalContentAlignment="Stretch">
+			<ItemsControl.Resources>
+				<XamlUICommand x:Key="NavigateCommand" Command="{Binding Devices.NavigateToDeviceCommand}" />
+			</ItemsControl.Resources>
+			<ItemsControl.ItemTemplate>
+				<DataTemplate>
+					<Button
+						Margin="{StaticResource VerticalItemSpacing}"
+						HorizontalAlignment="Stretch"
+						HorizontalContentAlignment="Stretch"
+						Padding="12"
+						Command="{StaticResource NavigateCommand}"
+						CommandParameter="{Binding}"
+						IsEnabled="{Binding IsAvailable}">
+						<Grid HorizontalAlignment="Stretch">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto" />
+								<ColumnDefinition Width="Auto" />
+								<ColumnDefinition Width="Auto" />
+								<ColumnDefinition Width="*" />
+								<ColumnDefinition Width="Auto" />
+							</Grid.ColumnDefinitions>
+							<FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
+							<TextBlock Grid.Column="1" Text="{Binding FriendlyName}" Margin="{StaticResource TitleTextIconMargin}" />
+							<FontIcon
+								Grid.Column="2"
+								Margin="12,0,0,0"
+								DataContext="{Binding PowerFeatures}"
+								Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}"
+								Glyph="{Binding BatteryState, Converter={StaticResource BatteryStateToGlyphConverter}}"
+								ToolTipService.ToolTip="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
+							<FontIcon Grid.Column="4" Glyph="&#xE76C;" FontSize="{StaticResource CaptionTextBlockFontSize}" />
+						</Grid>
+					</Button>
+				</DataTemplate>
+			</ItemsControl.ItemTemplate>
+		</ItemsControl>
+	</ScrollViewer>
 </Page>

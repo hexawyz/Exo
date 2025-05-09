@@ -29,17 +29,15 @@
 		<StandardUICommand x:Key="SaveMenuCommand" x:Uid="CustomMenuSaveCommand" Kind="Save" Command="{Binding CustomMenu.ApplyCommand}" />
 	</Page.Resources>
 
-	<Grid DataContext="{Binding CustomMenu}">
+	<Grid Margin="{StaticResource NavigationContentScrollViewerPadding}" DataContext="{Binding CustomMenu}">
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition MinWidth="100" Width="Auto" />
-			<ColumnDefinition Width="*" />
 		</Grid.ColumnDefinitions>
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="Auto" />
-			<RowDefinition Height="Auto" />
-			<RowDefinition Height="Auto" />
 			<RowDefinition Height="*" />
+			<RowDefinition Height="Auto" />
 		</Grid.RowDefinitions>
 		<BreadcrumbBar Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding EditedMenuHierarchy, Mode=OneWay}" ItemClicked="OnBreadcrumbBarItemClicked">
 			<BreadcrumbBar.ItemTemplate>
@@ -62,18 +60,29 @@
 			<AppBarSeparator />
 			<AppBarButton Command="{StaticResource SaveMenuCommand}" CommandParameter="{Binding}" />
 		</CommandBar>
-		<ListView
+		<ScrollViewer
       Grid.Row="2"
-      Style="{StaticResource MenuPreviewStyle}"
-      Margin="{StaticResource RowLabelMargin}"
-      Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
-      ItemsSource="{Binding EditedMenu.MenuItems, Mode=OneWay}"
-      SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}"
-      ReorderMode="Enabled"
-      AllowDrop="True"
-      CanReorderItems="True" />
+			VerticalScrollBarVisibility="Auto"
+			VerticalScrollMode="Auto"
+			HorizontalAlignment="Stretch">
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto" />
+					<RowDefinition Height="*" />
+				</Grid.RowDefinitions>
+				<ListView
+					Style="{StaticResource MenuPreviewStyle}"
+					Margin="12,6,20,12"
+					Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
+					ItemsSource="{Binding EditedMenu.MenuItems, Mode=OneWay}"
+					SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}"
+					ReorderMode="Enabled"
+					AllowDrop="True"
+					CanReorderItems="True" />
+			</Grid>
+		</ScrollViewer>
 		<TextBox
-      Grid.Row="3"
+      Grid.Row="4"
       Margin="0,18,0,6"
       Visibility="{Binding SelectedMenuItemHasText, Converter={StaticResource BooleanToVisibilityConverter}}"
       Text="{Binding SelectedMenuItem.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
