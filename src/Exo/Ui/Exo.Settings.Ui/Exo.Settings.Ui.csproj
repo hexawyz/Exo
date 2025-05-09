@@ -191,6 +191,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Page Update="Controls\ColorSwatch.xaml">
+		  <SubType>Designer</SubType>
+		</Page>
 		<Page Update="Controls\GlyphToggleButton.xaml">
 			<SubType>Designer</SubType>
 		</Page>

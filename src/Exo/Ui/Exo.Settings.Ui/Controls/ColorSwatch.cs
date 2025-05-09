@@ -6,7 +6,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Markup;
 using Windows.UI;
 
-namespace Exo.Settings.Ui;
+namespace Exo.Settings.Ui.Controls;
 
 /// <summary>Represents a control that displays a color and allows updates through interaction with the <see cref="IEditionService"/>.</summary>
 /// <remarks>

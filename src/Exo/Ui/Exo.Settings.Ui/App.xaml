@@ -15,6 +15,7 @@
 				<XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
 				<!--<ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.ColorPicker/ColorPicker/ColorPicker.xaml" />-->
 				<local:DataTemplates />
+				<ResourceDictionary Source="Controls\ColorSwatch.xaml" />
 				<ResourceDictionary Source="Controls\Gauge.xaml" />
 				<ResourceDictionary Source="Controls\LineChart.xaml" />
 				<ResourceDictionary Source="Controls\PowerControlCurveEditor.xaml" />
@@ -391,27 +392,6 @@
 					</Setter.Value>
 				</Setter>
 			</Style>
-
-			<!-- Color swatch -->
-			<ControlTemplate x:Key="DefaultColorSwatchTemplate" TargetType="local:ColorSwatch">
-				<Border
-					Width="{TemplateBinding Width}"
-					Height="{TemplateBinding Height}"
-					BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}"
-					BorderThickness="1">
-					<Border.Background>
-						<SolidColorBrush Color="{Binding Color, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" />
-					</Border.Background>
-				</Border>
-			</ControlTemplate>
-
-			<Style x:Key="DefaultColorSwatchStyle" TargetType="local:ColorSwatch">
-				<Setter Property="Template" Value="{StaticResource DefaultColorSwatchTemplate}" />
-				<Setter Property="Width" Value="20" />
-				<Setter Property="Height" Value="20" />
-			</Style>
-
-			<Style TargetType="local:ColorSwatch" BasedOn="{StaticResource DefaultColorSwatchStyle}"></Style>
 
 			<Style x:Key="PercentageSensorLineChartStyle" TargetType="lcontrols:LineChart" BasedOn="{StaticResource DefaultLineChartStyle}">
 				<Setter Property="Stroke" Value="#0f0" />
