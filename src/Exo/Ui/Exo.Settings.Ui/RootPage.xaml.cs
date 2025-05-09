@@ -42,8 +42,7 @@ internal sealed partial class RootPage : Page
 			window.SetTitleBar(AppTitleBar);
 			window.Activated += OnWindowActivated;
 			AppTitleBar.Loaded += OnAppTitleBarLoaded;
-			AppTitleBar.SizeChanged += OnAppTitleBarSizeChanged; ;
-			App.Current.Services.GetRequiredService<IEditionService>().ShowToolbar = false;
+			AppTitleBar.SizeChanged += OnAppTitleBarSizeChanged;
 
 			Navigate(vm.CurrentPage);
 		};

@@ -408,4 +408,7 @@
   <data name="LightingImportConfigurationButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>Import the configuration.</value>
   </data>
+  <data name="CurrentColorButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Color to apply.</value>
+  </data>
 </root>

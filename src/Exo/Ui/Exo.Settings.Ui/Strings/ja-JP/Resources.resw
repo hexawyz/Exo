@@ -408,4 +408,7 @@
   <data name="LightingImportConfigurationButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>設定を読み出す。</value>
   </data>
+  <data name="CurrentColorButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>適用する色。</value>
+  </data>
 </root>

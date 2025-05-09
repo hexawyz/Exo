@@ -31,7 +31,6 @@
 		<None Remove="DataTemplates.xaml" />
 		<None Remove="DevicePage.xaml" />
 		<None Remove="DevicesPage.xaml" />
-		<None Remove="EditionToolbar.xaml" />
 		<None Remove="EmbeddedMonitorDeviceSettingsControl.xaml" />
 		<None Remove="EmbeddedMonitorImageSettingsControl.xaml" />
 		<None Remove="EmbeddedMonitorSettingControl.xaml" />
@@ -276,11 +275,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<Page Update="SensorsPage.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</Page>
-	</ItemGroup>
-	<ItemGroup>
-		<Page Update="EditionToolbar.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>

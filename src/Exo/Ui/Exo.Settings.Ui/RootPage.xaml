@@ -130,7 +130,6 @@
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto" />
 					<RowDefinition Height="Auto" />
-					<RowDefinition Height="Auto" />
 					<RowDefinition Height="*" />
 				</Grid.RowDefinitions>
 
@@ -187,15 +186,9 @@
             ToolTipService.ToolTip="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
 				</Grid>
 
-				<local:EditionToolbar
-          Grid.Row="2"
-          Margin="{StaticResource NavigationContentHeaderMargin}"
-          DataContext="{Binding EditionService}"
-          Visibility="{Binding ShowToolbar, Converter={StaticResource BooleanToVisibilityConverter}}" />
-
 				<Frame
           x:Name="ContentFrame"
-					Grid.Row="3"
+					Grid.Row="2"
           IsNavigationStackEnabled="False">
 					<Frame.ContentTransitions>
 						<NavigationThemeTransition />

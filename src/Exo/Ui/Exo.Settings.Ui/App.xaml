@@ -13,6 +13,7 @@
 		<ResourceDictionary>
 			<ResourceDictionary.MergedDictionaries>
 				<XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+				<!--<ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.ColorPicker/ColorPicker/ColorPicker.xaml" />-->
 				<local:DataTemplates />
 				<ResourceDictionary Source="Controls\Gauge.xaml" />
 				<ResourceDictionary Source="Controls\LineChart.xaml" />
@@ -106,6 +107,7 @@
 
 			<local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 
+			<!-- NB: This is not currently used, as it is compeltely broken. CustomPalette currently cannot be styled, and the default style cannot be referenced. -->
 			<Style x:Key="RgbLightingColorPickerStyle" TargetType="controls:ColorPicker">
 				<Setter Property="ColorSpectrumShape" Value="Ring" />
 				<Setter Target="CustomPalette" Value="{StaticResource RgbLightingDefaultPalette}" />
