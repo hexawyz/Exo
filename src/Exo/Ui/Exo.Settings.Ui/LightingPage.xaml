@@ -21,8 +21,8 @@
 				<AppBarButton.Resources>
 					<CornerRadius x:Key="ColorPickerButtonPreviewCornerRadius">2</CornerRadius>
 					<Thickness x:Key="ColorPickerButtonPadding">3,3,6,3</Thickness>
-					<x:Double x:Key="ColorPickerButtonPreviewMinHeight">22</x:Double>
-					<x:Double x:Key="ColorPickerButtonPreviewMinWidth">32</x:Double>
+					<x:Double x:Key="ColorPickerButtonPreviewMinHeight">16</x:Double>
+					<x:Double x:Key="ColorPickerButtonPreviewMinWidth">16</x:Double>
 				</AppBarButton.Resources>
 				<AppBarButton.Flyout>
 					<Flyout ShouldConstrainToRootBounds="False">
@@ -54,7 +54,8 @@
 				<AppBarButton.Content>
 					<Grid BorderBrush="{ThemeResource ButtonBorderBrush}"
 						BorderThickness="1"
-						CornerRadius="{ThemeResource ColorPickerButtonPreviewCornerRadius}">
+						CornerRadius="{ThemeResource ColorPickerButtonPreviewCornerRadius}"
+						Margin="-2">
 						<Border
 							MinWidth="{ThemeResource ColorPickerButtonPreviewMinWidth}"
 							MinHeight="{ThemeResource ColorPickerButtonPreviewMinHeight}"
