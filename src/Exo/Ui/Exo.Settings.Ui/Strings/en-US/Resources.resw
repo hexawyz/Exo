@@ -402,4 +402,10 @@
   <data name="EffectDirectionForwardButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>Forward</value>
   </data>
+  <data name="LightingExportConfigurationButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Export the configuration.</value>
+  </data>
+  <data name="LightingImportConfigurationButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Import the configuration.</value>
+  </data>
 </root>

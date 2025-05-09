@@ -402,4 +402,10 @@
   <data name="EffectDirectionForwardButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>順行</value>
   </data>
+  <data name="LightingExportConfigurationButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>設定を書き出す。</value>
+  </data>
+  <data name="LightingImportConfigurationButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>設定を読み出す。</value>
+  </data>
 </root>

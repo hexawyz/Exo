@@ -155,6 +155,7 @@ public partial class App : Application
 		services.AddSingleton<ISettingsMetadataService>(sp => sp.GetRequiredService<MetadataService>());
 
 		services.AddSingleton<IFileOpenDialog, FileOpenDialog>();
+		services.AddSingleton<IFileSaveDialog, FileSaveDialog>();
 
 		services.AddSingleton(_ => new ResettableChannel<MetadataSourceChangeNotification>(UnboundedChannelOptions));
 		services.AddSingleton(_ => new ResettableChannel<MenuChangeNotification>(UnboundedChannelOptions));
@@ -203,6 +204,27 @@ public partial class App : Application
 		}
 	}
 
+	private sealed class FileSaveDialog : IFileSaveDialog
+	{
+		private readonly Window _mainWindow;
+
+		public FileSaveDialog(Window mainWindow) => _mainWindow = mainWindow;
+
+		async Task<IPickedFile?> IFileSaveDialog.ChooseAsync(ImmutableArray<(string Description, string Extension)> fileTypes)
+		{
+			var fileSavePicker = new FileSavePicker();
+			foreach (var (description, extension) in fileTypes)
+			{
+				fileSavePicker.FileTypeChoices.Add(description, [extension]);
+			}
+
+			InitializeWithWindow.Initialize(fileSavePicker, WindowNative.GetWindowHandle(_mainWindow));
+			return await fileSavePicker.PickSaveFileAsync() is { } file ?
+				new PickedFile(file) :
+				null;
+		}
+	}
+
 	private sealed class PickedFile : IPickedFile
 	{
 		private readonly StorageFile _file;
@@ -212,6 +234,7 @@ public partial class App : Application
 
 		public string? Path => _file.Path;
 		public Task<Stream> OpenForReadAsync() => _file.OpenStreamForReadAsync();
+		public Task<Stream> OpenForWriteAsync() => _file.OpenStreamForWriteAsync();
 	}
 
 	private sealed class RasterizationScaleController : BindableObject, IRasterizationScaleProvider

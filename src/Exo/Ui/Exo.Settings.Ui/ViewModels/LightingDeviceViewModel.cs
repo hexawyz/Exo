@@ -1,10 +1,11 @@
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 using System.Windows.Input;
 using Exo.Lighting;
 using Exo.Service;
+using Exo.Settings.Ui.Converters;
+using Exo.Settings.Ui.Models;
 using Exo.Settings.Ui.Services;
 using Microsoft.Extensions.Logging;
 
@@ -422,6 +423,47 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 			if (zone.IsChanged)
 			{
 				zone.Reset();
+			}
+		}
+	}
+
+	// Returns the whole *applied* lighting configuration of the device.
+	// This is funnily easier to do than the ApplyAsync method, as the initial lighting effects are already stored in a serialized form.
+	internal DeviceLightingConfiguration? GetLightingConfiguration()
+	{
+		var zones = new Dictionary<Guid, LightingEffect>();
+		if (UnifiedLightingZone is not null)
+		{
+			if (UnifiedLightingZone.InitialEffect is { } effect)
+			{
+				zones.Add(UnifiedLightingZone.Id, effect);
+			}
+		}
+		foreach (var zone in LightingZones)
+		{
+			if (zone.InitialEffect is { } effect)
+			{
+				zones.Add(zone.Id, effect);
+			}
+		}
+		return _brightness is not null || zones.Count > 0 ?
+			new(_brightness?.InitialLevel, _useUnifiedLightingInitialValue, zones) :
+			null;
+	}
+
+	// Sets the specified configuration as the current configuration.
+	internal void SetLightingConfiguration(DeviceLightingConfiguration configuration)
+	{
+		UseUnifiedLighting = configuration.UseUnifiedLighting;
+		if (configuration.Brightness is byte brightness && _brightness is not null)
+		{
+			_brightness.Level = brightness;
+		}
+		foreach (var (zoneId, effect) in configuration.Zones)
+		{
+			if (_lightingZoneById.TryGetValue(zoneId, out var zone))
+			{
+				zone.TrySetCurrentEffect(effect);
 			}
 		}
 	}

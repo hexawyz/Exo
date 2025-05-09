@@ -129,13 +129,15 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderab
 
 	public override bool IsChanged => _initialEffect?.EffectId != _currentEffect?.EffectId || _isNewEffect || _changedPropertyCount != 0;
 
+	public LightingEffect? InitialEffect => _initialEffect;
+
 	public LightingEffectViewModel? CurrentEffect
 	{
 		get => _currentEffect;
 		private set => SetCurrentEffect(value, false, IsChanged);
 	}
 
-	private void SetCurrentEffect(LightingEffectViewModel? value, bool isInitialEffectUpdate, bool wasChanged)
+	private bool SetCurrentEffect(LightingEffectViewModel? value, bool isInitialEffectUpdate, bool wasChanged)
 	{
 		if (SetValue(ref _currentEffect, value, ChangedProperty.CurrentEffect))
 		{
@@ -185,7 +187,11 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderab
 			}
 
 			if (colorChanged) NotifyPropertyChanged(ChangedProperty.Color);
+
+			return true;
 		}
+
+		return false;
 	}
 
 	public ReadOnlyCollection<PropertyViewModel> Properties => _properties;
@@ -289,8 +295,11 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderab
 	}
 
 	private void AssignPropertyInitialValues(bool shouldReset)
+		=> AssignPropertyInitialValues(_initialEffect, shouldReset);
+
+	// Outside of the main use-case of loading the values from the backend, this is also used for configuration imports.
+	private void AssignPropertyInitialValues(LightingEffect? effect, bool shouldReset)
 	{
-		var effect = _initialEffect;
 		if (effect is not null)
 		{
 			var data = effect.EffectData.AsSpan();
@@ -304,6 +313,39 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderab
 				if (shouldReset) property.Reset();
 			}
 		}
+	}
+
+	internal bool TrySetCurrentEffect(LightingEffect effect)
+	{
+		// Quick shortcut if the current effect we assign is already the initial effect.
+		// In that case, we don't want the "new effect" to show up as changed, so the easiest thing to do is just to reset the lighting zone.
+		if (_initialEffect is not null && _initialEffect.EffectId == effect.EffectId && _initialEffect.EffectData.SequenceEqual(effect.EffectData))
+		{
+			Reset();
+			return true;
+		}
+
+		LightingEffectViewModel? newEffect = null;
+		foreach (var effectViewModel in _supportedEffects)
+		{
+			if (effectViewModel.EffectId == effect.EffectId)
+			{
+				newEffect = effectViewModel;
+			}
+		}
+
+		if (newEffect is null) return false;
+
+		// We will set the initial value of the effect to reflect the provided configuration, so the current effect must absolutely be marked as new.
+		bool wasChanged = IsChanged;
+		if (!SetCurrentEffect(newEffect, false, wasChanged))
+		{
+			_isNewEffect = true;
+			OnChangeStateChange(wasChanged);
+		}
+		AssignPropertyInitialValues(effect, true);
+
+		return true;
 	}
 
 	public void Reset()

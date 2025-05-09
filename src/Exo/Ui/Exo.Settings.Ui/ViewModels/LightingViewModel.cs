@@ -1,10 +1,15 @@
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Globalization;
+using System.Text.Json;
+using System.Windows.Input;
 using Exo.Lighting;
 using Exo.Metadata;
 using Exo.Service;
+using Exo.Settings.Ui.Json;
+using Exo.Settings.Ui.Models;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using Microsoft.Extensions.Logging;
@@ -24,16 +29,24 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
 	private readonly ILogger<LightingDeviceViewModel> _lightingDeviceLogger;
 	private readonly INotificationSystem _notificationSystem;
+	private readonly IFileOpenDialog _fileOpenDialog;
+	private readonly IFileSaveDialog _fileSaveDialog;
+	private readonly Commands.ExportConfigurationCommand _exportConfigurationCommand;
+	private readonly Commands.ImportConfigurationCommand _importConfigurationCommand;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
 	public ILightingService? LightingService => _lightingService;
+	public ICommand ExportConfigurationCommand => _exportConfigurationCommand;
+	public ICommand ImportConfigurationCommand => _importConfigurationCommand;
 
-	public LightingViewModel(ITypedLoggerProvider loggerProvider, DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService, INotificationSystem notificationSystem)
+	public LightingViewModel(ITypedLoggerProvider loggerProvider, DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService, INotificationSystem notificationSystem, IFileOpenDialog fileOpenDialog, IFileSaveDialog fileSaveDialog)
 	{
 		_lightingDeviceLogger = loggerProvider.GetLogger<LightingDeviceViewModel>();
 		_notificationSystem = notificationSystem;
+		_fileOpenDialog = fileOpenDialog;
+		_fileSaveDialog = fileSaveDialog;
 		_devicesViewModel = devicesViewModel;
 		_metadataService = metadataService;
 		_lightingDevices = new();
@@ -41,6 +54,8 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 		_effectViewModelById = new();
 		_pendingConfigurationUpdates = new();
 		_pendingDeviceInformations = new();
+		_exportConfigurationCommand = new(this);
+		_importConfigurationCommand = new(this);
 		_cancellationTokenSource = new CancellationTokenSource();
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
 	}
@@ -197,5 +212,92 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 			shape = metadata.Shape;
 		}
 		return (displayName ?? $"Unknown {zoneId:B}", displayOrder, componentType, shape);
+	}
+
+	private async Task ExportConfigurationAsync()
+	{
+		if (await _fileSaveDialog.ChooseAsync([("Lighting Configuration", ".light")]) is { } file)
+		{
+			using var stream = await file.OpenForWriteAsync();
+
+			var devices = new Dictionary<Guid, DeviceLightingConfiguration>();
+			foreach (var device in _lightingDevices)
+			{
+				if (device.GetLightingConfiguration() is { } configuration) devices.Add(device.Id, configuration);
+			}
+
+			await JsonSerializer.SerializeAsync(stream, new LightingConfiguration(false, devices), SourceGenerationContext.Default.LightingConfiguration);
+		}
+	}
+
+	private async Task ImportConfigurationAsync()
+	{
+		if (await _fileOpenDialog.OpenAsync([".light"]) is { } file)
+		{
+			using (var stream = await file.OpenForReadAsync())
+			{
+				var configuration = await JsonSerializer.DeserializeAsync(stream, SourceGenerationContext.Default.LightingConfiguration);
+				foreach (var (deviceId, deviceConfiguration) in configuration.Devices)
+				{
+					if (!_lightingDeviceById.TryGetValue(deviceId, out var device)) continue;
+					device.SetLightingConfiguration(deviceConfiguration);
+				}
+			}
+		}
+	}
+
+	private static class Commands
+	{
+		public sealed class ExportConfigurationCommand(LightingViewModel owner) : ICommand
+		{
+			private readonly LightingViewModel _owner = owner;
+
+			bool ICommand.CanExecute(object? parameter) => true;
+
+			async void ICommand.Execute(object? parameter)
+			{
+				try
+				{
+					await _owner.ExportConfigurationAsync();
+				}
+				catch
+				{
+				}
+			}
+
+			private event EventHandler? CanExecuteChanged;
+
+			event EventHandler? ICommand.CanExecuteChanged
+			{
+				add => CanExecuteChanged += value;
+				remove => CanExecuteChanged -= value;
+			}
+		}
+
+		public sealed class ImportConfigurationCommand(LightingViewModel owner) : ICommand
+		{
+			private readonly LightingViewModel _owner = owner;
+
+			bool ICommand.CanExecute(object? parameter) => true;
+
+			async void ICommand.Execute(object? parameter)
+			{
+				try
+				{
+					await _owner.ImportConfigurationAsync();
+				}
+				catch
+				{
+				}
+			}
+
+			private event EventHandler? CanExecuteChanged;
+
+			event EventHandler? ICommand.CanExecuteChanged
+			{
+				add => CanExecuteChanged += value;
+				remove => CanExecuteChanged -= value;
+			}
+		}
 	}
 }

@@ -33,6 +33,8 @@ internal sealed class LightingDeviceBrightnessViewModel : ChangeableBindableObje
 
 	public override bool IsChanged => _currentBrightness != _initialBrightness;
 
+	public byte InitialLevel => _initialBrightness;
+
 	public byte Level
 	{
 		get => _currentBrightness;
