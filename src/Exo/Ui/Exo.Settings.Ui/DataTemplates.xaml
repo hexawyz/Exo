@@ -176,10 +176,10 @@
 	</DataTemplate>
 	<DataTemplate x:Key="Direction1DPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
 		<StackPanel Orientation="Horizontal">
-			<ToggleButton x:Uid="EffectDirectionBackwardButton" Margin="0,0,3,0" IsChecked="{Binding Value, Mode=TwoWay, Converter={StaticResource EffectDirectionToBooleanConverter}}">
+			<ToggleButton x:Uid="EffectDirectionBackwardButton" Margin="0,0,3,0" Padding="9,4,9,5" IsChecked="{Binding Value, Mode=TwoWay, Converter={StaticResource EffectDirectionToBooleanConverter}}">
 				<FontIcon Glyph="&#xE72B;" />
 			</ToggleButton>
-			<ToggleButton x:Uid="EffectDirectionForwardButton" Margin="3,0,0,0">
+			<ToggleButton x:Uid="EffectDirectionForwardButton" Margin="3,0,0,0" Padding="9,4,9,5">
 				<ToggleButton.IsChecked>
 					<Binding Path="Value" Mode="TwoWay" Converter="{StaticResource EffectDirectionToBooleanConverter}">
 						<Binding.ConverterParameter>
