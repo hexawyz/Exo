@@ -5,8 +5,8 @@
   xmlns:local="using:Exo.Settings.Ui.Controls"
   xmlns:lconverters="using:Exo.Settings.Ui.Converters">
 
-	<x:Double x:Key="DefaultColorSwatchWidth">20</x:Double>
-	<x:Double x:Key="DefaultColorSwatchHeight">20</x:Double>
+	<x:Double x:Key="DefaultColorSwatchWidth">32</x:Double>
+	<x:Double x:Key="DefaultColorSwatchHeight">32</x:Double>
 	
 	<ControlTemplate x:Key="DefaultColorSwatchTemplate" TargetType="local:ColorSwatch">
 		<Border
