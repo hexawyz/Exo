@@ -265,12 +265,10 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 				}
 			}
 
-			private event EventHandler? CanExecuteChanged;
-
 			event EventHandler? ICommand.CanExecuteChanged
 			{
-				add => CanExecuteChanged += value;
-				remove => CanExecuteChanged -= value;
+				add { }
+				remove { }
 			}
 		}
 
@@ -291,12 +289,10 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 				}
 			}
 
-			private event EventHandler? CanExecuteChanged;
-
 			event EventHandler? ICommand.CanExecuteChanged
 			{
-				add => CanExecuteChanged += value;
-				remove => CanExecuteChanged -= value;
+				add { }
+				remove { }
 			}
 		}
 	}
