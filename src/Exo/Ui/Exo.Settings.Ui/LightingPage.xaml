@@ -16,9 +16,12 @@
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="*" />
 		</Grid.RowDefinitions>
-		<CommandBar OverflowButtonVisibility="Collapsed">
-			<AppBarButton x:Uid="CurrentColorButton" DataContext="{Binding EditionService, Mode=OneWay}">
+		<CommandBar OverflowButtonVisibility="Collapsed" IsOpen="False" DefaultLabelPosition="Right" Margin="0,0,0,6">
+			<AppBarButton
+				x:Uid="CurrentColorButton"
+				DataContext="{Binding EditionService, Mode=OneWay}">
 				<AppBarButton.Resources>
+					<Visibility x:Key="AppBarButtonHasFlyoutChevronVisibility">Visible</Visibility>
 					<CornerRadius x:Key="ColorPickerButtonPreviewCornerRadius">2</CornerRadius>
 					<Thickness x:Key="ColorPickerButtonPadding">3,3,6,3</Thickness>
 					<x:Double x:Key="ColorPickerButtonPreviewMinHeight">16</x:Double>

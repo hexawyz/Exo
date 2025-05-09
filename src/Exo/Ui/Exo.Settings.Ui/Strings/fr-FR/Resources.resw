@@ -411,4 +411,13 @@
   <data name="CurrentColorButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>Couleur à appliquer.</value>
   </data>
+  <data name="CurrentColorButton.Label" xml:space="preserve">
+    <value>Couleur</value>
+  </data>
+  <data name="LightingImportConfigurationButton.Label" xml:space="preserve">
+    <value>Importer</value>
+  </data>
+  <data name="LightingExportConfigurationButton.Label" xml:space="preserve">
+    <value>Exporter</value>
+  </data>
 </root>

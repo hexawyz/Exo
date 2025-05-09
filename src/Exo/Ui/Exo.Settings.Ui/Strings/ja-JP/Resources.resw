@@ -411,4 +411,13 @@
   <data name="CurrentColorButton.ToolTipService.ToolTip" xml:space="preserve">
     <value>適用する色。</value>
   </data>
+  <data name="CurrentColorButton.Label" xml:space="preserve">
+    <value>色</value>
+  </data>
+  <data name="LightingImportConfigurationButton.Label" xml:space="preserve">
+    <value>読み出す</value>
+  </data>
+  <data name="LightingExportConfigurationButton.Label" xml:space="preserve">
+    <value>書き出す</value>
+  </data>
 </root>
