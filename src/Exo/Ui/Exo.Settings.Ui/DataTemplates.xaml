@@ -125,7 +125,7 @@
 		</Slider>
 	</DataTemplate>
 	<DataTemplate x:Key="FixedColorArrayPropertyTemplate" x:DataType="vm:RgbColorArrayPropertyViewModel">
-		<ItemsControl ItemsSource="{Binding Elements}">
+		<ItemsControl ItemsSource="{Binding Elements}" Margin="-3,0,0,0">
 			<ItemsControl.ItemTemplate>
 				<DataTemplate>
 					<lcontrols:ColorSwatch Margin="3,0,3,0" Color="{Binding Value, Mode=TwoWay, Converter={StaticResource RgbColorConverter}}" />
@@ -140,7 +140,7 @@
 	</DataTemplate>
 	<DataTemplate x:Key="VariableColorArrayPropertyTemplate" x:DataType="vm:RgbColorArrayPropertyViewModel">
 		<StackPanel Orientation="Horizontal">
-			<ItemsControl ItemsSource="{Binding Elements}">
+			<ItemsControl ItemsSource="{Binding Elements}" Margin="-3,0,0,0">
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
 						<Grid>
@@ -166,7 +166,7 @@
 					</ItemsPanelTemplate>
 				</ItemsControl.ItemsPanel>
 			</ItemsControl>
-			<Button Margin="6,0,0,0" Command="{Binding AddCommand, Mode=OneWay}" Padding="4,2,2,1">
+			<Button Margin="6,0,0,0" Command="{Binding AddCommand, Mode=OneWay}" Padding="4,4,2,3">
 				<FontIcon Glyph="&#xE710;" />
 			</Button>
 		</StackPanel>
