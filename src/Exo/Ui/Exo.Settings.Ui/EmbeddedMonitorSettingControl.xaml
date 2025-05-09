@@ -3,7 +3,9 @@
   x:Class="Exo.Settings.Ui.EmbeddedMonitorSettingControl"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:mxi="using:Microsoft.Xaml.Interactivity"
   xmlns:local="using:Exo.Settings.Ui"
+	xmlns:behaviors="using:Exo.Settings.Ui.Behaviors"
   xmlns:lconverters="using:Exo.Settings.Ui.Converters"
   xmlns:lts="using:Exo.Settings.Ui.DataTemplateSelectors"
   xmlns:vm="using:Exo.Settings.Ui.ViewModels"
@@ -36,6 +38,9 @@
 						<TextBlock Text="{Binding DisplayName}" />
 					</DataTemplate>
 				</ComboBox.ItemTemplate>
+				<mxi:Interaction.Behaviors>
+					<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
+				</mxi:Interaction.Behaviors>
 			</ComboBox>
 			<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
 				<FontIcon Glyph="&#xE777;" />

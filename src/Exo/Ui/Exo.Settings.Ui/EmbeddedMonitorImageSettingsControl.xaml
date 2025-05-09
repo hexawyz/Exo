@@ -3,8 +3,10 @@
   x:Class="Exo.Settings.Ui.EmbeddedMonitorImageSettingsControl"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:mxi="using:Microsoft.Xaml.Interactivity"
   xmlns:local="using:Exo.Settings.Ui"
   xmlns:vm="using:Exo.Settings.Ui.ViewModels"
+	xmlns:behaviors="using:Exo.Settings.Ui.Behaviors"
   xmlns:controls="using:CommunityToolkit.WinUI.Controls"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -44,6 +46,9 @@
 						</StackPanel>
 					</DataTemplate>
 				</ComboBox.ItemTemplate>
+				<mxi:Interaction.Behaviors>
+					<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
+				</mxi:Interaction.Behaviors>
 			</ComboBox>
 			<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}" CommandParameter="{Binding}">
 				<FontIcon Glyph="&#xE777;" />
