@@ -30,10 +30,10 @@
 							<DesktopAcrylicBackdrop />
 						</Flyout.SystemBackdrop>
 						<controls:ColorPicker
+							x:Name="EditColorPicker"
 							IsAlphaEnabled="False"
 							ColorSpectrumShape="Ring"
 							CustomPalette="{StaticResource RgbLightingDefaultPalette}"
-							Color="{Binding Color, Mode=TwoWay}"
 							Height="420">
 							<controls:ColorPicker.Resources>
 								<!-- GridViewItemMinWidth and GridViewItemMinHeight would be 44 by default. -->
