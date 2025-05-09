@@ -26,6 +26,14 @@
 				</AppBarButton.Resources>
 				<AppBarButton.Flyout>
 					<Flyout ShouldConstrainToRootBounds="False">
+						<Flyout.FlyoutPresenterStyle>
+							<Style TargetType="FlyoutPresenter">
+								<Setter Property="Padding" Value="0" />
+								<Setter Property="CornerRadius" Value="{ThemeResource OverlayCornerRadius}" />
+								<Setter Property="Background" Value="Transparent" />
+								<Setter Property="MinHeight" Value="420" />
+							</Style>
+						</Flyout.FlyoutPresenterStyle>
 						<Flyout.SystemBackdrop>
 							<DesktopAcrylicBackdrop />
 						</Flyout.SystemBackdrop>
