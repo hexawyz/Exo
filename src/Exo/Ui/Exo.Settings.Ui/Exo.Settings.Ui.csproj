@@ -19,10 +19,10 @@
 		<ServerGarbageCollection>false</ServerGarbageCollection>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<ExoEnableAot>true</ExoEnableAot>
+		<ExoEnableAot>false</ExoEnableAot>
 	</PropertyGroup>
 	<!-- Swap this condition to enable or disable AOT -->
-	<PropertyGroup Condition="'$(ExoEnableAot)' != 'true'">
+	<PropertyGroup Condition="'$(ExoEnableAot)' == 'true'">
 		<PublishAot>true</PublishAot>
 		<SelfContained>true</SelfContained>
 		<Optimize>true</Optimize>
