@@ -109,7 +109,10 @@ internal sealed partial class SensorService
 					{
 						_sensorService._groupedQueryStateLogger.SensorServiceGroupedQueryError(ex);
 					}
-					ClearAndDisposeCancellationTokenSource(ref _disableCancellationTokenSource);
+					finally
+					{
+						ClearAndDisposeCancellationTokenSource(ref _disableCancellationTokenSource);
+					}
 					if (cancellationToken.IsCancellationRequested) return;
 					Volatile.Write(ref _enableSignal, new(TaskCreationOptions.RunContinuationsAsynchronously));
 				}

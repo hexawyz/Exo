@@ -139,7 +139,10 @@ internal sealed partial class SensorService
 					{
 						_logger.SensorServiceSensorStateWatchError(ex);
 					}
-					ClearAndDisposeCancellationTokenSource(ref _watchCancellationTokenSource);
+					finally
+					{
+						ClearAndDisposeCancellationTokenSource(ref _watchCancellationTokenSource);
+					}
 					if (cancellationToken.IsCancellationRequested) return;
 					_watchSignal = new(TaskCreationOptions.RunContinuationsAsynchronously);
 				}
