@@ -19,6 +19,7 @@ using Exo.Lighting.Effects;
 using Exo.Monitors;
 using Exo.Primitives;
 using Exo.Programming;
+using Exo.Settings.Ui;
 using Exo.Settings.Ui.Services;
 using Exo.Utils;
 using Microsoft.Extensions.Logging;
@@ -82,7 +83,26 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 	}
 
-	private static readonly ImmutableArray<byte> GitCommitId = GitCommitHelper.GetCommitId(typeof(ExoUiPipeClientConnection).Assembly);
+	[DllImport("kernel32", EntryPoint = "GetModuleFileNameW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = false)]
+	private static unsafe extern uint GetModuleFileName(nint hModule, ushort* lpFilename, uint nSize);
+
+	private static unsafe string GetModuleFileName()
+	{
+		const int BufferLength = 2045;
+		//const int ErrorInsufficientBuffer = 122;
+		ushort* fileNameBuffer = stackalloc ushort[BufferLength];
+		uint length = GetModuleFileName(0, fileNameBuffer, BufferLength);
+		if (length == 0 || length >= BufferLength)
+		{
+			int error = Marshal.GetLastSystemError();
+			Marshal.SetLastSystemError(error);
+			// NB: We *could* handle the case where the buffer is not large enough, but we likely will never need it at all.
+			Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
+		}
+		return MemoryMarshal.CreateSpan<char>(ref *(char*)fileNameBuffer, (int)length).ToString();
+	}
+
+	private static readonly ImmutableArray<byte> GitCommitId = GetModuleFileName() is string fileName ? GitCommitHelper.GetCommitId(fileName) : [];
 
 	public static ExoUiPipeClientConnection Create(PipeClient<ExoUiPipeClientConnection> client, NamedPipeClientStream stream)
 	{
@@ -130,8 +150,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				if (!await ProcessMessageAsync(buffer.Span[..count]).ConfigureAwait(false)) return;
 			}
 		}
-		catch (Exception)
+		catch (Exception ex)
 		{
+			Logger.ServiceConnectionException(ex);
 		}
 		finally
 		{

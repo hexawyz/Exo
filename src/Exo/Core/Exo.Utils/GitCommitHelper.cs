@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -9,12 +10,8 @@ public static class GitCommitHelper
 {
 	private static readonly SearchValues<char> HexadecimalCharacters = SearchValues.Create("0123456789ABCDEFabcdef");
 
-	[Obsolete("Should migrate away from this code.")]
-	public static string? GetCommitIdString(Assembly assembly)
-	{
-		var commitId = GetCommitId(assembly);
-		return commitId.IsDefaultOrEmpty ? null : Convert.ToHexString(ImmutableCollectionsMarshal.AsArray(commitId)!);
-	}
+	public static ImmutableArray<byte> GetCommitId(string fileName)
+		=> ParseCommitId(FileVersionInfo.GetVersionInfo(fileName).ProductVersion);
 
 	public static ImmutableArray<byte> GetCommitId(Assembly assembly)
 		=> assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>() is { } attr ?
@@ -23,11 +20,11 @@ public static class GitCommitHelper
 
 	public static ImmutableArray<byte> GetCommitId(AssemblyInformationalVersionAttribute assemblyInformationalVersionAttribute)
 		=> assemblyInformationalVersionAttribute.InformationalVersion is { } informationalVersion ?
-			GetCommitId(informationalVersion) :
+			ParseCommitId(informationalVersion) :
 			[];
 
-	private static ImmutableArray<byte> GetCommitId(string informationalVersion)
-		=> informationalVersion.IndexOf('+') is >= 0 and int separatorIndex ?
+	private static ImmutableArray<byte> ParseCommitId(string? informationalVersion)
+		=> informationalVersion is not null && informationalVersion.IndexOf('+') is >= 0 and int separatorIndex ?
 			ValidateSha1(informationalVersion.AsSpan(separatorIndex + 1)) :
 			[];
 

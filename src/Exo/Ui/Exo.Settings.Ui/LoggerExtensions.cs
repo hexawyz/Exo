@@ -4,6 +4,9 @@ namespace Exo.Settings.Ui;
 
 internal static partial class LoggerExtensions
 {
+	[LoggerMessage(Level = LogLevel.Error, Message = "An error occurred when processing service messages.")]
+	public static partial void ServiceConnectionException(this ILogger logger, Exception exception);
+
 	[LoggerMessage(Level = LogLevel.Error, Message = "An error occurred when processing a device notification.")]
 	public static partial void DeviceNotificationError(this ILogger logger, Exception exception);
 
