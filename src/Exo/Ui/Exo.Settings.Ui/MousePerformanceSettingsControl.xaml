@@ -179,8 +179,8 @@
 		<ComboBox
       Grid.Column="1"
       Grid.Row="2"
-      SelectedItem="{x:Bind MouseFeatures.SelectedPollingFrequency, Mode=TwoWay}"
       ItemsSource="{x:Bind MouseFeatures.SupportedPollingFrequencies, Mode=OneWay}"
+      SelectedItem="{x:Bind MouseFeatures.SelectedPollingFrequency, Mode=TwoWay}"
       DisplayMemberPath="DisplayText"
       Visibility="{x:Bind MouseFeatures.CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
 			<mxi:Interaction.Behaviors>
