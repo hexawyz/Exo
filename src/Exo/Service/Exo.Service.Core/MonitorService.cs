@@ -1,15 +1,15 @@
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
 using Exo.Features;
 using Exo.Features.Monitors;
 using Exo.Monitors;
+using Exo.Primitives;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
-internal class MonitorService : IAsyncDisposable
+internal class MonitorService : IChangeSource<MonitorInformation>, IChangeSource<MonitorSettingValue>, IAsyncDisposable
 {
 	private sealed class MonitorDeviceDetails
 	{
@@ -49,8 +49,8 @@ internal class MonitorService : IAsyncDisposable
 	}
 
 	private readonly Dictionary<Guid, MonitorDeviceDetails> _deviceDetails = new();
-	private ChannelWriter<MonitorInformation>[]? _monitorListeners = [];
-	private ChannelWriter<MonitorSettingValue>[]? _changeListeners = [];
+	private ChangeBroadcaster<MonitorInformation> _monitorChangeBroadcaster;
+	private ChangeBroadcaster<MonitorSettingValue> _settingChangeBroadcaster;
 	private readonly Lock _lock = new();
 	private CancellationTokenSource? _cancellationTokenSource = new();
 	private readonly IDeviceWatcher _deviceWatcher;
@@ -202,18 +202,22 @@ internal class MonitorService : IAsyncDisposable
 					lock (_lock)
 					{
 						_deviceDetails.Add(deviceId, details);
-						_monitorListeners.TryWrite
-						(
-							new()
-							{
-								DeviceId = deviceId,
-								SupportedSettings = settings,
-								InputSelectSources = inputSources,
-								InputLagLevels = inputLagLevels,
-								ResponseTimeLevels = responseTimeLevels,
-								OsdLanguages = osdLanguages
-							}
-						);
+						var monitorChangeBroadcaster = _monitorChangeBroadcaster.GetSnapshot();
+						if (!monitorChangeBroadcaster.IsEmpty)
+						{
+							monitorChangeBroadcaster.Push
+							(
+								new()
+								{
+									DeviceId = deviceId,
+									SupportedSettings = settings,
+									InputSelectSources = inputSources,
+									InputLagLevels = inputLagLevels,
+									ResponseTimeLevels = responseTimeLevels,
+									OsdLanguages = osdLanguages
+								}
+							);
+						}
 					}
 
 					// Finish the updates in a separate execution flow. We don't want to slow monitor enumeration because of a single slow device.
@@ -383,7 +387,11 @@ internal class MonitorService : IAsyncDisposable
 							// Skip the change notification if the value was neither created not updated.
 							goto UpdateProcessed;
 						}
-						_changeListeners.TryWrite(new(details.DeviceId, setting, value.Current, value.Minimum, value.Maximum));
+						var settingChangeBroadcaster = _settingChangeBroadcaster.GetSnapshot();
+						if (!settingChangeBroadcaster.IsEmpty)
+						{
+							settingChangeBroadcaster.Push(new(details.DeviceId, setting, value.Current, value.Minimum, value.Maximum));
+						}
 					UpdateProcessed:;
 					}
 				}
@@ -395,56 +403,12 @@ internal class MonitorService : IAsyncDisposable
 		}
 	}
 
-	public async IAsyncEnumerable<MonitorSettingValue> WatchSettingsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+	ValueTask<MonitorInformation[]?> IChangeSource<MonitorInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<MonitorInformation> writer, CancellationToken cancellationToken)
 	{
-		var channel = Watcher.CreateSingleWriterChannel<MonitorSettingValue>();
-
-		// Cache all the initial notifications and register the channel for notifications.
-		// Registering a listener here could inflict a little perf hit on the MonitorService if there are lots of monitors and settings, but this intended for use by the settings UI only.
-		// As such, it should never really be a bottleneck.
-		var initialNotifications = new List<MonitorSettingValue>();
+		MonitorInformation[] initialNotifications;
 		lock (_lock)
 		{
-			foreach (var kvp1 in _deviceDetails)
-			{
-				foreach (var kvp2 in kvp1.Value.KnownValues)
-				{
-					initialNotifications.Add(new(kvp1.Key, kvp2.Key, kvp2.Value.Current, kvp2.Value.Minimum, kvp2.Value.Maximum));
-				}
-			}
-			ArrayExtensions.InterlockedAdd(ref _changeListeners, channel);
-		}
-
-		try
-		{
-			foreach (var notification in initialNotifications)
-			{
-				yield return notification;
-			}
-
-			initialNotifications = null;
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _changeListeners, channel);
-		}
-	}
-
-	public async IAsyncEnumerable<MonitorInformation> WatchMonitorsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-	{
-		var channel = Watcher.CreateSingleWriterChannel<MonitorInformation>();
-
-		// Cache all the initial notifications and register the channel for notifications.
-		// Registering a listener here could inflict a little perf hit on the MonitorService if there are lots of monitors and settings, but this intended for use by the settings UI only.
-		// As such, it should never really be a bottleneck.
-		var initialNotifications = new List<MonitorInformation>();
-		lock (_lock)
-		{
+			initialNotifications = new MonitorInformation[_deviceDetails.Count];
 			foreach (var details in _deviceDetails.Values)
 			{
 				initialNotifications.Add
@@ -460,28 +424,33 @@ internal class MonitorService : IAsyncDisposable
 					}
 				);
 			}
-			ArrayExtensions.InterlockedAdd(ref _monitorListeners, channel);
+			_monitorChangeBroadcaster.Register(writer);
 		}
-
-		try
-		{
-			foreach (var notification in initialNotifications)
-			{
-				yield return notification;
-			}
-
-			initialNotifications = null;
-
-			await foreach (var notification in channel.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
-			{
-				yield return notification;
-			}
-		}
-		finally
-		{
-			ArrayExtensions.InterlockedRemove(ref _monitorListeners, channel);
-		}
+		return new(initialNotifications);
 	}
+
+	void IChangeSource<MonitorInformation>.UnregisterWatcher(ChannelWriter<MonitorInformation> writer)
+		=> _monitorChangeBroadcaster.Unregister(writer);
+
+	ValueTask<MonitorSettingValue[]?> IChangeSource<MonitorSettingValue>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<MonitorSettingValue> writer, CancellationToken cancellationToken)
+	{
+		List<MonitorSettingValue>? initialNotifications = null;
+		lock (_lock)
+		{
+			foreach (var kvp1 in _deviceDetails)
+			{
+				foreach (var kvp2 in kvp1.Value.KnownValues)
+				{
+					(initialNotifications ??= new()).Add(new(kvp1.Key, kvp2.Key, kvp2.Value.Current, kvp2.Value.Minimum, kvp2.Value.Maximum));
+				}
+			}
+			_settingChangeBroadcaster.Register(writer);
+		}
+		return new(initialNotifications is not null ? [.. initialNotifications] : []);
+	}
+
+	void IChangeSource<MonitorSettingValue>.UnregisterWatcher(ChannelWriter<MonitorSettingValue> writer)
+		=> _settingChangeBroadcaster.Unregister(writer);
 
 	public ValueTask SetSettingValueAsync(Guid deviceId, MonitorSetting setting, ushort value, CancellationToken cancellationToken)
 		=> setting switch
@@ -539,7 +508,11 @@ internal class MonitorService : IAsyncDisposable
 		{
 			var settingValue = knownValues[setting] with { Current = value };
 			knownValues[setting] = settingValue;
-			_changeListeners.TryWrite(new(deviceId, setting, settingValue.Current, settingValue.Minimum, settingValue.Maximum));
+			var settingChangeBroadcaster = _settingChangeBroadcaster.GetSnapshot();
+			if (!settingChangeBroadcaster.IsEmpty)
+			{
+				settingChangeBroadcaster.Push(new(deviceId, setting, settingValue.Current, settingValue.Minimum, settingValue.Maximum));
+			}
 		}
 	}
 

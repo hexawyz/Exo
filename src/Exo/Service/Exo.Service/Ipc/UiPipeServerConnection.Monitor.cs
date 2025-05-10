@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Exo.Monitors;
+using Exo.Primitives;
 
 namespace Exo.Service.Ipc;
 
@@ -7,23 +8,53 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchMonitorDevicesAsync(CancellationToken cancellationToken)
 	{
-		try
+		using (var watcher = await BroadcastedChangeWatcher<MonitorInformation>.CreateAsync(_monitorService, cancellationToken))
 		{
-			await foreach (var info in _monitorService.WatchMonitorsAsync(cancellationToken).ConfigureAwait(false))
+			try
+			{
+				await WriteInitialDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+
+		async Task WriteInitialDataAsync(BroadcastedChangeWatcher<MonitorInformation> watcher, CancellationToken cancellationToken)
+		{
+			var initialData = watcher.ConsumeInitialData();
+			if (initialData is { Length: > 0 })
 			{
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
-					int length = WriteUpdate(buffer.Span, info);
-					await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					foreach (var monitorInformation in initialData)
+					{
+						int length = Write(buffer.Span, monitorInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
 				}
 			}
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<MonitorInformation> watcher, CancellationToken cancellationToken)
 		{
+			while (true)
+			{
+				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var monitorInformation))
+					{
+						int length = Write(buffer.Span, monitorInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
 		}
 
-		static int WriteUpdate(Span<byte> buffer, in MonitorInformation monitor)
+		static int Write(Span<byte> buffer, in MonitorInformation monitor)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolServerMessage.MonitorDevice);
@@ -74,20 +105,50 @@ partial class UiPipeServerConnection
 
 	private async Task WatchMonitorSettingsAsync(CancellationToken cancellationToken)
 	{
-		try
+		using (var watcher = await BroadcastedChangeWatcher<MonitorSettingValue>.CreateAsync(_monitorService, cancellationToken))
 		{
-			await foreach (var setting in _monitorService.WatchSettingsAsync(cancellationToken).ConfigureAwait(false))
+			try
+			{
+				await WriteInitialDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+
+		async Task WriteInitialDataAsync(BroadcastedChangeWatcher<MonitorSettingValue> watcher, CancellationToken cancellationToken)
+		{
+			var initialData = watcher.ConsumeInitialData();
+			if (initialData is { Length: > 0 })
 			{
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
-					int length = Write(buffer.Span, setting);
-					await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					foreach (var setting in initialData)
+					{
+						int length = Write(buffer.Span, setting);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
 				}
 			}
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<MonitorSettingValue> watcher, CancellationToken cancellationToken)
 		{
+			while (true)
+			{
+				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var setting))
+					{
+						int length = Write(buffer.Span, setting);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
 		}
 
 		static int Write(Span<byte> buffer, in MonitorSettingValue notification)
