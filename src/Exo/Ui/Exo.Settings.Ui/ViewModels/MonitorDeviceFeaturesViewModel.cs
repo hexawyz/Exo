@@ -8,10 +8,12 @@ using Exo.Monitors;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBindableObject, IRefreshable
+[GeneratedBindableCustomProperty]
+internal sealed partial class MonitorDeviceFeaturesViewModel : ApplicableResettableBindableObject, IRefreshable
 {
 	private readonly DeviceViewModel _device;
 	private readonly ISettingsMetadataService _metadataService;
@@ -607,14 +609,16 @@ internal sealed class MonitorDeviceFeaturesViewModel : ApplicableResettableBinda
 	}
 }
 
-internal abstract class MonitorDeviceSettingViewModel : ResettableBindableObject
+[GeneratedBindableCustomProperty]
+internal abstract partial class MonitorDeviceSettingViewModel : ResettableBindableObject
 {
 	public abstract MonitorSetting Setting { get; }
 	internal abstract void SetValues(ushort currentValue, ushort minimumValue, ushort maximumValue);
 	internal abstract ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken);
 }
 
-internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
 {
 	private ushort _value;
 	private ushort _initialValue;
@@ -719,7 +723,8 @@ internal sealed class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSet
 	protected override void Reset() => Value = InitialValue;
 }
 
-internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class NonContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
 {
 	private ushort _value;
 	private ushort _initialValue;
@@ -874,7 +879,8 @@ internal sealed class NonContinuousMonitorDeviceSettingViewModel : MonitorDevice
 	}
 }
 
-internal sealed class NonContinuousValueViewModel : BindableObject
+[GeneratedBindableCustomProperty]
+internal sealed partial class NonContinuousValueViewModel : BindableObject
 {
 	internal NonContinuousMonitorDeviceSettingViewModel SettingViewModel { get; }
 	public ushort Value { get; }
@@ -895,7 +901,8 @@ internal sealed class NonContinuousValueViewModel : BindableObject
 	}
 }
 
-internal sealed class BooleanMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class BooleanMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
 {
 	private bool _value;
 	private bool _initialValue;

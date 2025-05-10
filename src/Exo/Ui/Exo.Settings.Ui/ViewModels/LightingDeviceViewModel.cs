@@ -4,14 +4,15 @@ using System.ComponentModel;
 using System.Windows.Input;
 using Exo.Lighting;
 using Exo.Service;
-using Exo.Settings.Ui.Converters;
 using Exo.Settings.Ui.Models;
 using Exo.Settings.Ui.Services;
 using Microsoft.Extensions.Logging;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class LightingDeviceViewModel : ChangeableBindableObject, IDisposable
 {
 	private readonly DeviceViewModel _deviceViewModel;
 
@@ -493,9 +494,10 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 		}
 	}
 
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class ApplyChangesCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ApplyChangesCommand : ICommand
 		{
 			private readonly LightingDeviceViewModel _owner;
 
@@ -509,7 +511,8 @@ internal sealed class LightingDeviceViewModel : ChangeableBindableObject, IDispo
 			internal void OnChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 		}
 
-		public sealed class ResetChangesCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ResetChangesCommand : ICommand
 		{
 			private readonly LightingDeviceViewModel _owner;
 

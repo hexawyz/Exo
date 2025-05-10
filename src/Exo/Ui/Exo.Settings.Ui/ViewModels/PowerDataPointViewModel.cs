@@ -2,11 +2,13 @@ using System.Diagnostics;
 using System.Numerics;
 using Exo.Settings.Ui.Controls;
 using Exo.Ui;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 [DebuggerDisplay("X: {X}, Y: {Y}")]
-internal sealed class PowerDataPointViewModel<T> : BindableObject, IDataPoint<T, byte>
+[GeneratedBindableCustomProperty]
+internal sealed partial class PowerDataPointViewModel<T> : BindableObject, IDataPoint<T, byte>
 	where T : struct, INumber<T>
 {
 	private T _x;

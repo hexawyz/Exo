@@ -1,8 +1,10 @@
 using Exo.Programming;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class ModuleViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class ModuleViewModel
 {
 	private readonly ModuleDefinition _definition;
 

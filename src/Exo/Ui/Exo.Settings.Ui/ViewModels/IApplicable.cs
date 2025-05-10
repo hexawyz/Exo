@@ -1,14 +1,16 @@
 using System.Windows.Input;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal interface IApplicable : IChangeable
+internal partial interface IApplicable : IChangeable
 {
 	public static ICommand SharedApplyCommand => Commands.ApplyCommand.Instance;
 
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class ApplyCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ApplyCommand : ICommand
 		{
 			public static readonly ApplyCommand Instance = new();
 

@@ -1,8 +1,10 @@
 using Microsoft.Windows.ApplicationModel.Resources;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class PageViewModel : IEquatable<PageViewModel?>
+[GeneratedBindableCustomProperty]
+internal sealed partial class PageViewModel : IEquatable<PageViewModel?>
 {
 	private static readonly ResourceManager ResourceManager = new();
 

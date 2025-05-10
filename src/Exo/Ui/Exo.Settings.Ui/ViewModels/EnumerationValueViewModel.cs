@@ -1,6 +1,9 @@
+using WinRT;
+
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class EnumerationValueViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class EnumerationValueViewModel
 {
 	public EnumerationValueViewModel(string displayName, object value)
 	{

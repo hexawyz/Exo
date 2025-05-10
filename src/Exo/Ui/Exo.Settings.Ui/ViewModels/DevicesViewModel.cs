@@ -7,14 +7,17 @@ using Exo.Settings.Ui.Converters;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using Microsoft.Extensions.Logging;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class DevicesViewModel : BindableObject, IAsyncDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class DevicesViewModel : BindableObject, IAsyncDisposable
 {
-	private static class Commands
+	private static partial class Commands
 	{
-		public class NavigateToDeviceCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public partial class NavigateToDeviceCommand : ICommand
 		{
 			private readonly ICommand _rootNavigationCommand;
 

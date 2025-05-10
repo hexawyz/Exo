@@ -1,9 +1,11 @@
 using Exo.Features;
 using Exo.Service;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class BatteryStateViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class BatteryStateViewModel
 {
 	private readonly BatteryChangeNotification _notification;
 

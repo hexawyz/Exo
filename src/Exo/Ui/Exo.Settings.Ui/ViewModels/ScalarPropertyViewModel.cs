@@ -4,11 +4,13 @@ using System.Runtime.InteropServices;
 using Exo.ColorFormats;
 using Exo.Lighting;
 using Windows.UI;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 // TODO: Strongly type the values. Sadly, current state of WinUI XAML won't make this simple, as it can't reference generic types explicitly.
-internal sealed class ScalarPropertyViewModel : PropertyViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class ScalarPropertyViewModel : PropertyViewModel
 {
 	private object? _value;
 	private object? _initialValue;

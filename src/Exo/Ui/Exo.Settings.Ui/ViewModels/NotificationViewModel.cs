@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Exo.Settings.Ui.Services;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-public sealed class NotificationViewModel
+[GeneratedBindableCustomProperty]
+public sealed partial class NotificationViewModel
 {
 	private static class Commands
 	{

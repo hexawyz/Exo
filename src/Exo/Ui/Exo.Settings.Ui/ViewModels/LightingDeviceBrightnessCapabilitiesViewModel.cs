@@ -1,8 +1,10 @@
 using Exo.Service;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingDeviceBrightnessCapabilitiesViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class LightingDeviceBrightnessCapabilitiesViewModel
 {
 	private readonly BrightnessCapabilities _capabilities;
 

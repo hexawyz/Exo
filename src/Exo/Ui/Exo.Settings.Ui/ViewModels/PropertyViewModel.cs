@@ -3,10 +3,12 @@ using System.Windows.Input;
 using Exo.Lighting;
 using Exo.Lighting.Effects;
 using Windows.UI;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal abstract class PropertyViewModel : ChangeableBindableObject
+[GeneratedBindableCustomProperty]
+internal abstract partial class PropertyViewModel : ChangeableBindableObject
 {
 	protected static (object?, int) ReadValue(LightingDataType type, ReadOnlySpan<byte> data)
 		=> type switch
@@ -123,9 +125,10 @@ internal abstract class PropertyViewModel : ChangeableBindableObject
 		base.OnChanged(isChanged);
 	}
 
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class ResetCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ResetCommand : ICommand
 		{
 			private readonly PropertyViewModel _property;
 

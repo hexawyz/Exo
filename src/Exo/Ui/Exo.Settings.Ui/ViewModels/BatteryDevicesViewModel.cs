@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using Exo.Ui;
+using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.ViewModels;
 
+[Bindable]
 internal sealed class BatteryDevicesViewModel : IDisposable
 {
 	private readonly DevicesViewModel _devicesViewModel;

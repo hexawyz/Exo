@@ -2,11 +2,12 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
-using Microsoft.Extensions.Logging;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class SettingsViewModel : BindableObject, INotificationSystem
+[GeneratedBindableCustomProperty]
+internal sealed partial class SettingsViewModel : BindableObject, INotificationSystem
 {
 	private static class Commands
 	{

@@ -1,14 +1,16 @@
 using System.Windows.Input;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal interface IRefreshable
+internal partial interface IRefreshable
 {
 	public static ICommand SharedRefreshCommand => Commands.RefreshCommand.Instance;
 
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class RefreshCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class RefreshCommand : ICommand
 		{
 			public static readonly RefreshCommand Instance = new();
 

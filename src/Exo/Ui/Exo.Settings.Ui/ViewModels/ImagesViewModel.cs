@@ -9,10 +9,12 @@ using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using Microsoft.Extensions.Logging;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class ImagesViewModel : BindableObject, IDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class ImagesViewModel : BindableObject, IDisposable
 {
 	private static class Commands
 	{
@@ -376,6 +378,7 @@ internal sealed class ImagesViewModel : BindableObject, IDisposable
 	}
 }
 
+[GeneratedBindableCustomProperty]
 internal sealed partial class ImageViewModel : ApplicableResettableBindableObject
 {
 	private readonly UInt128 _id;

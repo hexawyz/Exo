@@ -1,14 +1,16 @@
 using System.Windows.Input;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal interface IResettable : IChangeable
+internal partial interface IResettable : IChangeable
 {
 	public static ICommand SharedResetCommand => Commands.ResetCommand.Instance;
 
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class ResetCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ResetCommand : ICommand
 		{
 			public static readonly ResetCommand Instance = new();
 

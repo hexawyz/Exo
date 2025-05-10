@@ -3,10 +3,12 @@ using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using Microsoft.Extensions.Logging;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightDeviceFeaturesViewModel : BindableObject, IDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class LightDeviceFeaturesViewModel : BindableObject, IDisposable
 {
 	private readonly DeviceViewModel _device;
 	private readonly ISettingsMetadataService _metadataService;
@@ -119,7 +121,8 @@ internal sealed class LightDeviceFeaturesViewModel : BindableObject, IDisposable
 	}
 }
 
-internal sealed class LightViewModel : BindableObject
+[GeneratedBindableCustomProperty]
+internal sealed partial class LightViewModel : BindableObject
 {
 	private readonly LightDeviceFeaturesViewModel _owner;
 	private readonly Guid _lightId;

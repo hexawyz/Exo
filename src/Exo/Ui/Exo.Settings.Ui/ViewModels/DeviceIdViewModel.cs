@@ -1,9 +1,11 @@
 using System.Globalization;
 using DeviceTools;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-public sealed class DeviceIdViewModel
+[GeneratedBindableCustomProperty]
+public sealed partial class DeviceIdViewModel
 {
 	private readonly DeviceId _deviceId;
 	private readonly bool _isMainDeviceId;

@@ -1,9 +1,11 @@
 using Exo.Ui;
 using Windows.UI;
+using WinRT;
 
 namespace Exo.Settings.Ui.Services;
 
-public sealed class EditionService : BindableObject, IEditionService
+[GeneratedBindableCustomProperty]
+public sealed partial class EditionService : BindableObject, IEditionService
 {
 	private Color _color = Color.FromArgb(255, 255, 255, 255);
 

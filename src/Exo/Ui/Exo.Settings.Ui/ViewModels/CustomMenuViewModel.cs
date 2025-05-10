@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Input;
 using Exo.Service;
 using Exo.Service.Ipc;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
@@ -12,7 +13,8 @@ namespace Exo.Settings.Ui.ViewModels;
 // However, while maintaining two trees would be relatively easy, it would make computing changes somewhat expensive.
 // So instead of two distinct tree, each sub-menu will have a list of original items and current items.
 // As item identity is based on item ID, comparisons should be relatively, and IDs only need to be removed once an item is not referenced from anywhere.
-internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDisposable
+[GeneratedBindableCustomProperty]
+internal partial class CustomMenuViewModel : ApplicableResettableBindableObject, IDisposable
 {
 	private readonly SubMenuMenuItemViewModel _rootMenu;
 	private MenuItemViewModel? _selectedMenuItem;
@@ -276,9 +278,10 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 		}
 	}
 
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class AddTextItemCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class AddTextItemCommand : ICommand
 		{
 			private readonly CustomMenuViewModel _owner;
 
@@ -294,7 +297,8 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 			}
 		}
 
-		public sealed class AddSeparatorItemCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class AddSeparatorItemCommand : ICommand
 		{
 			private readonly CustomMenuViewModel _owner;
 
@@ -310,7 +314,8 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 			}
 		}
 
-		public sealed class AddSubMenuItemCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class AddSubMenuItemCommand : ICommand
 		{
 			private readonly CustomMenuViewModel _owner;
 
@@ -326,7 +331,8 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 			}
 		}
 
-		public sealed class DeleteSelectedItemCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class DeleteSelectedItemCommand : ICommand
 		{
 			private readonly CustomMenuViewModel _owner;
 
@@ -345,7 +351,8 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 			}
 		}
 
-		public sealed class NavigateToSubMenuCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class NavigateToSubMenuCommand : ICommand
 		{
 			private readonly CustomMenuViewModel _owner;
 
@@ -425,7 +432,8 @@ internal class CustomMenuViewModel : ApplicableResettableBindableObject, IDispos
 	protected override void Reset() => throw new NotImplementedException();
 }
 
-internal abstract class MenuItemViewModel : ChangeableBindableObject
+[GeneratedBindableCustomProperty]
+internal abstract partial class MenuItemViewModel : ChangeableBindableObject
 {
 	public Guid ItemId { get; }
 	public abstract MenuItemType ItemType { get; }
@@ -435,7 +443,8 @@ internal abstract class MenuItemViewModel : ChangeableBindableObject
 	public virtual void Reset() { }
 }
 
-internal class TextMenuMenuItemViewModel : MenuItemViewModel
+[GeneratedBindableCustomProperty]
+internal partial class TextMenuMenuItemViewModel : MenuItemViewModel
 {
 	public override MenuItemType ItemType => MenuItemType.Default;
 
@@ -489,7 +498,8 @@ internal class TextMenuMenuItemViewModel : MenuItemViewModel
 	}
 }
 
-internal sealed class SubMenuMenuItemViewModel : TextMenuMenuItemViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class SubMenuMenuItemViewModel : TextMenuMenuItemViewModel
 {
 	public override MenuItemType ItemType => MenuItemType.SubMenu;
 	internal ObservableCollection<MenuItemViewModel> OriginalMenuItems { get; }
@@ -568,7 +578,8 @@ internal sealed class SubMenuMenuItemViewModel : TextMenuMenuItemViewModel
 	}
 }
 
-internal sealed class SeparatorMenuItemViewModel : MenuItemViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class SeparatorMenuItemViewModel : MenuItemViewModel
 {
 	public override MenuItemType ItemType => MenuItemType.Separator;
 

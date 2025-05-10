@@ -12,9 +12,11 @@ using Exo.Service;
 using Exo.Settings.Ui.Controls;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
+[GeneratedBindableCustomProperty]
 internal sealed class SensorsViewModel
 {
 	private readonly DevicesViewModel _devicesViewModel;
@@ -182,7 +184,8 @@ internal sealed class SensorsViewModel
 	}
 }
 
-internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class SensorDeviceViewModel : BindableObject, IDisposable
 {
 	private readonly DeviceViewModel _deviceViewModel;
 	private SensorDeviceInformation _sensorDeviceInformation;
@@ -325,7 +328,8 @@ internal sealed class SensorDeviceViewModel : BindableObject, IDisposable
 	}
 }
 
-internal sealed class SensorViewModel : BindableObject
+[GeneratedBindableCustomProperty]
+internal sealed partial class SensorViewModel : BindableObject
 {
 	public SensorDeviceViewModel Device { get; }
 	private SensorInformation _sensorInformation;
@@ -460,7 +464,8 @@ internal sealed class SensorViewModel : BindableObject
 	}
 }
 
-internal sealed class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class LiveSensorDetailsViewModel : BindableObject, IAsyncDisposable
 {
 	// This is a public wrapper that is used to expose the data and allow it to be rendered into a chart.
 	public sealed class HistoryData : ITimeSeries

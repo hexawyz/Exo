@@ -1,9 +1,11 @@
 using Exo.ColorFormats;
 using Exo.Lighting;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class RgbColorArrayPropertyViewModel : ArrayPropertyViewModel<RgbColor>
+[GeneratedBindableCustomProperty]
+internal sealed partial class RgbColorArrayPropertyViewModel : ArrayPropertyViewModel<RgbColor>
 {
 	public RgbColorArrayPropertyViewModel(ConfigurablePropertyInformation propertyInformation, int paddingLength)
 		: base(propertyInformation, paddingLength, propertyInformation.DefaultValue is RgbColor[] colors ? colors : null, propertyInformation.DefaultValue is RgbColor color ? color : new RgbColor(255, 255, 255))

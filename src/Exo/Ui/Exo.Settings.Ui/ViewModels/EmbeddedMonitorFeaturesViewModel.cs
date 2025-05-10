@@ -2,16 +2,18 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Windows.Input;
+using CommunityToolkit.WinUI.Animations;
 using Exo.EmbeddedMonitors;
-using Exo.Images;
 using Exo.Monitors;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class EmbeddedMonitorFeaturesViewModel : BindableObject, IDisposable
 {
 	private readonly DeviceViewModel _device;
 	private readonly ReadOnlyObservableCollection<ImageViewModel> _availableImages;
@@ -138,7 +140,8 @@ internal sealed class EmbeddedMonitorFeaturesViewModel : BindableObject, IDispos
 	}
 }
 
-internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObject
+[GeneratedBindableCustomProperty]
+internal sealed partial class EmbeddedMonitorViewModel : ApplicableResettableBindableObject
 {
 	private readonly EmbeddedMonitorFeaturesViewModel _owner;
 	private readonly Guid _monitorId;
@@ -362,7 +365,8 @@ internal sealed class EmbeddedMonitorViewModel : ApplicableResettableBindableObj
 	}
 }
 
-internal abstract class EmbeddedMonitorGraphicsViewModel : ResettableBindableObject
+[GeneratedBindableCustomProperty]
+internal abstract partial class EmbeddedMonitorGraphicsViewModel : ResettableBindableObject
 {
 	private readonly EmbeddedMonitorViewModel _monitor;
 	private readonly Guid _id;
@@ -402,7 +406,8 @@ internal abstract class EmbeddedMonitorGraphicsViewModel : ResettableBindableObj
 	protected override void Reset() { }
 }
 
-internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorGraphicsViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorGraphicsViewModel
 {
 	public EmbeddedMonitorBuiltInGraphicsViewModel(EmbeddedMonitorViewModel monitor, EmbeddedMonitorGraphicsDescription description)
 		: base(monitor, description)
@@ -430,11 +435,13 @@ internal sealed class EmbeddedMonitorBuiltInGraphicsViewModel : EmbeddedMonitorG
 	}
 }
 
-internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGraphicsViewModel, IDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGraphicsViewModel, IDisposable
 {
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class AutoCropCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class AutoCropCommand : ICommand
 		{
 			private readonly EmbeddedMonitorImageGraphicsViewModel _viewModel;
 
@@ -460,6 +467,8 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 		: base(monitor, description)
 	{
 		_initialImageId = 0;
+		_initialCropRectangle = Rectangle.Empty;
+		_cropRectangle = Rectangle.Empty;
 		_autoCropCommand = new(this);
 		_onMonitorPropertyChanged = OnMonitorPropertyChanged;
 		monitor.PropertyChanged += _onMonitorPropertyChanged;
@@ -526,21 +535,21 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 
 		var foundSize = avoidUpsampling && image.Width >= targetSize.Width && image.Height >= targetSize.Height ?
 			targetSize :
-			ComputeOptimalCropSize(new() { Width = image.Width, Height = image.Height }, Monitor.RationalAspectRatio);
+			ComputeOptimalCropSize(new(image.Width, image.Height), Monitor.RationalAspectRatio);
 
-		CropRectangle = new()
-		{
-			Left = (image.Width - foundSize.Width) >>> 1,
-			Top = (image.Height - foundSize.Height) >>> 1,
-			Width = foundSize.Width,
-			Height = foundSize.Height,
-		};
+		CropRectangle = new
+		(
+			(image.Width - foundSize.Width) >>> 1,
+			(image.Height - foundSize.Height) >>> 1,
+			foundSize.Width,
+			foundSize.Height
+		);
 	}
 
 	public static Size ComputeOptimalCropSize(Size imageSize, UnsignedRationalNumber16 aspectRatio)
 	{
 		uint n = Math.Min((uint)imageSize.Width / aspectRatio.P, (uint)imageSize.Height / aspectRatio.Q);
-		return new() { Width = (int)(n * aspectRatio.P), Height = (int)(n * aspectRatio.Q) };
+		return new((int)(n * aspectRatio.P), (int)(n * aspectRatio.Q));
 	}
 
 	public MonitorShape Shape => Monitor.Shape;
@@ -669,4 +678,22 @@ internal sealed class EmbeddedMonitorImageGraphicsViewModel : EmbeddedMonitorGra
 		if (cropRectangleChanged) NotifyPropertyChanged(ChangedProperty.CropRectangle);
 		OnChangeStateChange(true);
 	}
+}
+
+[GeneratedBindableCustomProperty]
+internal partial record class Rectangle(int Left, int Top, int Width, int Height)
+{
+	public static readonly Rectangle Empty = new(0, 0, 0, 0);
+
+	public static implicit operator Rectangle(Exo.Images.Rectangle rectangle) => new(rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height);
+	public static implicit operator Exo.Images.Rectangle(Rectangle rectangle) => new(rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height);
+}
+
+[GeneratedBindableCustomProperty]
+internal partial record class Size(int Width, int Height)
+{
+	public static readonly Size Empty = new(0, 0);
+
+	public static implicit operator Size(Exo.Images.Size size) => new(size.Width, size.Height);
+	public static implicit operator Exo.Images.Size(Size size) => new(size.Width, size.Height);
 }

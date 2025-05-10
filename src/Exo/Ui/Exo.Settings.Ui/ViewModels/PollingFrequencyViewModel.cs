@@ -1,10 +1,12 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Globalization;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 [DebuggerDisplay("{DisplayText,nq}")]
-public sealed class PollingFrequencyViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class PollingFrequencyViewModel
 {
 	public ushort Frequency { get; }
 	public string DisplayText { get; }

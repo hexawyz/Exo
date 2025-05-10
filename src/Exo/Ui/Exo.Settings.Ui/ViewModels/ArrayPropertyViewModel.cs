@@ -2,15 +2,18 @@ using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using Exo.Lighting;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
+[GeneratedBindableCustomProperty]
+internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 	where T : IEquatable<T>
 {
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class AddCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class AddCommand : ICommand
 		{
 			private readonly ArrayPropertyViewModel<T> _owner;
 
@@ -29,7 +32,8 @@ internal abstract class ArrayPropertyViewModel<T> : PropertyViewModel
 			public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 		}
 
-		public sealed class RemoveCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class RemoveCommand : ICommand
 		{
 			private readonly ArrayPropertyViewModel<T> _owner;
 

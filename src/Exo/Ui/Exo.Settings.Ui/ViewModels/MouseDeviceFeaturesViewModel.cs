@@ -3,10 +3,12 @@ using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class MouseDeviceFeaturesViewModel : ApplicableResettableBindableObject
+[GeneratedBindableCustomProperty]
+internal sealed partial class MouseDeviceFeaturesViewModel : ApplicableResettableBindableObject
 {
 	private readonly DeviceViewModel _device;
 	private readonly IMouseService _mouseService;

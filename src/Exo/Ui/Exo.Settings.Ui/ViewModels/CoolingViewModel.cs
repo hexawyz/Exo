@@ -13,10 +13,12 @@ using Exo.Service;
 using Exo.Service.Ipc;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class CoolingViewModel : IAsyncDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class CoolingViewModel : IAsyncDisposable
 {
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly SensorsViewModel _sensorsViewModel;
@@ -198,7 +200,8 @@ internal sealed class CoolingViewModel : IAsyncDisposable
 	}
 }
 
-internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class CoolingDeviceViewModel : BindableObject, IDisposable
 {
 	private readonly DeviceViewModel _deviceViewModel;
 	private SensorDeviceViewModel? _sensorDeviceViewModel;
@@ -426,7 +429,8 @@ internal sealed class CoolingDeviceViewModel : BindableObject, IDisposable
 	}
 }
 
-internal sealed class CoolerViewModel : ApplicableResettableBindableObject, IDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class CoolerViewModel : ApplicableResettableBindableObject, IDisposable
 {
 	public CoolingDeviceViewModel Device { get; }
 	private ReadOnlyCollection<ICoolingModeViewModel> _coolingModes;
@@ -730,7 +734,8 @@ internal interface ICoolingModeViewModel : IResettable, IDisposable
 	Task ApplyAsync(ICoolingService coolingService, Guid deviceId, Guid coolerId, CancellationToken cancellationToken);
 }
 
-internal sealed class AutomaticCoolingModeViewModel : ICoolingModeViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class AutomaticCoolingModeViewModel : ICoolingModeViewModel
 {
 	public static readonly AutomaticCoolingModeViewModel Instance = new();
 
@@ -746,11 +751,13 @@ internal sealed class AutomaticCoolingModeViewModel : ICoolingModeViewModel
 		=> coolingService.SetAutomaticCoolingAsync(deviceId, coolerId, cancellationToken);
 }
 
-internal sealed class FixedCoolingModeViewModel : ResettableBindableObject, ICoolingModeViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class FixedCoolingModeViewModel : ResettableBindableObject, ICoolingModeViewModel
 {
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class ResetPowerCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ResetPowerCommand : ICommand
 		{
 			public static readonly ResetPowerCommand Instance = new();
 
@@ -836,11 +843,13 @@ internal sealed class FixedCoolingModeViewModel : ResettableBindableObject, ICoo
 		=> coolingService.SetFixedCoolingAsync(deviceId, coolerId, Power, cancellationToken);
 }
 
-internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObject, ICoolingModeViewModel
+[GeneratedBindableCustomProperty]
+internal abstract partial class ControlCurveCoolingModeViewModel : ResettableBindableObject, ICoolingModeViewModel
 {
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class ResetInputSensorCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ResetInputSensorCommand : ICommand
 		{
 			public static readonly ResetInputSensorCommand Instance = new();
 
@@ -1375,11 +1384,13 @@ internal abstract class ControlCurveCoolingModeViewModel : ResettableBindableObj
 		=> new(points.Select(p => new DataPoint<T, byte>(p.X, p.Y)).ToImmutableArray(), initialValue);
 }
 
-internal sealed class SoftwareControlCurveCoolingModeViewModel : ControlCurveCoolingModeViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class SoftwareControlCurveCoolingModeViewModel : ControlCurveCoolingModeViewModel
 {
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class ResetFallbackPowerCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ResetFallbackPowerCommand : ICommand
 		{
 			public static readonly ResetFallbackPowerCommand Instance = new();
 
@@ -1511,7 +1522,8 @@ internal sealed class SoftwareControlCurveCoolingModeViewModel : ControlCurveCoo
 	}
 }
 
-internal sealed class HardwareControlCurveCoolingModeViewModel : ControlCurveCoolingModeViewModel
+[GeneratedBindableCustomProperty]
+internal sealed partial class HardwareControlCurveCoolingModeViewModel : ControlCurveCoolingModeViewModel
 {
 	public override LogicalCoolingMode CoolingMode => LogicalCoolingMode.HardwareControlCurve;
 

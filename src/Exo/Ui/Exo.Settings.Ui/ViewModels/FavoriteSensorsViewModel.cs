@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using Exo.Ui;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class FavoriteSensorsViewModel : IDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class FavoriteSensorsViewModel : IDisposable
 {
 	private readonly SensorsViewModel _sensorsViewModel;
 	private readonly Dictionary<SensorDeviceViewModel, DeviceState> _knownDevices;

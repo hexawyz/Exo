@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Globalization;
@@ -13,11 +12,13 @@ using Exo.Settings.Ui.Models;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
 using Microsoft.Extensions.Logging;
+using WinRT;
 using ILightingService = Exo.Settings.Ui.Services.ILightingService;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposable
 {
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly ISettingsMetadataService _metadataService;
@@ -246,9 +247,10 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 		}
 	}
 
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class ExportConfigurationCommand(LightingViewModel owner) : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ExportConfigurationCommand(LightingViewModel owner) : ICommand
 		{
 			private readonly LightingViewModel _owner = owner;
 
@@ -272,7 +274,8 @@ internal sealed class LightingViewModel : BindableObject, IAsyncDisposable
 			}
 		}
 
-		public sealed class ImportConfigurationCommand(LightingViewModel owner) : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ImportConfigurationCommand(LightingViewModel owner) : ICommand
 		{
 			private readonly LightingViewModel _owner = owner;
 

@@ -1,10 +1,12 @@
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Microsoft.Extensions.Logging;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class PowerFeaturesViewModel : ApplicableResettableBindableObject
+[GeneratedBindableCustomProperty]
+internal sealed partial class PowerFeaturesViewModel : ApplicableResettableBindableObject
 {
 	private readonly DeviceViewModel _device;
 	private readonly IPowerService _powerService;

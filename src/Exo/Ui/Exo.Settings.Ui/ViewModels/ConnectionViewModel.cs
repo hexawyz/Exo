@@ -1,9 +1,11 @@
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class ConnectionViewModel : BindableObject
+[GeneratedBindableCustomProperty]
+internal sealed partial class ConnectionViewModel : BindableObject
 {
 	private ConnectionStatus _connectionStatus;
 

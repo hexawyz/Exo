@@ -175,7 +175,7 @@ internal sealed partial class EmbeddedMonitorImageSettingsControl : UserControl
 				}
 			}
 
-			imageGraphics.CropRectangle = new() { Left = left, Top = top, Width = width, Height = height };
+			imageGraphics.CropRectangle = new(left, top, width, height);
 		}
 	}
 

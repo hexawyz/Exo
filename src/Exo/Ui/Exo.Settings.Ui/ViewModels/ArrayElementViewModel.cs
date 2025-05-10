@@ -1,9 +1,11 @@
 using System.Windows.Input;
 using Exo.Ui;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class ArrayElementViewModel<T> : BindableObject
+[GeneratedBindableCustomProperty]
+internal sealed partial class ArrayElementViewModel<T> : BindableObject
 	where T : IEquatable<T>
 {
 	private readonly ArrayPropertyViewModel<T> _array;

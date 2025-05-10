@@ -1,8 +1,10 @@
 using Exo.Service;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingDeviceBrightnessViewModel : ChangeableBindableObject
+[GeneratedBindableCustomProperty]
+internal sealed partial class LightingDeviceBrightnessViewModel : ChangeableBindableObject
 {
 	private BrightnessCapabilities _capabilities;
 	private byte _initialBrightness;

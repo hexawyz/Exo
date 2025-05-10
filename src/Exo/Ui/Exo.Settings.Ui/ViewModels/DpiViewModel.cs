@@ -1,6 +1,9 @@
+using WinRT;
+
 namespace Exo.Settings.Ui.ViewModels;
 
-public sealed class DpiViewModel
+[GeneratedBindableCustomProperty]
+public sealed partial class DpiViewModel
 {
 	private readonly DotsPerInch _dpi;
 

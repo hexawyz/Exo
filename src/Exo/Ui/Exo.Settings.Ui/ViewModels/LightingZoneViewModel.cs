@@ -6,10 +6,12 @@ using Exo.Lighting;
 using Exo.Metadata;
 using Exo.Service;
 using Windows.UI;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderable
+[GeneratedBindableCustomProperty]
+internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, IOrderable
 {
 	private static readonly Guid NotAvailableEffectId = new(0xC771A454, 0xCAE5, 0x41CF, 0x91, 0x21, 0xBE, 0xF8, 0xAD, 0xC3, 0x80, 0xED);
 	private static readonly Guid DisabledEffectId = new(0x6B972C66, 0x0987, 0x4A0F, 0xA2, 0x0F, 0xCB, 0xFC, 0x1B, 0x0F, 0x3D, 0x4B);
@@ -134,7 +136,7 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderab
 	public LightingEffectViewModel? CurrentEffect
 	{
 		get => _currentEffect;
-		private set => SetCurrentEffect(value, false, IsChanged);
+		set => SetCurrentEffect(value, false, IsChanged);
 	}
 
 	private bool SetCurrentEffect(LightingEffectViewModel? value, bool isInitialEffectUpdate, bool wasChanged)
@@ -377,9 +379,10 @@ internal sealed class LightingZoneViewModel : ChangeableBindableObject, IOrderab
 		base.OnChanged(isChanged);
 	}
 
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class ResetCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ResetCommand : ICommand
 		{
 			private readonly LightingZoneViewModel _lightingZone;
 

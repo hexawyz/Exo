@@ -1,6 +1,9 @@
+using WinRT;
+
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed class MouseDpiPresetViewModel : ChangeableBindableObject
+[GeneratedBindableCustomProperty]
+internal sealed partial class MouseDpiPresetViewModel : ChangeableBindableObject
 {
 	private readonly MouseDeviceFeaturesViewModel _mouse;
 	private ushort _horizontal;

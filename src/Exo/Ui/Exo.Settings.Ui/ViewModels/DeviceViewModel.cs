@@ -4,10 +4,12 @@ using DeviceTools;
 using Exo.Service;
 using Exo.Settings.Ui.Services;
 using Exo.Ui;
+using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal class DeviceViewModel : BindableObject, IDisposable
+[GeneratedBindableCustomProperty]
+internal sealed partial class DeviceViewModel : BindableObject, IDisposable
 {
 	public DeviceViewModel
 	(
