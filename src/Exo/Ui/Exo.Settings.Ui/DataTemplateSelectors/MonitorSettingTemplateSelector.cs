@@ -5,7 +5,7 @@ using Exo.Service;
 
 namespace Exo.Settings.Ui.DataTemplateSelectors;
 
-internal sealed class MonitorSettingTemplateSelector : DataTemplateSelector
+internal sealed partial class MonitorSettingTemplateSelector : DataTemplateSelector
 {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 	public DataTemplate BrightnessTemplate { get; set; }

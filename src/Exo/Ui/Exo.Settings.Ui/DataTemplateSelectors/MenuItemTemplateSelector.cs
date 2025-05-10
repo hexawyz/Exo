@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Exo.Settings.Ui.DataTemplateSelectors;
 
-internal sealed class MenuItemTemplateSelector : DataTemplateSelector
+internal sealed partial class MenuItemTemplateSelector : DataTemplateSelector
 {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 	public DataTemplate TextTemplate { get; set; }

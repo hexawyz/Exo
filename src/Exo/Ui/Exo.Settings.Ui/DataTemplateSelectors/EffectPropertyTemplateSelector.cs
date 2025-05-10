@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Exo.Settings.Ui.DataTemplateSelectors;
 
-internal sealed class EffectPropertyTemplateSelector : DataTemplateSelector
+internal sealed partial class EffectPropertyTemplateSelector : DataTemplateSelector
 {
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 	public DataTemplate NumericRangeTemplate { get; set; }
