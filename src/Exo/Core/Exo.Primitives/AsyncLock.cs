@@ -173,6 +173,7 @@ public sealed class AsyncLock
 					// NB: This also has the effect of removing all (known) previous cancelled waiters.
 					previousNonCancelled.Next = null;
 					// Trying to complete the last waiter (the first registered) allows us to simultaneously check for cancellation.
+					current.UnregisterCancellationRegistration();
 					if (current.TrySetResult(new(this, version))) return;
 					// If the current waiter was cancelled, we have to try all of this again.
 					// If head is the only remaining waiter that we know of, we will optimistically not update head and let it go through the (assumed) single-waiter case in the outer loop.
