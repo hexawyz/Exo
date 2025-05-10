@@ -4,7 +4,7 @@ using Windows.Foundation;
 
 namespace Exo.Settings.Ui.Controls;
 
-internal sealed class TickLayout : NonVirtualizingLayout
+internal sealed partial class TickLayout : NonVirtualizingLayout
 {
 	public Orientation Orientation
 	{

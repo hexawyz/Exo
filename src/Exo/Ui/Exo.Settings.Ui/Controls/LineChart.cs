@@ -12,7 +12,7 @@ namespace Exo.Settings.Ui.Controls;
 [TemplatePart(Name = HorizontalGridLinesPathPartName, Type = typeof(Path))]
 [TemplatePart(Name = VerticalGridLinesPathPartName, Type = typeof(Path))]
 [TemplatePart(Name = MinMaxPathPartName, Type = typeof(Path))]
-internal class LineChart : Control
+internal partial class LineChart : Control
 {
 	private const string LayoutGridPartName = "PART_LayoutGrid";
 	private const string StrokePathPartName = "PART_StrokePath";
