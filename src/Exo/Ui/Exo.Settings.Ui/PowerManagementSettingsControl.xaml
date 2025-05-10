@@ -34,18 +34,18 @@
 		<Slider
 			Grid.Row="3"
 			Grid.Column="1"
-			Value="{x:Bind PowerFeatures.LowPowerModeBatteryThreshold, Converter={StaticResource HalfProbabilityToDoublePercentageConverter}, Mode=TwoWay}"
 			Maximum="100"
 			Minimum="0"
+			Value="{x:Bind PowerFeatures.LowPowerModeBatteryThreshold, Converter={StaticResource HalfProbabilityToDoublePercentageConverter}, Mode=TwoWay}"
 			ThumbToolTipValueConverter="{StaticResource PercentConverter}"
 			Visibility="{x:Bind PowerFeatures.HasLowPowerBatteryThreshold, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 		<TextBlock x:Uid="IdleSleepTimerLabel" Grid.Row="4" Margin="{StaticResource RowLabelMargin}" Visibility="{x:Bind PowerFeatures.HasIdleTimer, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="4"
       Grid.Column="1"
-      Value="{x:Bind PowerFeatures.IdleSleepDelay, Converter={StaticResource TimeSpanToSecondsConverter}, Mode=TwoWay}"
       Maximum="{x:Bind PowerFeatures.MaximumIdleSleepDelay, Converter={StaticResource TimeSpanToSecondsConverter}, Mode=OneWay}"
       Minimum="{x:Bind PowerFeatures.MinimumIdleSleepDelay, Converter={StaticResource TimeSpanToSecondsConverter}, Mode=OneWay}"
+      Value="{x:Bind PowerFeatures.IdleSleepDelay, Converter={StaticResource TimeSpanToSecondsConverter}, Mode=TwoWay}"
       StepFrequency="5"
       TickFrequency="60"
       SnapsTo="StepValues"
@@ -55,9 +55,9 @@
 		<Slider
       Grid.Row="5"
       Grid.Column="1"
-      Value="{x:Bind PowerFeatures.WirelessBrightness, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
       Maximum="{x:Bind PowerFeatures.MaximumBrightness, Mode=OneWay}"
       Minimum="{x:Bind PowerFeatures.MinimumBrightness, Mode=OneWay}"
+      Value="{x:Bind PowerFeatures.WirelessBrightness, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
       Visibility="{x:Bind PowerFeatures.HasWirelessBrightness, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}"
       Style="{StaticResource BrightnessSliderStyle}">
 			<Slider.ThumbToolTipValueConverter>
