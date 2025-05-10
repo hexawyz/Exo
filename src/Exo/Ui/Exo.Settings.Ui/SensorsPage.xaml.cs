@@ -1,15 +1,16 @@
 using Exo.Settings.Ui.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
 
 namespace Exo.Settings.Ui;
 
-public sealed partial class SensorsPage : Page
+internal sealed partial class SensorsPage : Page
 {
+	public SensorsViewModel Sensors { get; }
+
 	public SensorsPage()
 	{
+		Sensors = App.Current.Services.GetRequiredService<SettingsViewModel>().Sensors;
 		InitializeComponent();
 	}
-
-	private SettingsViewModel ViewModel => (SettingsViewModel)DataContext;
 }

@@ -10,9 +10,9 @@
 	xmlns:controls="using:CommunityToolkit.WinUI.Controls"
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-	mc:Ignorable="d"
-	d:DataContext="{d:DesignInstance vm:EmbeddedMonitorFeaturesViewModel, IsDesignTimeCreatable=False}">
-	<ContentControl Content="{Binding}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+	mc:Ignorable="d">
+	
+	<ContentControl Content="{x:Bind EmbeddedMonitorFeatures, Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 		<ContentControl.ContentTemplateSelector>
 			<lts:EmbeddedMonitorSettingTemplateSelector>
 				<lts:EmbeddedMonitorSettingTemplateSelector.SingleMonitorTemplate>
@@ -28,7 +28,7 @@
 									HorizontalAlignment="Center"
 									HorizontalContentAlignment="Center"
 									SelectedItem="{x:Bind SelectedMonitor, Mode=TwoWay}"
-									ItemsSource="{x:Bind EmbeddedMonitors, Mode=OneTime}">
+									ItemsSource="{x:Bind EmbeddedMonitors, Mode=OneWay}">
 									<ListView.ItemTemplate>
 										<DataTemplate x:DataType="vm:EmbeddedMonitorViewModel">
 											<Grid Width="{x:Bind DisplayWidth, Mode=OneWay}" Height="{x:Bind DisplayHeight, Mode=OneWay}" Background="Black" Margin="3">

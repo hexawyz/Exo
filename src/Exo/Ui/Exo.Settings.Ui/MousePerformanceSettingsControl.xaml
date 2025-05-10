@@ -9,8 +9,8 @@
   xmlns:vm="using:Exo.Settings.Ui.ViewModels"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:MouseDeviceFeaturesViewModel, IsDesignTimeCreatable=False}">
+  mc:Ignorable="d">
+	
 	<Grid HorizontalAlignment="Stretch">
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
@@ -24,11 +24,11 @@
 			<RowDefinition Height="*" />
 		</Grid.RowDefinitions>
 		<TextBlock x:Uid="CurrentDpiLabel" Margin="{StaticResource RowLabelMargin}" />
-		<TextBlock Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding Path=CurrentDpi}" />
+		<TextBlock Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{x:Bind MouseFeatures.CurrentDpi, Mode=OneWay}" />
 		<Grid
       Grid.ColumnSpan="2"
       Grid.Row="1"
-      Visibility="{Binding HasPresets, Converter={StaticResource BooleanToVisibilityConverter}}">
+      Visibility="{x:Bind MouseFeatures.HasPresets, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto" />
 				<RowDefinition Height="Auto" />
@@ -46,18 +46,18 @@
         BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
         CornerRadius="{ThemeResource OverlayCornerRadius}">
 				<!--
-        NB: Currently need to set the ItemsSource property manually in order to avoid everything breaking due to behaviors of ItemsView that are deeply incompatible with data binding ☹️
+        NB: Currently need to set the ItemsSource property manually in order to avoid everything breaking due to behaviors of ItemsView that are deeply incompatible with data x:Bind ☹️
         -->
 				<ItemsView
           Name="DpiPresetsItemView"
           SelectionMode="Single"
           SelectionChanged="OnDpiPresetsItemsViewSelectionChanged">
 					<ItemsView.ItemTemplate>
-						<DataTemplate>
+						<DataTemplate x:DataType="vm:MouseDpiPresetViewModel">
 							<ItemContainer Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" Width="100" Height="100">
 								<Grid>
 									<!-- Depending on whether presets are editable, we will display one grid or the other. -->
-									<Grid Visibility="{Binding CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}}">
+									<Grid Visibility="{x:Bind CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
 										<Grid.ColumnDefinitions>
 											<ColumnDefinition Width="12" />
 											<ColumnDefinition Width="*" />
@@ -76,10 +76,10 @@
                       Grid.Column="1"
                       x:Uid="PresetItemHorizontalDpiNumberBox"
                       HorizontalAlignment="Stretch"
-                      PlaceholderText="{Binding HorizontalInitialValue}"
+                      PlaceholderText="{x:Bind HorizontalInitialValue, Mode=OneWay}"
                       Minimum="1"
-                      Maximum="{Binding MaximumDpi.Horizontal, Converter={StaticResource UInt16ToDoubleConverter}}"
-                      Value="{Binding Horizontal, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
+                      Maximum="{x:Bind MaximumDpi.Horizontal, Converter={StaticResource UInt16ToDoubleConverter}, Mode=OneWay}"
+                      Value="{x:Bind Horizontal, Converter={StaticResource UInt16ToDoubleConverter}, Mode=TwoWay}"
                       Style="{StaticResource NumberBoxWithoutDeleteButton}" />
 										<NumberBox
                       Grid.Row="3"
@@ -87,14 +87,14 @@
                       x:Uid="PresetItemVerticalDpiNumberBox"
                       Margin="0,6,0,0"
                       HorizontalAlignment="Stretch"
-                      PlaceholderText="{Binding VerticalInitialValue}"
+                      PlaceholderText="{x:Bind VerticalInitialValue}"
                       Minimum="1"
-                      Maximum="{Binding MaximumDpi.Vertical, Converter={StaticResource UInt16ToDoubleConverter}}"
-                      Value="{Binding Vertical, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
-                      Visibility="{Binding IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}"
+                      Maximum="{x:Bind MaximumDpi.Vertical, Converter={StaticResource UInt16ToDoubleConverter}, Mode=OneWay}"
+                      Value="{x:Bind Vertical, Converter={StaticResource UInt16ToDoubleConverter}, Mode=TwoWay}"
+                      Visibility="{x:Bind IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}"
                       Style="{StaticResource NumberBoxWithoutDeleteButton}" />
 									</Grid>
-									<Grid Visibility="{Binding CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True}">
+									<Grid Visibility="{x:Bind CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True, Mode=OneWay}">
 										<Grid.ColumnDefinitions>
 											<ColumnDefinition Width="12" />
 											<ColumnDefinition Width="*" />
@@ -114,7 +114,7 @@
                       x:Uid="PresetItemHorizontalDpiLabel"
                       HorizontalAlignment="Stretch"
                       HorizontalTextAlignment="Center"
-                      Text="{Binding Horizontal, Mode=OneWay, Converter={StaticResource UInt16ToDoubleConverter}}" />
+                      Text="{x:Bind Horizontal, Mode=OneWay}" />
 										<TextBlock
                       Grid.Row="3"
                       Grid.Column="1"
@@ -122,8 +122,8 @@
                       Margin="0,6,0,0"
                       HorizontalAlignment="Stretch"
                       HorizontalTextAlignment="Center"
-                      Text="{Binding Vertical, Mode=OneWay, Converter={StaticResource UInt16ToDoubleConverter}}"
-                      Visibility="{Binding IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                      Text="{x:Bind Vertical, Mode=OneWay}"
+                      Visibility="{x:Bind IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 									</Grid>
 								</Grid>
 							</ItemContainer>
@@ -134,8 +134,8 @@
 					</ItemsView.Layout>
 				</ItemsView>
 			</Border>
-			<Grid Grid.Row="2" Visibility="{Binding CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}}">
-				<Grid Visibility="{Binding SelectedDpiPreset, Converter={StaticResource NullabilityToVisibilityConverter}}">
+			<Grid Grid.Row="2" Visibility="{x:Bind MouseFeatures.CanEditPresets, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
+				<Grid Visibility="{x:Bind MouseFeatures.SelectedDpiPreset, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}">
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
 						<ColumnDefinition Width="*" />
@@ -148,8 +148,8 @@
 					<CheckBox
             Grid.ColumnSpan="2"
             x:Uid="PresetIndependentDpiCheckbox"
-            IsChecked="{Binding SelectedDpiPreset.IsIndependent, Mode=TwoWay}"
-            Visibility="{Binding AllowsIndependentDpi, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            IsChecked="{x:Bind MouseFeatures.SelectedDpiPreset.IsIndependent, Mode=TwoWay}"
+            Visibility="{x:Bind MouseFeatures.AllowsIndependentDpi, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 					<TextBlock
             Grid.Row="1"
             x:Uid="PresetHorizontalDpiLabel"
@@ -157,39 +157,39 @@
 					<Slider
             Grid.Row="1"
             Grid.Column="1"
-            Value="{Binding SelectedDpiPreset.Horizontal, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
+            Value="{x:Bind MouseFeatures.SelectedDpiPreset.Horizontal, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
             Minimum="1"
-            Maximum="{Binding MaximumDpi.Horizontal}" />
+            Maximum="{x:Bind MouseFeatures.MaximumDpi.Horizontal, Mode=OneWay}" />
 					<TextBlock
             Grid.Row="2"
             x:Uid="PresetVerticalDpiLabel"
             Margin="{StaticResource RowLabelMargin}"
-            Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            Visibility="{x:Bind MouseFeatures.SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 					<Slider
             Grid.Row="2"
             Grid.Column="1"
-            Value="{Binding SelectedDpiPreset.Vertical, Mode=TwoWay, Converter={StaticResource UInt16ToDoubleConverter}}"
+            Value="{x:Bind MouseFeatures.SelectedDpiPreset.Vertical, Converter={StaticResource UInt16ToDoubleConverter}, Mode=TwoWay}"
             Minimum="1"
-            Maximum="{Binding MaximumDpi.Vertical}"
-            Visibility="{Binding SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            Maximum="{x:Bind MouseFeatures.MaximumDpi.Vertical, Mode=OneWay}"
+            Visibility="{x:Bind MouseFeatures.SelectedDpiPreset.IsIndependent, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 				</Grid>
 			</Grid>
 		</Grid>
-		<TextBlock Grid.Row="2" x:Uid="PollingRateLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}}" />
+		<TextBlock Grid.Row="2" x:Uid="PollingRateLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{x:Bind MouseFeatures.CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 		<ComboBox
       Grid.Column="1"
       Grid.Row="2"
-      SelectedItem="{Binding SelectedPollingFrequency, Mode=TwoWay}"
-      ItemsSource="{Binding SupportedPollingFrequencies, Mode=OneWay}"
+      SelectedItem="{x:Bind MouseFeatures.SelectedPollingFrequency, Mode=TwoWay}"
+      ItemsSource="{x:Bind MouseFeatures.SupportedPollingFrequencies, Mode=OneWay}"
       DisplayMemberPath="DisplayText"
-      Visibility="{Binding CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}}">
+      Visibility="{x:Bind MouseFeatures.CanChangePollingFrequency, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
 			<mxi:Interaction.Behaviors>
 				<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
 			</mxi:Interaction.Behaviors>
 		</ComboBox>
 		<StackPanel Grid.ColumnSpan="2" Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
-			<Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
-			<Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
+			<Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{x:Bind MouseFeatures.ResetCommand, Mode=OneWay}" CommandParameter="{x:Bind MouseFeatures, Mode=OneWay}" />
+			<Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{x:Bind MouseFeatures.ApplyCommand, Mode=OneWay}" CommandParameter="{x:Bind MouseFeatures, Mode=OneWay}" />
 		</StackPanel>
 	</Grid>
 </UserControl>

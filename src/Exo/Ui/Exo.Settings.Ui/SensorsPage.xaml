@@ -8,26 +8,25 @@
 	xmlns:vm="using:Exo.Settings.Ui.ViewModels"
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-	mc:Ignorable="d"
-	d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+	mc:Ignorable="d">
 
 	<ScrollViewer
 		VerticalScrollBarVisibility="Auto"
 		VerticalScrollMode="Auto">
-		<ItemsControl Margin="{StaticResource NavigationContentScrollViewerPadding}" ItemsSource="{Binding Sensors.Devices}">
+		<ItemsControl Margin="{StaticResource NavigationContentScrollViewerPadding}" ItemsSource="{x:Bind Sensors.Devices, Mode=OneWay}">
 			<ItemsControl.ItemTemplate>
-				<DataTemplate>
-					<Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{Binding IsAvailable, Mode=OneWay}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+				<DataTemplate x:DataType="vm:SensorDeviceViewModel">
+					<Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{x:Bind IsAvailable, Mode=OneWay}" IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 						<Expander.Header>
 							<StackPanel Orientation="Horizontal">
-								<FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
-								<TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
+								<FontIcon Glyph="{x:Bind Category, Converter={StaticResource DeviceCategoryToGlyphConverter}, Mode=OneWay}" />
+								<TextBlock Text="{x:Bind FriendlyName, Mode=OneWay}" Margin="{StaticResource TitleTextIconMargin}" />
 							</StackPanel>
 						</Expander.Header>
 						<!-- NB: The MinHeight compensates for a bug where the ItemsView would somehow not show for the second device (?) -->
-						<ItemsView ItemsSource="{Binding Sensors}" MinHeight="1">
+						<ItemsView ItemsSource="{x:Bind Sensors}" MinHeight="1">
 							<ItemsView.ItemTemplate>
-								<DataTemplate>
+								<DataTemplate x:DataType="vm:SensorViewModel">
 									<ItemContainer Width="150" Height="150" Background="{StaticResource CardBackgroundFillColorDefaultBrush}">
 										<Grid Margin="6">
 											<Grid.RowDefinitions>
@@ -39,21 +38,21 @@
 													<ColumnDefinition Width="*" />
 													<ColumnDefinition Width="Auto" />
 												</Grid.ColumnDefinitions>
-												<TextBlock Grid.Column="0" Text="{Binding DisplayName}" ToolTipService.ToolTip="{Binding DisplayName}" Style="{ThemeResource BaseTextBlockStyle}" FontWeight="Normal" FontSize="10" TextWrapping="NoWrap" />
-												<lc:GlyphToggleButton Grid.Column="1" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="3,3,0,0" IsChecked="{Binding IsFavorite, Mode=TwoWay}" />
+												<TextBlock Grid.Column="0" Text="{x:Bind DisplayName, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind DisplayName, Mode=OneWay}" Style="{ThemeResource BaseTextBlockStyle}" FontWeight="Normal" FontSize="10" TextWrapping="NoWrap" />
+												<lc:GlyphToggleButton Grid.Column="1" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="3,3,0,0" IsChecked="{x:Bind IsFavorite, Mode=TwoWay}" />
 											</Grid>
 											<lc:LineChart
 												Grid.Row="1"
 												Margin="6"
 												HorizontalAlignment="Center"
 												StrokeThickness="1.5"
-												Style="{Binding Category, Converter={StaticResource SensorCategoryToLineChartStyleConverter}}"
-												Series="{Binding LiveDetails.History}"
-												ScaleYMinimum="{Binding ScaleMinimumValue, Mode=OneWay}"
-												ScaleYMaximum="{Binding ScaleMaximumValue, Mode=OneWay}" />
+												Style="{x:Bind Category, Converter={StaticResource SensorCategoryToLineChartStyleConverter}, Mode=OneWay}"
+												Series="{x:Bind LiveDetails.History, Mode=OneWay}"
+												ScaleYMinimum="{x:Bind ScaleMinimumValue, Converter={StaticResource NullableConverter}, Mode=OneWay}"
+												ScaleYMaximum="{x:Bind ScaleMaximumValue, Converter={StaticResource NullableConverter}, Mode=OneWay}" />
 											<TextBlock
 												Grid.Row="1"
-												Text="{Binding LiveDetails.CurrentValue}"
+												Text="{x:Bind LiveDetails.CurrentValue, Mode=OneWay}"
 												VerticalAlignment="Bottom"
 												HorizontalAlignment="Right"
 												Margin="0,0,8,6" />

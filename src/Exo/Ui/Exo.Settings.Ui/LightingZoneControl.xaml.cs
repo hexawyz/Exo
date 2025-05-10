@@ -17,13 +17,11 @@ internal sealed partial class LightingZoneControl : UserControl
 		nameof(LightingZone),
 		typeof(LightingZoneViewModel),
 		typeof(LightingZoneControl),
-		new PropertyMetadata(null, (d, e) => ((LightingZoneControl)d).OnLightingZonePropertyChanged((LightingZoneViewModel)e.NewValue))
+		new PropertyMetadata(null)
 	);
 
 	public LightingZoneControl()
 	{
 		InitializeComponent();
 	}
-
-	private void OnLightingZonePropertyChanged(LightingZoneViewModel value) => ((FrameworkElement)Content).DataContext = value;
 }

@@ -8,8 +8,7 @@
 	xmlns:vm="using:Exo.Settings.Ui.ViewModels"
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-	mc:Ignorable="d"
-	d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+	mc:Ignorable="d">
 
 	<ScrollViewer
 		VerticalScrollBarVisibility="Auto"
@@ -29,7 +28,7 @@
 				Grid.Row="1"
 				Margin="{StaticResource RowLabelMargin}"
 				Orientation="Vertical"
-				Visibility="{Binding BatteryDevices.ConnectedBatteryDevices.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+				Visibility="{x:Bind SettingsViewModel.BatteryDevices.ConnectedBatteryDevices.Count, Converter={StaticResource IntegerToVisibilityConverter}, Mode=OneWay}">
 				<TextBlock x:Uid="BatteryLevelsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
 				<Border
 					Padding="6"
@@ -38,23 +37,23 @@
 					BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}"
 					BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
 					CornerRadius="{ThemeResource OverlayCornerRadius}">
-					<ItemsRepeater ItemsSource="{Binding BatteryDevices.ConnectedBatteryDevices}">
+					<ItemsRepeater ItemsSource="{x:Bind SettingsViewModel.BatteryDevices.ConnectedBatteryDevices, Mode=OneWay}">
 						<ItemsRepeater.Layout>
 							<UniformGridLayout MinColumnSpacing="6" MinRowSpacing="6" />
 						</ItemsRepeater.Layout>
 						<ItemsRepeater.ItemTemplate>
-							<DataTemplate>
+							<DataTemplate x:DataType="vm:DeviceViewModel">
 								<Border
 									Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
 									BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
 									BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
 									CornerRadius="{ThemeResource ControlCornerRadius}">
-									<Grid Padding="12" AutomationProperties.Name="{Binding FriendlyName}" Width="150">
+									<Grid Padding="12" AutomationProperties.Name="{x:Bind FriendlyName, Mode=OneWay}" Width="150">
 										<Grid.RowDefinitions>
 											<RowDefinition Height="*" />
 											<RowDefinition Height="Auto" />
 										</Grid.RowDefinitions>
-										<Grid DataContext="{Binding PowerFeatures}">
+										<Grid>
 											<Grid.ColumnDefinitions>
 												<ColumnDefinition Width="*" />
 												<ColumnDefinition Width="Auto" />
@@ -63,14 +62,14 @@
 												<RowDefinition Height="Auto" />
 												<RowDefinition Height="*" />
 											</Grid.RowDefinitions>
-											<lc:Gauge Grid.RowSpan="2" Grid.ColumnSpan="2" Value="{Binding BatteryState.Level}" Style="{StaticResource PercentageGaugeStyle}">
+											<lc:Gauge Grid.RowSpan="2" Grid.ColumnSpan="2" Value="{x:Bind PowerFeatures.BatteryState.Level, Converter={StaticResource SingleToDoubleConverter}, Mode=OneWay}" Style="{StaticResource PercentageGaugeStyle}">
 												<lc:Gauge.ForegroundArcStroke>
-													<SolidColorBrush Color="{Binding BatteryState.Level, Converter={StaticResource BatteryLevelToColorConverter}}" />
+													<SolidColorBrush Color="{x:Bind PowerFeatures.BatteryState.Level, Converter={StaticResource BatteryLevelToColorConverter}, Mode=OneWay}" />
 												</lc:Gauge.ForegroundArcStroke>
 											</lc:Gauge>
-											<FontIcon Grid.Column="1" Glyph="&#xE945;" Foreground="#fd0" FontSize="14" Visibility="{Binding BatteryState, Converter={StaticResource BatteryStateToExternalPowerVisibilityConverter}}" />
+											<FontIcon Grid.Column="1" Glyph="&#xE945;" Foreground="#fd0" FontSize="14" Visibility="{x:Bind PowerFeatures.BatteryState, Converter={StaticResource BatteryStateToExternalPowerVisibilityConverter}, Mode=OneWay}" />
 										</Grid>
-										<TextBlock Grid.Row="1" Margin="0,6,0,0" Text="{Binding FriendlyName}" ToolTipService.ToolTip="{Binding FriendlyName}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
+										<TextBlock Grid.Row="1" Margin="0,6,0,0" Text="{x:Bind FriendlyName, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind FriendlyName, Mode=OneWay}" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis" />
 									</Grid>
 								</Border>
 							</DataTemplate>
@@ -82,7 +81,7 @@
 				Grid.Row="2"
 				Margin="{StaticResource RowLabelMargin}"
 				Orientation="Vertical"
-				Visibility="{Binding FavoriteSensors.ConnectedSensors.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+				Visibility="{x:Bind SettingsViewModel.FavoriteSensors.ConnectedSensors.Count, Converter={StaticResource IntegerToVisibilityConverter}, Mode=OneWay}">
 				<TextBlock x:Uid="FavoriteSensorsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
 				<Border
 					Padding="6"
@@ -91,7 +90,7 @@
 					BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}"
 					BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
 					CornerRadius="{ThemeResource OverlayCornerRadius}">
-					<ItemsRepeater ItemsSource="{Binding FavoriteSensors.ConnectedSensors}">
+					<ItemsRepeater ItemsSource="{x:Bind SettingsViewModel.FavoriteSensors.ConnectedSensors, Mode=OneWay}">
 						<ItemsRepeater.Layout>
 							<UniformGridLayout MinColumnSpacing="6" MinRowSpacing="6" />
 						</ItemsRepeater.Layout>
@@ -102,26 +101,26 @@
 									BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
 									BorderThickness="{ThemeResource ToolTipBorderThemeThickness}"
 									CornerRadius="{ThemeResource ControlCornerRadius}">
-									<Grid Margin="6" AutomationProperties.Name="{Binding FullDisplayName}">
+									<Grid Margin="6" AutomationProperties.Name="{x:Bind FullDisplayName, Mode=OneWay}">
 										<Grid.RowDefinitions>
 											<RowDefinition Height="Auto" />
 											<RowDefinition Height="Auto" />
 											<RowDefinition Height="*" />
 										</Grid.RowDefinitions>
-										<TextBlock Grid.Row="0" Text="{Binding Device.FriendlyName}" ToolTipService.ToolTip="{Binding Device.FriendlyName}" Style="{ThemeResource BaseTextBlockStyle}" FontWeight="SemiBold" FontSize="12" TextWrapping="NoWrap" />
-										<TextBlock Grid.Row="1" Text="{Binding DisplayName}" ToolTipService.ToolTip="{Binding DisplayName}" Style="{ThemeResource BaseTextBlockStyle}" FontWeight="Normal" FontSize="10" TextWrapping="NoWrap" />
+										<TextBlock Grid.Row="0" Text="{x:Bind Device.FriendlyName, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind Device.FriendlyName, Mode=OneWay}" Style="{ThemeResource BaseTextBlockStyle}" FontWeight="SemiBold" FontSize="12" TextWrapping="NoWrap" />
+										<TextBlock Grid.Row="1" Text="{x:Bind DisplayName, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind DisplayName, Mode=OneWay}" Style="{ThemeResource BaseTextBlockStyle}" FontWeight="Normal" FontSize="10" TextWrapping="NoWrap" />
 										<lc:LineChart
 											Grid.Row="2"
 											Margin="6"
 											HorizontalAlignment="Center"
 											StrokeThickness="1.5"
-											Style="{Binding Category, Converter={StaticResource SensorCategoryToLineChartStyleConverter}}"
-											Series="{Binding LiveDetails.History}"
-											ScaleYMinimum="{Binding ScaleMinimumValue, Mode=OneWay}"
-											ScaleYMaximum="{Binding ScaleMaximumValue, Mode=OneWay}" />
+											Style="{x:Bind Category, Converter={StaticResource SensorCategoryToLineChartStyleConverter}, Mode=OneWay}"
+											Series="{x:Bind LiveDetails.History, Mode=OneWay}"
+											ScaleYMinimum="{x:Bind ScaleMinimumValue, Converter={StaticResource NullableConverter}, Mode=OneWay}"
+											ScaleYMaximum="{x:Bind ScaleMaximumValue, Converter={StaticResource NullableConverter}, Mode=OneWay}" />
 										<TextBlock
 											Grid.Row="2"
-											Text="{Binding LiveDetails.CurrentValue}"
+											Text="{x:Bind LiveDetails.CurrentValue, Mode=OneWay}"
 											VerticalAlignment="Bottom"
 											HorizontalAlignment="Right"
 											Margin="0,0,8,6" />
@@ -136,10 +135,10 @@
 				Grid.Row="3"
 				Margin="{StaticResource RowLabelMargin}"
 				Orientation="Vertical"
-				Visibility="{Binding Lights.ConnectedLights.Count, Converter={StaticResource IntegerToVisibilityConverter}}">
+				Visibility="{x:Bind SettingsViewModel.Lights.ConnectedLights.Count, Converter={StaticResource IntegerToVisibilityConverter}, Mode=OneWay}">
 				<TextBlock x:Uid="LampsTitleTextBlock" Style="{ThemeResource SubtitleTextBlockStyle}" Margin="{StaticResource RowLabelMargin}" />
 				<Border Padding="6" HorizontalAlignment="Stretch" Background="{ThemeResource SolidBackgroundFillColorBaseBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultSolidBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource OverlayCornerRadius}">
-					<local:LightSettingsControl DataContext="{Binding Lights.ConnectedLights}" />
+					<local:LightSettingsControl LightCollection="{x:Bind SettingsViewModel.Lights.ConnectedLights, Mode=OneTime}" />
 				</Border>
 			</StackPanel>
 		</Grid>

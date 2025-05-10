@@ -7,22 +7,25 @@
   xmlns:local="using:Exo.Settings.Ui"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:vm="using:Exo.Settings.Ui.ViewModels"
-  IsEnabled="{Binding Devices.SelectedDevice.IsAvailable}"
-  mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+  IsEnabled="{x:Bind Devices.SelectedDevice.IsAvailable, Mode=OneWay}"
+  mc:Ignorable="d">
 
+	<!--
+	TODO: Investigate the bindings on Devices.SelectedDevice, as without a-priori knowledge, it seems like scoping would be more efficient.
+	It can be done with either a sub-control or adding a dependency property if necessary.
+	-->
 	<ScrollViewer
     VerticalScrollBarVisibility="Auto"
     VerticalScrollMode="Auto">
-		<StackPanel Margin="{StaticResource NavigationContentScrollViewerPadding}" Orientation="Vertical" HorizontalAlignment="Stretch" DataContext="{Binding Devices.SelectedDevice}">
-			<Expander Margin="{StaticResource VerticalItemSpacing}" Visibility="{Binding DeviceIds, Converter={StaticResource CollectionToVisibilityConverter}, Mode=OneTime}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+		<StackPanel Margin="{StaticResource NavigationContentScrollViewerPadding}" Orientation="Vertical" HorizontalAlignment="Stretch">
+			<Expander Margin="{StaticResource VerticalItemSpacing}" Visibility="{x:Bind Devices.SelectedDevice.DeviceIds, Converter={StaticResource CollectionToVisibilityConverter}, Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 				<Expander.Header>
 					<StackPanel Orientation="Horizontal">
 						<FontIcon Glyph="&#xE8EC;" />
 						<TextBlock x:Uid="DeviceIdSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
 					</StackPanel>
 				</Expander.Header>
-				<Grid HorizontalAlignment="Stretch" DataContext="{Binding MainDeviceId, Mode=OneTime}">
+				<Grid HorizontalAlignment="Stretch">
 					<Grid.Resources>
 						<Style TargetType="TextBlock">
 							<Setter Property="Margin" Value="{StaticResource RowLabelMargin}" />
@@ -41,21 +44,21 @@
 						<RowDefinition Height="*" />
 					</Grid.RowDefinitions>
 					<TextBlock Grid.Column="0" Grid.Row="0" x:Uid="DeviceIdSource" />
-					<TextBlock Grid.Column="1" Grid.Row="0" Text="{Binding Path=Source}" />
+					<TextBlock Grid.Column="1" Grid.Row="0" Text="{x:Bind Devices.SelectedDevice.MainDeviceId.Source, Mode=OneWay}" />
 					<TextBlock Grid.Column="0" Grid.Row="1" x:Uid="DeviceIdVendorIdSource" />
-					<TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding VendorIdSource}" />
+					<TextBlock Grid.Column="1" Grid.Row="1" Text="{x:Bind Devices.SelectedDevice.MainDeviceId.VendorIdSource, Mode=OneWay}" />
 					<TextBlock Grid.Column="0" Grid.Row="2" x:Uid="DeviceIdVendorId" />
-					<TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding VendorId}" />
+					<TextBlock Grid.Column="1" Grid.Row="2" Text="{x:Bind Devices.SelectedDevice.MainDeviceId.VendorId, Mode=OneWay}" />
 					<TextBlock Grid.Column="0" Grid.Row="3" x:Uid="DeviceIdProductId" />
-					<TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding ProductId, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
+					<TextBlock Grid.Column="1" Grid.Row="3" Text="{x:Bind Devices.SelectedDevice.MainDeviceId.ProductId, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4, Mode=OneWay}" />
 					<TextBlock Grid.Column="0" Grid.Row="4" x:Uid="DeviceIdVersion" />
-					<TextBlock Grid.Column="1" Grid.Row="4" Text="{Binding Version, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4}" />
+					<TextBlock Grid.Column="1" Grid.Row="4" Text="{x:Bind Devices.SelectedDevice.MainDeviceId.Version, Converter={StaticResource StringFormatConverter}, ConverterParameter=X4, Mode=OneWay}" />
 				</Grid>
 			</Expander>
 			<Expander
 				Margin="{StaticResource VerticalItemSpacing}"
-				Visibility="{Binding MouseFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
-				IsExpanded="{Binding MouseFeatures.IsExpanded, Mode=TwoWay}"
+				Visibility="{x:Bind Devices.SelectedDevice.MouseFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+				IsExpanded="{x:Bind Devices.SelectedDevice.MouseFeatures.IsExpanded, Mode=TwoWay}"
 				HorizontalAlignment="Stretch"
 				HorizontalContentAlignment="Stretch">
 				<Expander.Header>
@@ -64,12 +67,12 @@
 						<TextBlock x:Uid="MousePerformanceSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
 					</StackPanel>
 				</Expander.Header>
-				<local:MousePerformanceSettingsControl DataContext="{Binding MouseFeatures, Mode=OneWay}" />
+				<local:MousePerformanceSettingsControl MouseFeatures="{x:Bind Devices.SelectedDevice.MouseFeatures, Mode=OneWay}" />
 			</Expander>
 			<Expander
 				Margin="{StaticResource VerticalItemSpacing}"
-				Visibility="{Binding LightFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
-				IsExpanded="{Binding LightFeatures.IsExpanded, Mode=TwoWay}"
+				Visibility="{x:Bind Devices.SelectedDevice.LightFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+				IsExpanded="{x:Bind Devices.SelectedDevice.LightFeatures.IsExpanded, Mode=TwoWay}"
 				HorizontalAlignment="Stretch"
 				HorizontalContentAlignment="Stretch">
 				<Expander.Header>
@@ -78,12 +81,12 @@
 						<TextBlock x:Uid="LightSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
 					</StackPanel>
 				</Expander.Header>
-				<local:LightSettingsControl DataContext="{Binding LightFeatures.Lights, Mode=OneWay}" />
+				<local:LightSettingsControl LightCollection="{x:Bind Devices.SelectedDevice.LightFeatures.Lights, Mode=OneWay}" />
 			</Expander>
 			<Expander
 				Margin="{StaticResource VerticalItemSpacing}"
-				Visibility="{Binding EmbeddedMonitorFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
-				IsExpanded="{Binding EmbeddedMonitorFeatures.IsExpanded, Mode=TwoWay}"
+				Visibility="{x:Bind Devices.SelectedDevice.EmbeddedMonitorFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+				IsExpanded="{x:Bind Devices.SelectedDevice.EmbeddedMonitorFeatures.IsExpanded, Mode=TwoWay}"
 				HorizontalAlignment="Stretch"
 				HorizontalContentAlignment="Stretch">
 				<Expander.Header>
@@ -92,12 +95,12 @@
 						<TextBlock x:Uid="EmbeddedMonitorSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
 					</StackPanel>
 				</Expander.Header>
-				<local:EmbeddedMonitorDeviceSettingsControl DataContext="{Binding EmbeddedMonitorFeatures, Mode=OneWay}" />
+				<local:EmbeddedMonitorDeviceSettingsControl EmbeddedMonitorFeatures="{x:Bind Devices.SelectedDevice.EmbeddedMonitorFeatures, Mode=OneWay}" />
 			</Expander>
 			<Expander
 				Margin="{StaticResource VerticalItemSpacing}"
-				Visibility="{Binding MonitorFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
-				IsExpanded="{Binding MonitorFeatures.IsExpanded, Mode=TwoWay}"
+				Visibility="{x:Bind Devices.SelectedDevice.MonitorFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+				IsExpanded="{x:Bind Devices.SelectedDevice.MonitorFeatures.IsExpanded, Mode=TwoWay}"
 				HorizontalAlignment="Stretch"
 				HorizontalContentAlignment="Stretch">
 				<Expander.Header>
@@ -106,12 +109,12 @@
 						<TextBlock x:Uid="MonitorSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
 					</StackPanel>
 				</Expander.Header>
-				<local:MonitorSettingsControl DataContext="{Binding MonitorFeatures, Mode=OneWay}" />
+				<local:MonitorSettingsControl MonitorDeviceFeatures="{x:Bind Devices.SelectedDevice.MonitorFeatures, Mode=OneWay}" />
 			</Expander>
 			<Expander
 				Margin="{StaticResource VerticalItemSpacing}"
-				Visibility="{Binding PowerFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
-				IsExpanded="{Binding PowerFeatures.IsExpanded, Mode=TwoWay}"
+				Visibility="{x:Bind Devices.SelectedDevice.PowerFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+				IsExpanded="{x:Bind Devices.SelectedDevice.PowerFeatures.IsExpanded, Mode=TwoWay}"
 				HorizontalAlignment="Stretch"
 				HorizontalContentAlignment="Stretch">
 				<Expander.Header>
@@ -120,7 +123,7 @@
 						<TextBlock x:Uid="PowerManagementSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
 					</StackPanel>
 				</Expander.Header>
-				<local:PowerManagementSettingsControl DataContext="{Binding PowerFeatures, Mode=OneWay}" />
+				<local:PowerManagementSettingsControl PowerFeatures="{x:Bind Devices.SelectedDevice.PowerFeatures, Mode=OneWay}" />
 			</Expander>
 		</StackPanel>
 	</ScrollViewer>

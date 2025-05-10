@@ -12,7 +12,7 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d">
 
-	<Grid HorizontalAlignment="Stretch" DataContext="{x:Bind ImageGraphics, Mode=OneWay}">
+	<Grid HorizontalAlignment="Stretch">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="Auto" />
@@ -29,8 +29,8 @@
 			<ComboBox
         Grid.Column="1"
         Margin="{StaticResource RowContentLabelMargin}"
-        ItemsSource="{Binding AvailableImages, Mode=OneWay}"
-        SelectedItem="{Binding Image, Mode=TwoWay}"
+        ItemsSource="{x:Bind ImageGraphics.AvailableImages, Mode=OneWay}"
+        SelectedItem="{x:Bind ImageGraphics.Image, Mode=TwoWay}"
         Padding="10,3,0,3"
         HorizontalAlignment="Stretch">
 				<ComboBox.Resources>
@@ -41,8 +41,8 @@
 				<ComboBox.ItemTemplate>
 					<DataTemplate x:DataType="vm:ImageViewModel">
 						<StackPanel Orientation="Horizontal">
-							<Image Source="{x:Bind FileName, Converter={StaticResource FileNameToBitmapImageConverter}, Mode=OneTime}" Stretch="Uniform" Width="26" Height="26" Margin="0,0,6,0" />
-							<TextBlock Text="{x:Bind Name, Mode=OneTime}" Margin="0,2,0,0" />
+							<Image Source="{x:Bind FileName, Converter={StaticResource FileNameToBitmapImageConverter}, Mode=OneWay}" Stretch="Uniform" Width="26" Height="26" Margin="0,0,6,0" />
+							<TextBlock Text="{x:Bind Name, Mode=OneWay}" Margin="0,2,0,0" />
 						</StackPanel>
 					</DataTemplate>
 				</ComboBox.ItemTemplate>
@@ -50,12 +50,12 @@
 					<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
 				</mxi:Interaction.Behaviors>
 			</ComboBox>
-			<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}" CommandParameter="{Binding}">
+			<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{x:Bind ImageGraphics.ResetCommand, Mode=OneWay}" CommandParameter="{x:Bind ImageGraphics, Mode=OneWay}">
 				<FontIcon Glyph="&#xE777;" />
 			</Button>
 		</Grid>
 		<!-- TODO: Switch the layout depending on available horizontal space -->
-		<Grid Grid.Row="1" MinHeight="{Binding DisplayHeight}">
+		<Grid Grid.Row="1" MinHeight="{x:Bind ImageGraphics.DisplayHeight, Mode=OneWay}">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="*" />
 				<ColumnDefinition Width="Auto" />
@@ -66,24 +66,24 @@
 			</Grid.RowDefinitions>
 			<controls:ImageCropper
         x:Name="ImageCropper"
-        CropShape="{Binding Shape, Converter={StaticResource MonitorShapeToCropShapeConverter}}"
-        Source="{Binding Image, Converter={StaticResource ImageToWriteableBitmapConverter}}"
+        CropShape="{x:Bind ImageGraphics.Shape, Converter={StaticResource MonitorShapeToCropShapeConverter}, Mode=OneWay}"
+        Source="{x:Bind ImageGraphics.Image, Converter={StaticResource ImageToWriteableBitmapConverter}, Mode=OneWay}"
         ThumbPlacement="Corners"
-        AspectRatio="{Binding AspectRatio}"
+        AspectRatio="{x:Bind ImageGraphics.AspectRatio, Mode=OneWay}"
         Padding="20"
-        MinHeight="{Binding DisplayHeight}"
-        Height="{Binding ImageSize.Height}"
+        MinHeight="{x:Bind ImageGraphics.DisplayHeight, Mode=OneWay}"
+        Height="{x:Bind ImageGraphics.ImageSize.Height, Mode=OneWay}"
         HorizontalAlignment="Stretch"
         HorizontalContentAlignment="Stretch"
         Loaded="OnImageCropperLoaded"
         KeyUp="OnImageCropperKeyUp" />
 			<controls:WrapPanel Grid.Column="1" Orientation="Vertical" Padding="{StaticResource RowContentMargin}">
 				<StackPanel Orientation="Horizontal" Margin="{StaticResource RowLabelMargin}">
-					<TextBlock Text="{Binding CropRectangle.Width}" />
+					<TextBlock Text="{x:Bind ImageGraphics.CropRectangle.Width, Mode=OneWay}" />
 					<TextBlock Text="x" />
-					<TextBlock Text="{Binding CropRectangle.Height}" />
+					<TextBlock Text="{x:Bind ImageGraphics.CropRectangle.Height, Mode=OneWay}" />
 				</StackPanel>
-				<Button Width="120" Margin="{StaticResource RowLabelMargin}" Command="{Binding AutoCropCommand}" CommandParameter="{StaticResource FalseValue}" HorizontalContentAlignment="Stretch">
+				<Button Width="120" Margin="{StaticResource RowLabelMargin}" Command="{x:Bind ImageGraphics.AutoCropCommand, Mode=OneWay}" CommandParameter="{StaticResource FalseValue}" HorizontalContentAlignment="Stretch">
 					<Grid HorizontalAlignment="Stretch">
 						<Grid.ColumnDefinitions>
 							<ColumnDefinition Width="Auto" />
@@ -93,7 +93,7 @@
 						<TextBlock Grid.Column="1" Margin="6,0,0,0" HorizontalAlignment="Center" x:Uid="AutoCropMaximumButtonLabel" />
 					</Grid>
 				</Button>
-				<Button Width="120" Margin="{StaticResource RowLabelMargin}" Command="{Binding AutoCropCommand}" CommandParameter="{StaticResource TrueValue}" HorizontalContentAlignment="Stretch">
+				<Button Width="120" Margin="{StaticResource RowLabelMargin}" Command="{x:Bind ImageGraphics.AutoCropCommand, Mode=OneWay}" CommandParameter="{StaticResource TrueValue}" HorizontalContentAlignment="Stretch">
 					<Grid HorizontalAlignment="Stretch">
 						<Grid.ColumnDefinitions>
 							<ColumnDefinition Width="Auto" />

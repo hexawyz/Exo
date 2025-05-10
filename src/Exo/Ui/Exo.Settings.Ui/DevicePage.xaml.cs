@@ -1,27 +1,31 @@
 using Exo.Settings.Ui.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 
 namespace Exo.Settings.Ui;
 
-public sealed partial class DevicePage : Page
+internal sealed partial class DevicePage : Page
 {
+	public SettingsViewModel SettingsViewModel { get; }
+	public DevicesViewModel Devices { get; }
+
 	public DevicePage()
 	{
+		SettingsViewModel = App.Current.Services.GetRequiredService<SettingsViewModel>();
+		Devices = SettingsViewModel.Devices;
 		InitializeComponent();
 	}
 
-	private SettingsViewModel ViewModel => (SettingsViewModel)DataContext;
-
 	protected override void OnNavigatedTo(NavigationEventArgs e)
 	{
-		var devicesViewModel = ViewModel.Devices;
+		var devicesViewModel = SettingsViewModel.Devices;
 		var deviceId = (Guid)e.Parameter;
-		var selectedDevice = ViewModel.Devices.SelectedDevice;
+		var selectedDevice = SettingsViewModel.Devices.SelectedDevice;
 
 		if (selectedDevice is null || selectedDevice.Id != deviceId)
 		{
-			foreach (var device in ViewModel.Devices.Devices)
+			foreach (var device in SettingsViewModel.Devices.Devices)
 			{
 				if (device.Id == deviceId)
 				{
@@ -36,6 +40,6 @@ public sealed partial class DevicePage : Page
 
 	protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
 	{
-		ViewModel.Devices.SelectedDevice = null;
+		SettingsViewModel.Devices.SelectedDevice = null;
 	}
 }

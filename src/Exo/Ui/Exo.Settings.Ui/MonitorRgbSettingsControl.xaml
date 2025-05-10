@@ -9,8 +9,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:MonitorDeviceFeaturesViewModel, IsDesignTimeCreatable=False}"
-  IsEnabled="{Binding IsReady}">
+  IsEnabled="{x:Bind MonitorDeviceFeatures.IsReady, Mode=OneWay}">
 
 	<Grid>
 		<Grid.ColumnDefinitions>
@@ -36,32 +35,30 @@
       Foreground="Red"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding RedVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.RedVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="0"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding RedVideoGainSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.RedVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.RedVideoGainSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.RedVideoGainSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.RedVideoGainSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource RedGainLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.RedVideoGainSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="0"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding RedVideoGainSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.RedVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.RedVideoGainSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.RedVideoGainSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -73,7 +70,7 @@
       Foreground="Black"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<FontIcon
       Grid.Row="1"
       Grid.Column="0"
@@ -83,32 +80,30 @@
       Foreground="Red"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="1"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding RedVideoBlackLevelSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.RedVideoBlackLevelSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.RedVideoBlackLevelSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.RedVideoBlackLevelSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource RedBlackLevelLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.RedVideoBlackLevelSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="1"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding RedVideoBlackLevelSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.RedVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.RedVideoBlackLevelSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.RedVideoBlackLevelSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -121,32 +116,30 @@
       Foreground="Lime"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding GreenVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="2"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding GreenVideoGainSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.GreenVideoGainSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.GreenVideoGainSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.GreenVideoGainSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource GreenGainLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.GreenVideoGainSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="2"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding GreenVideoGainSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.GreenVideoGainSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.GreenVideoGainSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -158,7 +151,7 @@
       Foreground="Black"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<FontIcon
       Grid.Row="3"
       Grid.Column="0"
@@ -168,32 +161,30 @@
       Foreground="Lime"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="3"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding GreenVideoBlackLevelSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.GreenVideoBlackLevelSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.GreenVideoBlackLevelSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.GreenVideoBlackLevelSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource GreenBlackLevelLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.GreenVideoBlackLevelSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="3"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding GreenVideoBlackLevelSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.GreenVideoBlackLevelSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.GreenVideoBlackLevelSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -206,32 +197,30 @@
       Foreground="Blue"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding BlueVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="4"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding BlueVideoGainSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.BlueVideoGainSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.BlueVideoGainSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.BlueVideoGainSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource BlueGainLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.BlueVideoGainSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="4"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding BlueVideoGainSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueVideoGainSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.BlueVideoGainSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.BlueVideoGainSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -243,7 +232,7 @@
       Foreground="Black"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<FontIcon
       Grid.Row="5"
       Grid.Column="0"
@@ -253,32 +242,30 @@
       Foreground="Blue"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="5"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding BlueVideoBlackLevelSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.BlueVideoBlackLevelSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.BlueVideoBlackLevelSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.BlueVideoBlackLevelSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource BlueBlackLevelLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.BlueVideoBlackLevelSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="5"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding BlueVideoBlackLevelSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueVideoBlackLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.BlueVideoBlackLevelSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.BlueVideoBlackLevelSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 	</Grid>

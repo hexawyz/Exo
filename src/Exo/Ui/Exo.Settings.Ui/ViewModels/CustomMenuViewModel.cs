@@ -84,6 +84,12 @@ internal partial class CustomMenuViewModel : ApplicableResettableBindableObject,
 				{
 					NotifyPropertyChanged(nameof(SelectedMenuItemHasText));
 				}
+				else if (!hadText)
+				{
+					goto SelectedTextMenuItemHasNotChanged;
+				}
+				NotifyPropertyChanged(nameof(SelectedTextMenuItem));
+			SelectedTextMenuItemHasNotChanged:;
 				if (value is null != wasNull)
 				{
 					_canDeleteItemChanged?.Invoke(_deleteSelectedItemCommand, EventArgs.Empty);
@@ -93,6 +99,8 @@ internal partial class CustomMenuViewModel : ApplicableResettableBindableObject,
 	}
 
 	public bool SelectedMenuItemHasText => _selectedMenuItem is TextMenuMenuItemViewModel;
+
+	public TextMenuMenuItemViewModel? SelectedTextMenuItem => _selectedMenuItem as TextMenuMenuItemViewModel;
 
 	public ICommand AddTextItemCommand => _addTextItemCommand;
 	public ICommand AddSeparatorItemCommand => _addSeparatorItemCommand;

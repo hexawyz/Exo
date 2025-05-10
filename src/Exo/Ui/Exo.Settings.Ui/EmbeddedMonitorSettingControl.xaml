@@ -14,13 +14,13 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d">
 
-	<Grid HorizontalAlignment="Stretch" DataContext="{x:Bind Monitor, Mode=OneWay}">
+	<Grid HorizontalAlignment="Stretch">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="*" />
 			<RowDefinition Height="Auto" />
 		</Grid.RowDefinitions>
-		<Grid HorizontalAlignment="Stretch" Visibility="{Binding HasBuiltInGraphics, Converter={StaticResource BooleanToVisibilityConverter}}">
+		<Grid HorizontalAlignment="Stretch" Visibility="{x:Bind Monitor.HasBuiltInGraphics, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
 				<ColumnDefinition Width="*" />
@@ -30,19 +30,19 @@
 			<ComboBox
         Grid.Column="1"
         Margin="{StaticResource RowContentLabelMargin}"
-        ItemsSource="{Binding SupportedGraphics}"
-        SelectedItem="{Binding CurrentGraphics, Mode=TwoWay}"
+        ItemsSource="{x:Bind Monitor.SupportedGraphics, Mode=OneWay}"
+        SelectedItem="{x:Bind Monitor.CurrentGraphics, Mode=TwoWay}"
         HorizontalAlignment="Stretch">
 				<ComboBox.ItemTemplate>
 					<DataTemplate x:DataType="vm:EmbeddedMonitorGraphicsViewModel">
-						<TextBlock Text="{Binding DisplayName}" />
+						<TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" />
 					</DataTemplate>
 				</ComboBox.ItemTemplate>
 				<mxi:Interaction.Behaviors>
 					<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
 				</mxi:Interaction.Behaviors>
 			</ComboBox>
-			<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
+			<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{x:Bind Monitor.ResetCommand, Mode=OneWay}">
 				<FontIcon Glyph="&#xE777;" />
 			</Button>
 		</Grid>
@@ -50,9 +50,8 @@
       Grid.Row="1"
       HorizontalAlignment="Stretch"
       HorizontalContentAlignment="Stretch"
-      DataContext="{Binding CurrentGraphics, Mode=OneWay}"
-      Content="{Binding}"
-      Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}">
+      Content="{x:Bind Monitor.CurrentGraphics, Mode=OneWay}"
+      Visibility="{x:Bind Monitor.CurrentGraphics, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}">
 			<ContentControl.ContentTemplateSelector>
 				<lts:EmbeddedMonitorGraphicsSettingTemplateSelector>
 					<lts:EmbeddedMonitorGraphicsSettingTemplateSelector.BuiltInTemplate>
@@ -69,8 +68,8 @@
 			</ContentControl.ContentTemplateSelector>
 		</ContentControl>
 		<StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
-			<Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
-			<Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
+			<Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{x:Bind Monitor.ResetCommand, Mode=OneWay}" CommandParameter="{x:Bind Monitor, Mode=OneWay}" />
+			<Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{x:Bind Monitor.ApplyCommand, Mode=OneWay}" CommandParameter="{x:Bind Monitor, Mode=OneWay}" />
 		</StackPanel>
 	</Grid>
 </UserControl>

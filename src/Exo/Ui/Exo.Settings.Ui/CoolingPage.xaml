@@ -9,27 +9,26 @@
 	xmlns:behaviors="using:Exo.Settings.Ui.Behaviors"
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-	mc:Ignorable="d"
-	d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+	mc:Ignorable="d">
 
 	<ScrollViewer
 		VerticalScrollBarVisibility="Auto"
 		VerticalScrollMode="Auto">
-		<ItemsControl Margin="{StaticResource NavigationContentScrollViewerPadding}" ItemsSource="{Binding Cooling.Devices}">
+		<ItemsControl Margin="{StaticResource NavigationContentScrollViewerPadding}" ItemsSource="{x:Bind Cooling.Devices, Mode=OneWay}">
 			<ItemsControl.ItemTemplate>
-				<DataTemplate>
-					<Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{Binding IsAvailable, Mode=OneWay}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+				<DataTemplate x:DataType="vm:CoolingDeviceViewModel">
+					<Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{x:Bind IsAvailable, Mode=OneWay}" IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 						<Expander.Header>
 							<StackPanel Orientation="Horizontal">
-								<FontIcon Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" />
-								<TextBlock Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
+								<FontIcon Glyph="{x:Bind Category, Converter={StaticResource DeviceCategoryToGlyphConverter}, Mode=OneWay}" />
+								<TextBlock Text="{x:Bind FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
 							</StackPanel>
 						</Expander.Header>
 						<!-- NB: The MinHeight compensates for a bug where the ItemsView would somehow not show for the second device (?) -->
-						<ItemsControl ItemsSource="{Binding Coolers}" MinHeight="1">
+						<ItemsControl ItemsSource="{x:Bind Coolers, Mode=OneWay}" MinHeight="1">
 							<ItemsControl.ItemTemplate>
-								<DataTemplate>
-									<Expander Margin="{StaticResource VerticalItemSpacing}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+								<DataTemplate x:DataType="vm:CoolerViewModel">
+									<Expander Margin="{StaticResource VerticalItemSpacing}" IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 										<Expander.Header>
 											<Grid>
 												<Grid.ColumnDefinitions>
@@ -39,13 +38,13 @@
 													<ColumnDefinition Width="Auto" />
 												</Grid.ColumnDefinitions>
 												<FontIcon Grid.Column="0" Glyph="&#xE9CA;" />
-												<TextBlock Grid.Column="1" Text="{Binding DisplayName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
+												<TextBlock Grid.Column="1" Text="{x:Bind DisplayName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
 												<TextBlock
 													Grid.Column="3"
 													x:Uid="CoolerCurrentSpeed"
 													Margin="6,0,0,0"
-													Visibility="{Binding SpeedSensor.LiveDetails, Converter={StaticResource NullabilityToVisibilityConverter}}"
-													Text="{Binding SpeedSensor.LiveDetails.CurrentValue}" />
+													Visibility="{x:Bind SpeedSensor.LiveDetails, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+													Text="{x:Bind SpeedSensor.LiveDetails.CurrentValue, Mode=OneWay}" />
 											</Grid>
 										</Expander.Header>
 										<StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
@@ -60,30 +59,30 @@
 													Grid.Row="0"
 													Grid.Column="1"
 													Margin="{StaticResource RowContentLabelMargin}"
-													ItemsSource="{Binding CoolingModes}"
-													SelectedItem="{Binding CurrentCoolingMode, Mode=TwoWay}"
+													ItemsSource="{x:Bind CoolingModes, Mode=OneWay}"
+													SelectedItem="{x:Bind CurrentCoolingMode, Mode=TwoWay}"
 													HorizontalAlignment="Stretch">
 													<ComboBox.ItemTemplate>
-														<DataTemplate>
-															<TextBlock Text="{Binding CoolingMode, Converter={StaticResource StringResourceConverter}, ConverterParameter=CoolingModes}" />
+														<DataTemplate x:DataType="vm:ICoolingModeViewModel">
+															<TextBlock Text="{x:Bind CoolingMode, Converter={StaticResource StringResourceConverter}, ConverterParameter=CoolingModes, Mode=OneWay}" />
 														</DataTemplate>
 													</ComboBox.ItemTemplate>
 													<mxi:Interaction.Behaviors>
 														<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
 													</mxi:Interaction.Behaviors>
 												</ComboBox>
-												<Button Grid.Row="0" Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
+												<Button Grid.Row="0" Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{x:Bind ResetCommand, Mode=OneWay}">
 													<FontIcon Glyph="&#xE777;" />
 												</Button>
 											</Grid>
 											<ContentControl
 												HorizontalAlignment="Stretch"
 												HorizontalContentAlignment="Stretch"
-												Content="{Binding CurrentCoolingMode, Mode=OneWay}"
+												Content="{x:Bind CurrentCoolingMode, Mode=OneWay}"
 												ContentTemplateSelector="{StaticResource CoolingParametersTemplateSelector}" />
 											<StackPanel Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
-												<Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
-												<Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
+												<Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{x:Bind ResetCommand, Mode=OneWay}" CommandParameter="{x:Bind Mode=OneWay}" />
+												<Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{x:Bind ApplyCommand, Mode=OneWay}" CommandParameter="{x:Bind Mode=OneWay}" />
 											</StackPanel>
 										</StackPanel>
 									</Expander>

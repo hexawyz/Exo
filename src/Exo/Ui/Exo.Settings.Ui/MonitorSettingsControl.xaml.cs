@@ -6,34 +6,43 @@ namespace Exo.Settings.Ui;
 
 internal sealed partial class MonitorSettingsControl : UserControl
 {
-	private CancellationTokenSource? _dataContextCancellationTokenSource;
-	private MonitorDeviceFeaturesViewModel? _viewModel;
+	public MonitorDeviceFeaturesViewModel MonitorDeviceFeatures
+	{
+		get => (MonitorDeviceFeaturesViewModel)GetValue(MonitorDeviceFeaturesProperty);
+		set => SetValue(MonitorDeviceFeaturesProperty, value);
+	}
+
+	public static readonly DependencyProperty MonitorDeviceFeaturesProperty = DependencyProperty.Register
+	(
+		nameof(MonitorDeviceFeatures),
+		typeof(MonitorDeviceFeaturesViewModel),
+		typeof(MonitorMiscSettingsControl),
+		new PropertyMetadata(null, (d, e) => ((MonitorSettingsControl)d).OnMonitorDeviceFeaturesChanged((MonitorDeviceFeaturesViewModel)e.OldValue, (MonitorDeviceFeaturesViewModel)e.NewValue))
+	);
+
+	private CancellationTokenSource? _featuresCancellationTokenSource;
 
 	public MonitorSettingsControl()
 	{
 		InitializeComponent();
-		DataContextChanged += OnDataContextChanged;
 	}
 
-	private async void OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
+	private async void OnMonitorDeviceFeaturesChanged(MonitorDeviceFeaturesViewModel? oldValue, MonitorDeviceFeaturesViewModel? newValue)
 	{
-		var oldValue = _viewModel;
-		_viewModel = args.NewValue as MonitorDeviceFeaturesViewModel;
-
-		if (!ReferenceEquals(oldValue, _viewModel))
+		if (!ReferenceEquals(oldValue, newValue))
 		{
-			if (Interlocked.Exchange(ref _dataContextCancellationTokenSource, null) is { } cts)
+			if (Interlocked.Exchange(ref _featuresCancellationTokenSource, null) is { } cts)
 			{
 				cts.Cancel();
 				cts.Dispose();
 			}
 
-			if (_viewModel is not null)
+			if (newValue is not null)
 			{
-				_dataContextCancellationTokenSource = cts = new CancellationTokenSource();
+				_featuresCancellationTokenSource = cts = new CancellationTokenSource();
 				try
 				{
-					await _viewModel.DebouncedRefreshAsync(cts.Token);
+					await newValue.DebouncedRefreshAsync(cts.Token);
 				}
 				catch
 				{

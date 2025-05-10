@@ -11,8 +11,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:MonitorDeviceFeaturesViewModel, IsDesignTimeCreatable=False}"
-  IsEnabled="{Binding IsReady}">
+  IsEnabled="{x:Bind MonitorDeviceFeatures.IsReady, Mode=OneWay}">
 
 	<Grid>
 		<Grid.ColumnDefinitions>
@@ -33,20 +32,19 @@
       Glyph="&#xF2B7;"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<ComboBox
       Grid.Row="0"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding OsdLanguageSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      SelectedItem="{Binding Value, Mode=TwoWay}"
-      ItemsSource="{Binding SupportedValues, Mode=OneWay}"
+      Visibility="{x:Bind MonitorDeviceFeatures.OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      SelectedItem="{x:Bind MonitorDeviceFeatures.OsdLanguageSetting.Value, Mode=TwoWay}"
+      ItemsSource="{x:Bind MonitorDeviceFeatures.OsdLanguageSetting.SupportedValues, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch">
 			<ComboBox.ItemTemplate>
-				<DataTemplate>
-					<TextBlock Text="{Binding FriendlyName}" />
+				<DataTemplate x:DataType="vm:NonContinuousValueViewModel">
+					<TextBlock Text="{x:Bind FriendlyName, Mode=OneWay}" />
 				</DataTemplate>
 			</ComboBox.ItemTemplate>
 			<mxi:Interaction.Behaviors>
@@ -57,10 +55,9 @@
       Grid.Row="0"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding OsdLanguageSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.OsdLanguageSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.OsdLanguageSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.OsdLanguageSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -73,24 +70,22 @@
       Foreground="#f80"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding PowerIndicatorSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.PowerIndicatorSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<ToggleSwitch
       Grid.Row="1"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding PowerIndicatorSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      IsOn="{Binding Value, Mode=TwoWay}"
+      Visibility="{x:Bind MonitorDeviceFeatures.PowerIndicatorSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      IsOn="{x:Bind MonitorDeviceFeatures.PowerIndicatorSetting.Value, Mode=TwoWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch" />
 		<Button
       Grid.Row="1"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding PowerIndicatorSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.PowerIndicatorSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.PowerIndicatorSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.PowerIndicatorSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 	</Grid>

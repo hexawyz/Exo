@@ -1,17 +1,16 @@
 using Exo.Settings.Ui.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Exo.Settings.Ui;
 
-/// <summary>
-/// An empty page that can be used on its own or navigated to within a Frame.
-/// </summary>
 internal sealed partial class DevicesPage : Page
 {
+	public DevicesViewModel Devices { get; }
+
 	public DevicesPage()
 	{
+		Devices = App.Current.Services.GetRequiredService<SettingsViewModel>().Devices;
 		InitializeComponent();
 	}
-
-	private SettingsViewModel ViewModel => (SettingsViewModel)DataContext;
 }

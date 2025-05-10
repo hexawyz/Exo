@@ -8,8 +8,8 @@
   xmlns:vm="using:Exo.Settings.Ui.ViewModels"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:LightingZoneViewModel, IsDesignTimeCreatable=False}">
+  mc:Ignorable="d">
+	
 	<StackPanel Orientation="Vertical">
 		<Grid HorizontalAlignment="Stretch">
 			<Grid.ColumnDefinitions>
@@ -18,32 +18,32 @@
 				<ColumnDefinition Width="Auto" />
 			</Grid.ColumnDefinitions>
 			<TextBlock Grid.Column="0" x:Uid="LightingEffectLabel" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" />
-			<ComboBox Grid.Column="1" Margin="{StaticResource RowContentLabelMargin}" ItemsSource="{Binding SupportedEffects}" SelectedItem="{Binding CurrentEffect, Mode=TwoWay}" HorizontalAlignment="Stretch">
+			<ComboBox Grid.Column="1" Margin="{StaticResource RowContentLabelMargin}" ItemsSource="{x:Bind LightingZone.SupportedEffects, Mode=OneWay}" SelectedItem="{x:Bind LightingZone.CurrentEffect, Mode=TwoWay}" HorizontalAlignment="Stretch">
 				<ComboBox.ItemTemplate>
-					<DataTemplate>
-						<TextBlock Text="{Binding DisplayName}" />
+					<DataTemplate x:DataType="vm:LightingEffectViewModel">
+						<TextBlock Text="{x:Bind DisplayName}" />
 					</DataTemplate>
 				</ComboBox.ItemTemplate>
 				<mxi:Interaction.Behaviors>
 					<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
 				</mxi:Interaction.Behaviors>
 			</ComboBox>
-			<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{Binding ResetCommand}">
+			<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" HorizontalAlignment="Right" Command="{x:Bind LightingZone.ResetCommand, Mode=OneTime}">
 				<FontIcon Glyph="&#xE777;" />
 			</Button>
 		</Grid>
-		<ItemsControl ItemsSource="{Binding Properties}">
+		<ItemsControl ItemsSource="{x:Bind LightingZone.Properties, Mode=OneWay}">
 			<ItemsControl.ItemTemplate>
-				<DataTemplate>
+				<DataTemplate x:DataType="vm:PropertyViewModel">
 					<Grid Margin="{StaticResource RowLabelMargin}" HorizontalAlignment="Stretch">
 						<Grid.ColumnDefinitions>
 							<ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
 							<ColumnDefinition Width="*" />
 							<ColumnDefinition Width="Auto" />
 						</Grid.ColumnDefinitions>
-						<TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Text="{Binding DisplayName}" />
-						<ContentControl Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource RowContentMargin}" Content="{Binding Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ContentTemplateSelector="{StaticResource EffectPropertyTemplateSelector}" />
-						<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" Command="{Binding ResetCommand}">
+						<TextBlock Grid.Column="0" VerticalAlignment="Center" Margin="{StaticResource RowLabelMargin}" Text="{x:Bind DisplayName, Mode=OneWay}" />
+						<ContentControl Grid.Column="1" VerticalAlignment="Center" Margin="{StaticResource RowContentMargin}" Content="{x:Bind Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" ContentTemplateSelector="{StaticResource EffectPropertyTemplateSelector}" />
+						<Button Grid.Column="2" Margin="{StaticResource RowContentMargin}" Command="{x:Bind ResetCommand, Mode=OneWay}">
 							<FontIcon Glyph="&#xE777;" />
 						</Button>
 					</Grid>

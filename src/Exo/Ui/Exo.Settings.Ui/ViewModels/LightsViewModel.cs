@@ -10,7 +10,9 @@ internal sealed partial class LightsViewModel : IDisposable
 {
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly Dictionary<DeviceViewModel, DeviceState> _knownDevices;
-	public ObservableCollection<LightViewModel> ConnectedLights { get; }
+	private readonly ObservableCollection<LightViewModel> _connectedLights;
+	private readonly ReadOnlyObservableCollection<LightViewModel> _readOnlyConnectedLights;
+	public ReadOnlyObservableCollection<LightViewModel> ConnectedLights => _readOnlyConnectedLights;
 
 	private sealed class DeviceState : IDisposable
 	{
@@ -37,7 +39,7 @@ internal sealed partial class LightsViewModel : IDisposable
 
 			foreach (var light in _device.LightFeatures.Lights)
 			{
-				_owner.ConnectedLights.Remove(light);
+				_owner._connectedLights.Remove(light);
 			}
 		}
 
@@ -64,7 +66,7 @@ internal sealed partial class LightsViewModel : IDisposable
 			_isAvailable = true;
 			foreach (var light in _knownLights)
 			{
-				_owner.ConnectedLights.Add(light);
+				_owner._connectedLights.Add(light);
 			}
 		}
 
@@ -73,7 +75,7 @@ internal sealed partial class LightsViewModel : IDisposable
 			_isAvailable = false;
 			foreach (var light in _knownLights)
 			{
-				_owner.ConnectedLights.Remove(light);
+				_owner._connectedLights.Remove(light);
 			}
 		}
 
@@ -88,7 +90,7 @@ internal sealed partial class LightsViewModel : IDisposable
 					{
 						if (_knownLights.Add(light) && _isAvailable)
 						{
-							_owner.ConnectedLights.Add(light);
+							_owner._connectedLights.Add(light);
 						}
 					}
 				}
@@ -100,7 +102,7 @@ internal sealed partial class LightsViewModel : IDisposable
 					{
 						if (_knownLights.Remove(light) && _isAvailable)
 						{
-							_owner.ConnectedLights.Remove(light);
+							_owner._connectedLights.Remove(light);
 						}
 					}
 				}
@@ -110,7 +112,7 @@ internal sealed partial class LightsViewModel : IDisposable
 			case NotifyCollectionChangedAction.Reset:
 				foreach (var light in _knownLights)
 				{
-					_owner.ConnectedLights.Remove(light);
+					_owner._connectedLights.Remove(light);
 				}
 				_knownLights.Clear();
 				if (sender is ObservableCollection<LightViewModel> collection)
@@ -119,7 +121,7 @@ internal sealed partial class LightsViewModel : IDisposable
 					{
 						if (_knownLights.Add(light) && _isAvailable)
 						{
-							_owner.ConnectedLights.Add(light);
+							_owner._connectedLights.Add(light);
 						}
 					}
 				}
@@ -135,7 +137,8 @@ internal sealed partial class LightsViewModel : IDisposable
 		ArgumentNullException.ThrowIfNull(devicesViewModel);
 		_devicesViewModel = devicesViewModel;
 		_knownDevices = new();
-		ConnectedLights = new();
+		_connectedLights = new();
+		_readOnlyConnectedLights = new(_connectedLights);
 		OnDeviceCollectionChanged(_devicesViewModel.Devices, new(NotifyCollectionChangedAction.Reset));
 		_devicesViewModel.Devices.CollectionChanged += OnDeviceCollectionChanged;
 	}
@@ -177,7 +180,7 @@ internal sealed partial class LightsViewModel : IDisposable
 			break;
 		case NotifyCollectionChangedAction.Reset:
 			// Clearing the lights first will speed up the state dispose operations, as they will not have to look over the whole collection to remove their lights.
-			ConnectedLights.Clear();
+			_connectedLights.Clear();
 			foreach (var state in _knownDevices.Values)
 			{
 				state.Dispose();

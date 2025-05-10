@@ -6,24 +6,33 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Exo.Settings.Ui;
 
-public sealed partial class MousePerformanceSettingsControl : UserControl
+internal sealed partial class MousePerformanceSettingsControl : UserControl
 {
-	private MouseDeviceFeaturesViewModel? _viewModel;
+	public MouseDeviceFeaturesViewModel? MouseFeatures
+	{
+		get => (MouseDeviceFeaturesViewModel)GetValue(MouseFeaturesProperty);
+		set => SetValue(MouseFeaturesProperty, value);
+	}
+
+	public static readonly DependencyProperty MouseFeaturesProperty = DependencyProperty.Register
+	(
+		nameof(MouseFeatures),
+		typeof(MouseDeviceFeaturesViewModel),
+		typeof(MousePerformanceSettingsControl),
+		new PropertyMetadata(null, (s, e) => ((MousePerformanceSettingsControl)s).OnMouseDeviceFeaturesChanged(e.OldValue as MouseDeviceFeaturesViewModel, e.NewValue as MouseDeviceFeaturesViewModel))
+	);
+
 	// ItemsView is a garbage fire.
 	private int _shouldIgnoreSelectionChangeBecauseItemsViewSucks;
 
 	public MousePerformanceSettingsControl()
 	{
 		InitializeComponent();
-		DataContextChanged += OnDataContextChanged;
 	}
 
-	private void OnDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
+	private void OnMouseDeviceFeaturesChanged(MouseDeviceFeaturesViewModel? oldValue, MouseDeviceFeaturesViewModel? newValue)
 	{
-		var oldValue = _viewModel;
-		_viewModel = args.NewValue as MouseDeviceFeaturesViewModel;
-
-		if (!ReferenceEquals(oldValue, _viewModel))
+		if (!ReferenceEquals(oldValue, newValue))
 		{
 			_shouldIgnoreSelectionChangeBecauseItemsViewSucks++;
 			try
@@ -33,11 +42,11 @@ public sealed partial class MousePerformanceSettingsControl : UserControl
 					oldValue.PropertyChanged -= OnMouseFeaturesPropertyChanged;
 					DpiPresetsItemView.ItemsSource = null;
 				}
-				if (_viewModel is not null)
+				if (newValue is not null)
 				{
-					DpiPresetsItemView.ItemsSource = _viewModel.DpiPresets;
-					ProcessSelectedDpiPresetIndexPropertyChange(_viewModel);
-					_viewModel.PropertyChanged += OnMouseFeaturesPropertyChanged;
+					DpiPresetsItemView.ItemsSource = newValue.DpiPresets;
+					ProcessSelectedDpiPresetIndexPropertyChange(newValue);
+					newValue.PropertyChanged += OnMouseFeaturesPropertyChanged;
 				}
 			}
 			finally
@@ -83,7 +92,7 @@ public sealed partial class MousePerformanceSettingsControl : UserControl
 
 	private void OnDpiPresetsItemsViewSelectionChanged(ItemsView sender, ItemsViewSelectionChangedEventArgs args)
 	{
-		if (sender.ItemsSource is null || _shouldIgnoreSelectionChangeBecauseItemsViewSucks > 0 || sender.DataContext is not MouseDeviceFeaturesViewModel mouseFeatures) return;
+		if (sender.ItemsSource is null || _shouldIgnoreSelectionChangeBecauseItemsViewSucks > 0 || MouseFeatures is not { } mouseFeatures) return;
 
 		int newIndex = -1;
 		if (DpiPresetsItemView.SelectedItem is MouseDpiPresetViewModel selectedPreset)

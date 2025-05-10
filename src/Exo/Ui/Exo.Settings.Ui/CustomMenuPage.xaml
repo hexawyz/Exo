@@ -7,29 +7,29 @@
   xmlns:vm="using:Exo.Settings.Ui.ViewModels"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+  mc:Ignorable="d">
+	
 	<Page.Resources>
-		<XamlUICommand x:Key="AddTextMenuItemCommand" x:Uid="CustomMenuAddNormalItemCommand" Command="{Binding CustomMenu.AddTextItemCommand}">
+		<XamlUICommand x:Key="AddTextMenuItemCommand" x:Uid="CustomMenuAddNormalItemCommand" Command="{x:Bind CustomMenu.AddTextItemCommand, Mode=OneTime}">
 			<XamlUICommand.IconSource>
 				<FontIconSource Glyph="&#xE8AC;" />
 			</XamlUICommand.IconSource>
 		</XamlUICommand>
-		<XamlUICommand x:Key="AddSeparatorMenuItemCommand" x:Uid="CustomMenuAddSeparatorItemCommand" Command="{Binding CustomMenu.AddSeparatorItemCommand}">
+		<XamlUICommand x:Key="AddSeparatorMenuItemCommand" x:Uid="CustomMenuAddSeparatorItemCommand" Command="{x:Bind CustomMenu.AddSeparatorItemCommand, Mode=OneTime}">
 			<XamlUICommand.IconSource>
 				<FontIconSource Glyph="&#xE921;" />
 			</XamlUICommand.IconSource>
 		</XamlUICommand>
-		<XamlUICommand x:Key="AddSubMenuMenuItemCommand" x:Uid="CustomMenuAddSubMenuItemCommand" Command="{Binding CustomMenu.AddSubMenuItemCommand}">
+		<XamlUICommand x:Key="AddSubMenuMenuItemCommand" x:Uid="CustomMenuAddSubMenuItemCommand" Command="{x:Bind CustomMenu.AddSubMenuItemCommand, Mode=OneTime}">
 			<XamlUICommand.IconSource>
 				<FontIconSource Glyph="&#xE8C4;" />
 			</XamlUICommand.IconSource>
 		</XamlUICommand>
-		<StandardUICommand x:Key="DeleteSelectedItemCommand" x:Uid="CustomMenuDeleteSelectedItemCommand" Kind="Delete" Command="{Binding CustomMenu.DeleteSelectedItemCommand}" />
-		<StandardUICommand x:Key="SaveMenuCommand" x:Uid="CustomMenuSaveCommand" Kind="Save" Command="{Binding CustomMenu.ApplyCommand}" />
+		<StandardUICommand x:Key="DeleteSelectedItemCommand" x:Uid="CustomMenuDeleteSelectedItemCommand" Kind="Delete" Command="{x:Bind CustomMenu.DeleteSelectedItemCommand, Mode=OneTime}" />
+		<StandardUICommand x:Key="SaveMenuCommand" x:Uid="CustomMenuSaveCommand" Kind="Save" Command="{x:Bind CustomMenu.ApplyCommand, Mode=OneTime}" />
 	</Page.Resources>
 
-	<Grid Margin="{StaticResource NavigationContentScrollViewerPadding}" DataContext="{Binding CustomMenu}">
+	<Grid Margin="{StaticResource NavigationContentScrollViewerPadding}">
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition MinWidth="100" Width="Auto" />
 		</Grid.ColumnDefinitions>
@@ -39,10 +39,10 @@
 			<RowDefinition Height="*" />
 			<RowDefinition Height="Auto" />
 		</Grid.RowDefinitions>
-		<BreadcrumbBar Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{Binding EditedMenuHierarchy, Mode=OneWay}" ItemClicked="OnBreadcrumbBarItemClicked">
+		<BreadcrumbBar Grid.Column="0" Grid.ColumnSpan="2" ItemsSource="{x:Bind CustomMenu.EditedMenuHierarchy, Mode=OneWay}" ItemClicked="OnBreadcrumbBarItemClicked">
 			<BreadcrumbBar.ItemTemplate>
 				<DataTemplate x:DataType="vm:SubMenuMenuItemViewModel">
-					<TextBlock Text="{Binding Text, Mode=TwoWay}" />
+					<TextBlock Text="{x:Bind Text, Mode=TwoWay}" />
 				</DataTemplate>
 			</BreadcrumbBar.ItemTemplate>
 		</BreadcrumbBar>
@@ -58,7 +58,7 @@
 			</AppBarButton>
 			<AppBarButton Command="{StaticResource DeleteSelectedItemCommand}" />
 			<AppBarSeparator />
-			<AppBarButton Command="{StaticResource SaveMenuCommand}" CommandParameter="{Binding}" />
+			<AppBarButton Command="{StaticResource SaveMenuCommand}" CommandParameter="{x:Bind CustomMenu, Mode=OneTime}" />
 		</CommandBar>
 		<ScrollViewer
       Grid.Row="2"
@@ -74,8 +74,8 @@
 					Style="{StaticResource MenuPreviewStyle}"
 					Margin="12,6,20,12"
 					Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
-					ItemsSource="{Binding EditedMenu.MenuItems, Mode=OneWay}"
-					SelectedItem="{Binding SelectedMenuItem, Mode=TwoWay}"
+					ItemsSource="{x:Bind CustomMenu.EditedMenu.MenuItems, Mode=OneWay}"
+					SelectedItem="{x:Bind CustomMenu.SelectedMenuItem, Mode=TwoWay}"
 					ReorderMode="Enabled"
 					AllowDrop="True"
 					CanReorderItems="True" />
@@ -84,8 +84,8 @@
 		<TextBox
       Grid.Row="4"
       Margin="0,18,0,6"
-      Visibility="{Binding SelectedMenuItemHasText, Converter={StaticResource BooleanToVisibilityConverter}}"
-      Text="{Binding SelectedMenuItem.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+      Visibility="{x:Bind CustomMenu.SelectedTextMenuItem, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Text="{x:Bind CustomMenu.SelectedTextMenuItem.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
       MaxWidth="{ThemeResource FlyoutThemeMaxWidth}" />
 	</Grid>
 </Page>

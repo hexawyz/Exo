@@ -8,8 +8,7 @@
   xmlns:converters="using:Exo.Settings.Ui.Converters"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+  mc:Ignorable="d">
 
 	<Grid>
 		<Grid.ColumnDefinitions>
@@ -66,26 +65,11 @@
           Text="{x:Bind AppTitleText}" />
 				<StackPanel x:Name="StatusIconArea" Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
 					<Grid Grid.Column="2">
-						<Grid.Resources>
-							<SolidColorBrush x:Key="DisconnectedColorBrush">Red</SolidColorBrush>
-							<SolidColorBrush x:Key="ConnectedColorBrush">Lime</SolidColorBrush>
-							<SolidColorBrush x:Key="VersionMismatchColorBrush">Yellow</SolidColorBrush>
-							<converters:ConnectionStatusToObjectConverter
-                x:Key="ConnectionStatusToColorConverter"
-                DisconnectedValue="{StaticResource DisconnectedColorBrush}"
-                ConnectedValue="{StaticResource ConnectedColorBrush}"
-                VersionMismatchValue="{StaticResource VersionMismatchColorBrush}" />
-							<converters:ConnectionStatusToObjectConverter
-                x:Key="ConnectionStatusToTextConverter"
-                DisconnectedValue="Service Disconnected"
-                ConnectedValue="Service Connected"
-                VersionMismatchValue="Service Version Mismatch" />
-						</Grid.Resources>
 						<ToolTipService.ToolTip>
-							<ToolTip Content="{Binding ConnectionStatus, Mode=OneWay, Converter={StaticResource ConnectionStatusToTextConverter}}" />
+							<ToolTip Content="{x:Bind SettingsViewModel.ConnectionStatus, Mode=OneWay, Converter={StaticResource ConnectionStatusToTextConverter}}" />
 						</ToolTipService.ToolTip>
 						<FontIcon Glyph="&#xF385;" Foreground="Gray" />
-						<FontIcon Glyph="&#xEA81;" Foreground="{Binding ConnectionStatus, Mode=OneWay, Converter={StaticResource ConnectionStatusToColorConverter}}" />
+						<FontIcon Glyph="&#xEA81;" Foreground="{x:Bind SettingsViewModel.ConnectionStatus, Mode=OneWay, Converter={StaticResource ConnectionStatusToColorConverter}}" />
 					</Grid>
 				</StackPanel>
 			</Grid>
@@ -100,9 +84,9 @@
       IsSettingsVisible="False"
       IsTitleBarAutoPaddingEnabled="True"
       OpenPaneLength="250"
-      IsBackEnabled="{Binding CanNavigateBack}"
-      MenuItemsSource="{Binding NavigationPages}"
-      SelectedItem="{Binding SelectedNavigationPage, Mode=TwoWay}"
+      IsBackEnabled="{x:Bind SettingsViewModel.CanNavigateBack, Mode=OneWay}"
+      MenuItemsSource="{x:Bind SettingsViewModel.NavigationPages, Mode=OneWay}"
+      SelectedItem="{x:Bind SettingsViewModel.SelectedNavigationPage, Mode=TwoWay}"
       DisplayModeChanged="OnPaneDisplayModeChanged"
       ItemInvoked="OnNavigationItemInvoked"
       BackRequested="OnNavigationBackRequested"
@@ -118,9 +102,9 @@
 			</NavigationView.Resources>
 			<NavigationView.MenuItemTemplate>
 				<DataTemplate x:DataType="vm:PageViewModel">
-					<NavigationViewItem Content="{Binding DisplayName}" Tag="{Binding}">
+					<NavigationViewItem Content="{x:Bind DisplayName, Mode=OneTime}" Tag="{x:Bind Mode=OneTime}">
 						<NavigationViewItem.Icon>
-							<FontIcon Glyph="{Binding Icon}" />
+							<FontIcon Glyph="{x:Bind Icon, Mode=OneTime}" />
 						</NavigationViewItem.Icon>
 					</NavigationViewItem>
 				</DataTemplate>
@@ -133,7 +117,7 @@
 					<RowDefinition Height="*" />
 				</Grid.RowDefinitions>
 
-				<ItemsRepeater Margin="{StaticResource NavigationContentHeaderMargin}" ItemsSource="{Binding Notifications, Mode=OneTime}">
+				<ItemsRepeater Margin="{StaticResource NavigationContentHeaderMargin}" ItemsSource="{x:Bind SettingsViewModel.Notifications, Mode=OneWay}">
 					<ItemsRepeater.ItemTemplate>
 						<DataTemplate x:DataType="vm:NotificationViewModel">
 							<!-- This is quirky… Using x:Bind here as Binding is utterly broken in this case.
@@ -160,11 +144,11 @@
 						<ColumnDefinition Width="*" />
 						<ColumnDefinition Width="Auto" />
 					</Grid.ColumnDefinitions>
-					<FontIcon Glyph="{Binding CurrentPage.Icon}" Margin="6,4,6,0" />
+					<FontIcon Glyph="{x:Bind SettingsViewModel.CurrentPage.Icon, Mode=OneWay}" Margin="6,4,6,0" />
 					<TextBlock
             Grid.Column="1"
             Margin="{StaticResource RowContentMargin}"
-            Text="{Binding CurrentPage.DisplayName}"
+            Text="{x:Bind SettingsViewModel.CurrentPage.DisplayName, Mode=OneWay}"
             Style="{StaticResource TitleTextBlockStyle}"
             TextTrimming="CharacterEllipsis"
             TextWrapping="NoWrap" />
@@ -173,17 +157,15 @@
             Margin="6,12,0,0"
             Orientation="Horizontal"
             VerticalAlignment="Center"
-            DataContext="{Binding Devices.SelectedDevice}"
-            Visibility="{Binding SerialNumber, Converter={StaticResource NullabilityToVisibilityConverter}, FallbackValue=Collapsed}">
+            Visibility="{x:Bind Devices.SelectedDevice.SerialNumber, Converter={StaticResource NullabilityToVisibilityConverter}, FallbackValue=Collapsed, Mode=OneWay}">
 						<TextBlock x:Uid="DeviceSerialNumberLabel" VerticalAlignment="Center" Margin="0,0,4,0" Style="{StaticResource CaptionTextBlockStyle}" />
-						<TextBlock Text="{Binding Path=SerialNumber}" Style="{StaticResource CaptionTextBlockStyle}" />
+						<TextBlock Text="{x:Bind Devices.SelectedDevice.SerialNumber}" Style="{StaticResource CaptionTextBlockStyle}" />
 					</StackPanel>
 					<FontIcon
             Grid.Column="4"
-            DataContext="{Binding Devices.SelectedDevice.PowerFeatures, Mode=TwoWay}"
-            Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}"
-            Glyph="{Binding BatteryState, Converter={StaticResource BatteryStateToGlyphConverter}}"
-            ToolTipService.ToolTip="{Binding BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" />
+            Visibility="{x:Bind Devices.SelectedDevice.PowerFeatures.BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+            Glyph="{x:Bind Devices.SelectedDevice.PowerFeatures.BatteryState, Converter={StaticResource BatteryStateToGlyphConverter}, Mode=OneWay}"
+            ToolTipService.ToolTip="{x:Bind Devices.SelectedDevice.PowerFeatures.BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0, Mode=OneWay}" />
 				</Grid>
 
 				<Frame

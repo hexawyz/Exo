@@ -1,11 +1,28 @@
+using System.Collections.ObjectModel;
+using Exo.Settings.Ui.ViewModels;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 
 namespace Exo.Settings.Ui;
 
-public sealed partial class LightSettingsControl : UserControl
+internal sealed partial class LightSettingsControl : UserControl
 {
+	public ReadOnlyObservableCollection<LightViewModel>? LightCollection
+	{
+		get => (ReadOnlyObservableCollection<LightViewModel>)GetValue(LightCollectionProperty);
+		set => SetValue(LightCollectionProperty, value);
+	}
+
+	public static readonly DependencyProperty LightCollectionProperty = DependencyProperty.Register
+	(
+		nameof(LightCollection),
+		typeof(ReadOnlyObservableCollection<LightViewModel>),
+		typeof(LightSettingsControl),
+		new PropertyMetadata(null)
+	);
+
 	public LightSettingsControl()
 	{
 		InitializeComponent();
@@ -20,7 +37,7 @@ public sealed partial class LightSettingsControl : UserControl
 	private void UpdateBinding(Slider slider)
 		=> slider.GetBindingExpression(RangeBase.ValueProperty).UpdateSource();
 
-	private void OnSliderLoaded(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+	private void OnSliderLoaded(object sender, RoutedEventArgs e)
 	{
 		var slider = (Slider)sender;
 		slider.AddHandler(PointerReleasedEvent, new PointerEventHandler(OnSliderPointerReleased), true);

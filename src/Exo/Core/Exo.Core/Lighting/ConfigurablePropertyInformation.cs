@@ -8,9 +8,18 @@ using Exo.Lighting.Effects;
 namespace Exo.Lighting;
 
 /// <summary>Information on a property that can be configured through the UI.</summary>
+#if !EXO_UI
 [JsonConverter(typeof(JsonConverter))]
+#endif
 public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePropertyInformation?>
 {
+	// In the UI, we don't need any of the JSON serialization logic for this type.
+	// Since as-is, it is not compatible with AOT, the easiest is to just not include it.
+	// Otherwise, I believe it would be reasonably doable to make the below code AOT-compatible by adding generated code for the few cases where we fall back to the serializer.
+	// This may be done later on for the UI side. Still to be decided whether to keep the JSON format for config or move to binary.
+	// Binary will have both a perf and memory advantage, which I assume would be significant, at the downside of making the configuration unreadable by a human.
+	// (Binary would require, but also allow, directly versioning the individual data elements themselves, which might make migrations easier actually)
+#if !EXO_UI
 	private sealed class JsonConverter : JsonConverter<ConfigurablePropertyInformation>
 	{
 		public override ConfigurablePropertyInformation? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -498,6 +507,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			writer.WriteEndArray();
 		}
 	}
+#endif
 
 	/// <summary>The name of the property.</summary>
 	public required string Name { get; init; }

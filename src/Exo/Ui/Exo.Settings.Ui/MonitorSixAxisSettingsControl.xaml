@@ -9,8 +9,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:MonitorDeviceFeaturesViewModel, IsDesignTimeCreatable=False}"
-  IsEnabled="{Binding IsReady}">
+  IsEnabled="{x:Bind MonitorDeviceFeatures.IsReady, Mode=OneWay}">
 
 	<Grid>
 		<Grid.ColumnDefinitions>
@@ -42,32 +41,30 @@
     Foreground="Red"
     VerticalAlignment="Center"
     HorizontalAlignment="Stretch"
-    Visibility="{Binding RedSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+    Visibility="{x:Bind MonitorDeviceFeatures.RedSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
 			Grid.Row="0"
 			Grid.Column="1"
 			Margin="{StaticResource RowContentLabelMargin}"
-			DataContext="{Binding RedSixAxisSaturationControlSetting}"
-			Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-			Value="{Binding Value, Mode=TwoWay}"
-			Maximum="{Binding MaximumValue, Mode=OneTime}"
-			Minimum="{Binding MinimumValue, Mode=OneTime}"
+			Visibility="{x:Bind MonitorDeviceFeatures.RedSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+			Value="{x:Bind MonitorDeviceFeatures.RedSixAxisSaturationControlSetting.Value, Mode=TwoWay}"
+			Maximum="{x:Bind MonitorDeviceFeatures.RedSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MonitorDeviceFeatures.RedSixAxisSaturationControlSetting.MinimumValue, Mode=OneWay}"
 			HorizontalContentAlignment="Stretch"
 			HorizontalAlignment="Stretch"
 			Style="{StaticResource ColorSliderStyle}"
 			Background="{StaticResource RedSaturationLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.RedSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="0"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding RedSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.RedSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.RedSixAxisSaturationControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.RedSixAxisSaturationControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -80,32 +77,30 @@
       Foreground="Red"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding RedSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.RedSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="1"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding RedSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.RedSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.RedSixAxisHueControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.RedSixAxisHueControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.RedSixAxisHueControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource RedHueLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.RedSixAxisHueControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="1"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding RedSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.RedSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.RedSixAxisHueControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.RedSixAxisHueControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -118,32 +113,30 @@
       Foreground="Yellow"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding YellowSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.YellowSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="2"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding YellowSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.YellowSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.YellowSixAxisSaturationControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.YellowSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.YellowSixAxisSaturationControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource YellowSaturationLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.YellowSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="2"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding YellowSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.YellowSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.YellowSixAxisSaturationControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.YellowSixAxisSaturationControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -156,32 +149,30 @@
       Foreground="Yellow"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding YellowSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.YellowSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="3"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding YellowSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.YellowSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.YellowSixAxisHueControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.YellowSixAxisHueControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.YellowSixAxisHueControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource YellowHueLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.YellowSixAxisHueControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="3"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding YellowSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.YellowSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.YellowSixAxisHueControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.YellowSixAxisHueControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -194,32 +185,30 @@
       Foreground="Lime"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding GreenSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="4"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding GreenSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.GreenSixAxisSaturationControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.GreenSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.GreenSixAxisSaturationControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource GreenSaturationLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.GreenSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="4"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding GreenSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.GreenSixAxisSaturationControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.GreenSixAxisSaturationControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -232,32 +221,30 @@
       Foreground="Lime"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding GreenSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="5"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding GreenSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.GreenSixAxisHueControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.GreenSixAxisHueControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.GreenSixAxisHueControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource GreenHueLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.GreenSixAxisHueControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="5"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding GreenSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.GreenSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.GreenSixAxisHueControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.GreenSixAxisHueControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -270,32 +257,30 @@
       Foreground="Cyan"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding CyanSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.CyanSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="6"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding CyanSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.CyanSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.CyanSixAxisSaturationControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.CyanSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.CyanSixAxisSaturationControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource CyanSaturationLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.CyanSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="6"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding CyanSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.CyanSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.CyanSixAxisSaturationControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.CyanSixAxisSaturationControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -308,32 +293,30 @@
       Foreground="Cyan"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding CyanSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.CyanSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="7"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding CyanSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.CyanSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.CyanSixAxisHueControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.CyanSixAxisHueControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.CyanSixAxisHueControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource CyanHueLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.CyanSixAxisHueControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="7"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding CyanSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.CyanSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.CyanSixAxisHueControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.CyanSixAxisHueControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -346,32 +329,30 @@
       Foreground="Blue"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding BlueSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="8"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding BlueSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.BlueSixAxisSaturationControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.BlueSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.BlueSixAxisSaturationControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource BlueSaturationLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.BlueSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="8"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding BlueSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.BlueSixAxisSaturationControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.BlueSixAxisSaturationControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -384,32 +365,30 @@
       Foreground="Blue"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding BlueSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="9"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding BlueSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.BlueSixAxisHueControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.BlueSixAxisHueControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.BlueSixAxisHueControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource BlueHueLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.BlueSixAxisHueControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="9"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding BlueSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.BlueSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.BlueSixAxisHueControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.BlueSixAxisHueControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -422,32 +401,30 @@
       Foreground="Magenta"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding MagentaSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.MagentaSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="10"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding MagentaSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.MagentaSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.MagentaSixAxisSaturationControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.MagentaSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.MagentaSixAxisSaturationControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource MagentaSaturationLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.MagentaSixAxisSaturationControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="10"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding MagentaSixAxisSaturationControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.MagentaSixAxisSaturationControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.MagentaSixAxisSaturationControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.MagentaSixAxisSaturationControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 
@@ -460,32 +437,30 @@
       Foreground="Magenta"
       VerticalAlignment="Center"
       HorizontalAlignment="Stretch"
-      Visibility="{Binding MagentaSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+      Visibility="{x:Bind MonitorDeviceFeatures.MagentaSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="11"
       Grid.Column="1"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding MagentaSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Value="{Binding Value, Mode=TwoWay}"
-      Maximum="{Binding MaximumValue, Mode=OneTime}"
-      Minimum="{Binding MinimumValue, Mode=OneTime}"
+      Visibility="{x:Bind MonitorDeviceFeatures.MagentaSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Value="{x:Bind MonitorDeviceFeatures.MagentaSixAxisHueControlSetting.Value, Mode=TwoWay}"
+      Maximum="{x:Bind MonitorDeviceFeatures.MagentaSixAxisHueControlSetting.MaximumValue, Mode=OneWay}"
+      Minimum="{x:Bind MonitorDeviceFeatures.MagentaSixAxisHueControlSetting.MinimumValue, Mode=OneWay}"
       HorizontalContentAlignment="Stretch"
       HorizontalAlignment="Stretch"
       Style="{StaticResource ColorSliderStyle}"
       Background="{StaticResource MagentaHueLinearGradientBrush}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.MagentaSixAxisHueControlSetting.MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<Button
       Grid.Row="11"
       Grid.Column="2"
       Margin="{StaticResource RowContentLabelMargin}"
-      DataContext="{Binding MagentaSixAxisHueControlSetting}"
-      Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-      Command="{Binding ResetCommand}"
-      CommandParameter="{Binding}">
+      Visibility="{x:Bind MonitorDeviceFeatures.MagentaSixAxisHueControlSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+      Command="{x:Bind MonitorDeviceFeatures.MagentaSixAxisHueControlSetting.ResetCommand, Mode=OneWay}"
+      CommandParameter="{x:Bind MonitorDeviceFeatures.MagentaSixAxisHueControlSetting, Mode=OneWay}">
 			<FontIcon Glyph="&#xE777;" />
 		</Button>
 	</Grid>

@@ -85,6 +85,7 @@
 			<lconverters:StringFormatConverter x:Key="StringFormatConverter" />
 			<lconverters:BatteryStateToGlyphConverter x:Key="BatteryStateToGlyphConverter" />
 			<lconverters:ByteToDoubleConverter x:Key="ByteToDoubleConverter" />
+			<lconverters:SingleToDoubleConverter x:Key="SingleToDoubleConverter" />
 			<lconverters:UInt16ToDoubleConverter x:Key="UInt16ToDoubleConverter" />
 			<lconverters:UInt32ToDoubleConverter x:Key="UInt32ToDoubleConverter" />
 			<lconverters:StringResourceConverter x:Key="StringResourceConverter" />
@@ -105,6 +106,9 @@
 			<lconverters:NotificationSeverityConverter x:Key="NotificationSeverityConverter" />
 			<lconverters:EffectDirectionToBooleanConverter x:Key="EffectDirectionToBooleanConverter" />
 			<lconverters:RgbColorConverter x:Key="RgbColorConverter" />
+			<lconverters:NullableConverter x:Key="NullableConverter" />
+			<lconverters:NullableColorConverter x:Key="NullableColorConverter" />
+			<lconverters:DoubleConverter x:Key="DoubleConverter" />
 
 			<local:RgbLightingDefaultPalette x:Key="RgbLightingDefaultPalette" />
 
@@ -1185,6 +1189,20 @@
 					</Setter.Value>
 				</Setter>
 			</Style>
+
+			<SolidColorBrush x:Key="ServiceDisconnectedStatusColorBrush">Red</SolidColorBrush>
+			<SolidColorBrush x:Key="ServiceConnectedStatusColorBrush">Lime</SolidColorBrush>
+			<SolidColorBrush x:Key="ServiceVersionMismatchStatusColorBrush">Yellow</SolidColorBrush>
+			<lconverters:ConnectionStatusToObjectConverter
+				x:Key="ConnectionStatusToColorConverter"
+				DisconnectedValue="{StaticResource ServiceDisconnectedStatusColorBrush}"
+				ConnectedValue="{StaticResource ServiceConnectedStatusColorBrush}"
+				VersionMismatchValue="{StaticResource ServiceVersionMismatchStatusColorBrush}" />
+			<lconverters:ConnectionStatusToObjectConverter
+				x:Key="ConnectionStatusToTextConverter"
+				DisconnectedValue="Service Disconnected"
+				ConnectedValue="Service Connected"
+				VersionMismatchValue="Service Version Mismatch" />
 		</ResourceDictionary>
 	</Application.Resources>
 </Application>

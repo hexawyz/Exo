@@ -9,17 +9,15 @@
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 	xmlns:controls="using:CommunityToolkit.WinUI.Controls"
-	mc:Ignorable="d"
-	d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}">
+	mc:Ignorable="d">
+	
 	<Grid>
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="*" />
 		</Grid.RowDefinitions>
 		<CommandBar OverflowButtonVisibility="Collapsed" IsOpen="False" DefaultLabelPosition="Right" Margin="0,0,0,6">
-			<AppBarButton
-				x:Uid="CurrentColorButton"
-				DataContext="{Binding EditionService, Mode=OneWay}">
+			<AppBarButton x:Uid="CurrentColorButton">
 				<AppBarButton.Resources>
 					<Visibility x:Key="AppBarButtonHasFlyoutChevronVisibility">Visible</Visibility>
 					<CornerRadius x:Key="ColorPickerButtonPreviewCornerRadius">2</CornerRadius>
@@ -65,17 +63,17 @@
 							CornerRadius="{ThemeResource ColorPickerButtonPreviewCornerRadius}" />
 						<Border CornerRadius="{ThemeResource ColorPickerButtonPreviewCornerRadius}">
 							<Border.Background>
-								<SolidColorBrush Color="{Binding Color, Mode=OneWay}" />
+								<SolidColorBrush Color="{x:Bind EditionService.Color, Mode=OneWay}" />
 							</Border.Background>
 						</Border>
 					</Grid>
 				</AppBarButton.Content>
 			</AppBarButton>
 			<AppBarSeparator />
-			<AppBarButton x:Uid="LightingImportConfigurationButton" Command="{Binding Lighting.ImportConfigurationCommand}">
+			<AppBarButton x:Uid="LightingImportConfigurationButton" Command="{x:Bind Lighting.ImportConfigurationCommand}">
 				<FontIcon Glyph="&#xE8E5;" />
 			</AppBarButton>
-			<AppBarButton x:Uid="LightingExportConfigurationButton" Command="{Binding Lighting.ExportConfigurationCommand}">
+			<AppBarButton x:Uid="LightingExportConfigurationButton" Command="{x:Bind Lighting.ExportConfigurationCommand}">
 				<FontIcon Glyph="&#xE78C;" />
 			</AppBarButton>
 		</CommandBar>
@@ -83,10 +81,10 @@
 			Grid.Row="1"
 			VerticalScrollBarVisibility="Auto"
 			VerticalScrollMode="Auto">
-			<ItemsControl Margin="{StaticResource NavigationContentScrollViewerPadding}" ItemsSource="{Binding Lighting.LightingDevices}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+			<ItemsControl Margin="{StaticResource NavigationContentScrollViewerPadding}" ItemsSource="{x:Bind Lighting.LightingDevices, Mode=OneWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 				<ItemsControl.ItemTemplate>
-					<DataTemplate>
-						<Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{Binding IsNotBusy}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+					<DataTemplate x:DataType="vm:LightingDeviceViewModel">
+						<Expander Margin="{StaticResource VerticalItemSpacing}" IsEnabled="{x:Bind IsNotBusy, Mode=OneWay}" IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 							<Expander.Header>
 								<Grid>
 									<Grid.ColumnDefinitions>
@@ -95,9 +93,9 @@
 										<ColumnDefinition Width="*" />
 										<ColumnDefinition Width="Auto" />
 									</Grid.ColumnDefinitions>
-									<FontIcon Grid.Column="0" Glyph="{Binding Category, Converter={StaticResource DeviceCategoryToGlyphConverter}}" VerticalAlignment="Center" />
-									<TextBlock Grid.Column="1" Text="{Binding FriendlyName, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" VerticalAlignment="Center" />
-									<ToggleSwitch Grid.Column="3" x:Uid="LightingZoneUnifiedLightingToggle" Style="{StaticResource LeftContentToggleSwitchStyle}" IsOn="{Binding UseUnifiedLighting, Mode=TwoWay}" Margin="{StaticResource TitleTextIconMargin}" Visibility="{Binding CanToggleUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}}">
+									<FontIcon Grid.Column="0" Glyph="{x:Bind Category, Converter={StaticResource DeviceCategoryToGlyphConverter}, Mode=OneWay}" VerticalAlignment="Center" />
+									<TextBlock Grid.Column="1" Text="{x:Bind FriendlyName, Mode=OneWay}" Margin="{StaticResource TitleTextIconMargin}" VerticalAlignment="Center" />
+									<ToggleSwitch Grid.Column="3" x:Uid="LightingZoneUnifiedLightingToggle" Style="{StaticResource LeftContentToggleSwitchStyle}" IsOn="{x:Bind UseUnifiedLighting, Mode=TwoWay}" Margin="{StaticResource TitleTextIconMargin}" Visibility="{x:Bind CanToggleUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
 										<ToggleSwitch.OffContent>
 											<FontIcon Glyph="&#xE71B;" />
 										</ToggleSwitch.OffContent>
@@ -108,7 +106,7 @@
 								</Grid>
 							</Expander.Header>
 							<StackPanel Orientation="Vertical" HorizontalAlignment="Stretch">
-								<Grid Margin="0,0,0,12" Visibility="{Binding Brightness, Converter={StaticResource NullabilityToVisibilityConverter}}">
+								<Grid Margin="0,0,0,12" Visibility="{x:Bind Brightness, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}">
 									<Grid.ColumnDefinitions>
 										<ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
 										<ColumnDefinition Width="*" />
@@ -118,32 +116,31 @@
 									Grid.Column="1"
 									Style="{StaticResource BrightnessSliderStyle}"
 									Margin="{StaticResource RowContentMargin}"
-									DataContext="{Binding Brightness}"
-									Value="{Binding Level, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
-									Maximum="{Binding MaximumLevel, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
-									Minimum="{Binding MinimumLevel, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}">
+									Value="{x:Bind Brightness.Level, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+									Maximum="{x:Bind Brightness.MaximumLevel, Mode=OneWay, Converter={StaticResource ByteToDoubleConverter}}"
+									Minimum="{x:Bind Brightness.MinimumLevel, Mode=OneWay, Converter={StaticResource ByteToDoubleConverter}}">
 										<Slider.ThumbToolTipValueConverter>
-											<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumLevel}" />
+											<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind Brightness.MaximumLevel}" />
 										</Slider.ThumbToolTipValueConverter>
 									</Slider>
 								</Grid>
-								<local:LightingZoneControl Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" LightingZone="{Binding UnifiedLightingZone}" />
-								<ItemsControl ItemsSource="{Binding LightingZones}" HorizontalContentAlignment="Stretch" Visibility="{Binding UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True, Mode=OneWay}">
+								<local:LightingZoneControl Visibility="{x:Bind UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" LightingZone="{x:Bind UnifiedLightingZone}" />
+								<ItemsControl ItemsSource="{x:Bind LightingZones, Mode=OneWay}" HorizontalContentAlignment="Stretch" Visibility="{x:Bind UseUnifiedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True, Mode=OneWay}">
 									<ItemsControl.ItemTemplate>
-										<DataTemplate>
-											<Expander Margin="{StaticResource VerticalItemSpacing}" IsExpanded="{Binding IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+										<DataTemplate x:DataType="vm:LightingZoneViewModel">
+											<Expander Margin="{StaticResource VerticalItemSpacing}" IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
 												<Expander.Header>
 													<StackPanel Orientation="Horizontal">
-														<FontIcon Style="{StaticResource FluentSystemFontIcon}" Glyph="{Binding ComponentType, Converter={StaticResource LightingZoneComponentTypeToGlyphConverter}}" />
-														<TextBlock Text="{Binding Name, Mode=OneTime}" Margin="{StaticResource TitleTextIconMargin}" />
-														<Border Margin="12,0,0,0" Width="20" Height="20" Visibility="{Binding Color, Converter={StaticResource NullabilityToVisibilityConverter}}" BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}" BorderThickness="1">
+														<FontIcon Style="{StaticResource FluentSystemFontIcon}" Glyph="{x:Bind ComponentType, Converter={StaticResource LightingZoneComponentTypeToGlyphConverter}}" />
+														<TextBlock Text="{x:Bind Name, Mode=OneWay}" Margin="{StaticResource TitleTextIconMargin}" />
+														<Border Margin="12,0,0,0" Width="20" Height="20" Visibility="{x:Bind Color, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" BorderBrush="{ThemeResource ControlStrokeColorSecondaryBrush}" BorderThickness="1">
 															<Border.Background>
-																<SolidColorBrush Color="{Binding Color, Mode=OneWay}" />
+																<SolidColorBrush Color="{x:Bind Color, Converter={StaticResource NullableColorConverter}, Mode=OneWay}" />
 															</Border.Background>
 														</Border>
 													</StackPanel>
 												</Expander.Header>
-												<local:LightingZoneControl LightingZone="{Binding}" />
+												<local:LightingZoneControl LightingZone="{x:Bind}" />
 											</Expander>
 										</DataTemplate>
 									</ItemsControl.ItemTemplate>
@@ -154,15 +151,15 @@
 										<ColumnDefinition Width="Auto" />
 										<ColumnDefinition Width="Auto" />
 									</Grid.ColumnDefinitions>
-									<CheckBox x:Uid="LightingPersistChangesCheckBox" Grid.Column="0" IsChecked="{Binding ShouldPersistChanges, Mode=TwoWay}" Visibility="{Binding CanPersistChanges, Converter={StaticResource BooleanToVisibilityConverter}}">
+									<CheckBox x:Uid="LightingPersistChangesCheckBox" Grid.Column="0" IsChecked="{x:Bind ShouldPersistChanges, Mode=TwoWay}" Visibility="{x:Bind CanPersistChanges, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
 										<CheckBox.ContentTemplate>
 											<DataTemplate>
 												<TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
 											</DataTemplate>
 										</CheckBox.ContentTemplate>
 									</CheckBox>
-									<Button x:Uid="ResetButton" Grid.Column="1" Margin="0,0,6,0" Command="{Binding ResetChangesCommand}" />
-									<Button x:Uid="ApplyButton" Grid.Column="2" Style="{StaticResource AccentButtonStyle}" Margin="6,0,0,0" Command="{Binding ApplyChangesCommand}" />
+									<Button x:Uid="ResetButton" Grid.Column="1" Margin="0,0,6,0" Command="{x:Bind ResetChangesCommand}" />
+									<Button x:Uid="ApplyButton" Grid.Column="2" Style="{StaticResource AccentButtonStyle}" Margin="6,0,0,0" Command="{x:Bind ApplyChangesCommand}" />
 								</Grid>
 							</StackPanel>
 						</Expander>

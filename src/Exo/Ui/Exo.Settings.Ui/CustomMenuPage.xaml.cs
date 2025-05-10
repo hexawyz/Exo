@@ -1,19 +1,21 @@
 using Exo.Settings.Ui.ViewModels;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
 
 namespace Exo.Settings.Ui;
 
 public sealed partial class CustomMenuPage : Page
 {
+	private SettingsViewModel SettingsViewModel { get; }
+	private CustomMenuViewModel CustomMenu { get; }
+
 	public CustomMenuPage()
 	{
+		SettingsViewModel = App.Current.Services.GetRequiredService<SettingsViewModel>();
+		CustomMenu = SettingsViewModel.CustomMenu;
 		InitializeComponent();
 	}
 
-	private SettingsViewModel SettingsViewModel => (SettingsViewModel)DataContext;
-	private CustomMenuViewModel CustomMenuViewModel => SettingsViewModel.CustomMenu;
-
 	private void OnBreadcrumbBarItemClicked(BreadcrumbBar sender, BreadcrumbBarItemClickedEventArgs args)
-		=> CustomMenuViewModel.NavigateToSubMenuCommand.Execute(args.Item);
+		=> CustomMenu.NavigateToSubMenuCommand.Execute(args.Item);
 }

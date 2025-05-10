@@ -1,4 +1,3 @@
-using Exo.Settings.Ui.Services;
 using Exo.Settings.Ui.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Input;
@@ -16,16 +15,24 @@ namespace Exo.Settings.Ui;
 internal sealed partial class RootPage : Page
 {
 	private readonly Window _window;
+	private readonly SettingsViewModel _settingsViewModel;
+	private readonly DevicesViewModel _devices;
 	private Pointer? _currentCapturedPointer;
 	private int _navigationPointerState;
 
 	public string AppTitleText => "Exo";
+
+	public SettingsViewModel SettingsViewModel => _settingsViewModel;
+	public DevicesViewModel Devices => _devices;
 
 	public SettingsViewModel? ViewModel => (SettingsViewModel)DataContext;
 
 	public RootPage(Window window)
 	{
 		_window = window;
+
+		_settingsViewModel = App.Current.Services.GetRequiredService<SettingsViewModel>();
+		_devices = _settingsViewModel.Devices;
 
 		InitializeComponent();
 

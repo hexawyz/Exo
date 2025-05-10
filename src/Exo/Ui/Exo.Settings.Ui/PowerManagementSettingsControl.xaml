@@ -8,8 +8,8 @@
   xmlns:vm="using:Exo.Settings.Ui.ViewModels"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:PowerFeaturesViewModel, IsDesignTimeCreatable=False}">
+  mc:Ignorable="d">
+	
 	<Grid HorizontalAlignment="Stretch">
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="{StaticResource PropertyLabelColumnWidth}" />
@@ -24,49 +24,49 @@
 			<RowDefinition Height="Auto" />
 			<RowDefinition Height="*" />
 		</Grid.RowDefinitions>
-		<TextBlock x:Uid="BatteryLevelLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-		<TextBlock Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.Level, Mode=OneWay, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-		<TextBlock Grid.Row="1" x:Uid="BatteryStatusLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-		<TextBlock Grid.Row="1" Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.BatteryStatus, Mode=OneWay}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-		<TextBlock Grid.Row="2" x:Uid="ExternalPowerStatusLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-		<TextBlock Grid.Row="2" Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{Binding BatteryState.ExternalPowerStatus, Mode=OneWay}" Visibility="{Binding BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
-		<TextBlock Grid.Row="3" x:Uid="LowPowerModeThresholdLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding HasLowPowerBatteryThreshold, Converter={StaticResource BooleanToVisibilityConverter}}" />
+		<TextBlock x:Uid="BatteryLevelLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{x:Bind PowerFeatures.BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
+		<TextBlock Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{x:Bind PowerFeatures.BatteryState.Level, Converter={StaticResource StringFormatConverter}, ConverterParameter=P0, Mode=OneWay}" Visibility="{x:Bind PowerFeatures.BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+		<TextBlock Grid.Row="1" x:Uid="BatteryStatusLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{x:Bind PowerFeatures.BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
+		<TextBlock Grid.Row="1" Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{x:Bind PowerFeatures.BatteryState.BatteryStatus, Mode=OneWay}" Visibility="{x:Bind PowerFeatures.BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
+		<TextBlock Grid.Row="2" x:Uid="ExternalPowerStatusLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{x:Bind PowerFeatures.BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
+		<TextBlock Grid.Row="2" Grid.Column="1" Margin="{StaticResource RowLabelMargin}" Text="{x:Bind PowerFeatures.BatteryState.ExternalPowerStatus, Mode=OneWay}" Visibility="{x:Bind PowerFeatures.BatteryState, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
+		<TextBlock Grid.Row="3" x:Uid="LowPowerModeThresholdLabel" Margin="{StaticResource RowLabelMargin}" Visibility="{x:Bind PowerFeatures.HasLowPowerBatteryThreshold, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
 			Grid.Row="3"
 			Grid.Column="1"
-			Value="{Binding LowPowerModeBatteryThreshold, Mode=TwoWay, Converter={StaticResource HalfProbabilityToDoublePercentageConverter}}"
+			Value="{x:Bind PowerFeatures.LowPowerModeBatteryThreshold, Converter={StaticResource HalfProbabilityToDoublePercentageConverter}, Mode=TwoWay}"
 			Maximum="100"
 			Minimum="0"
 			ThumbToolTipValueConverter="{StaticResource PercentConverter}"
-			Visibility="{Binding HasLowPowerBatteryThreshold, Converter={StaticResource BooleanToVisibilityConverter}}" />
-		<TextBlock x:Uid="IdleSleepTimerLabel" Grid.Row="4" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding HasIdleTimer, Converter={StaticResource BooleanToVisibilityConverter}}" />
+			Visibility="{x:Bind PowerFeatures.HasLowPowerBatteryThreshold, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
+		<TextBlock x:Uid="IdleSleepTimerLabel" Grid.Row="4" Margin="{StaticResource RowLabelMargin}" Visibility="{x:Bind PowerFeatures.HasIdleTimer, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="4"
       Grid.Column="1"
-      Value="{Binding IdleSleepDelay, Mode=TwoWay, Converter={StaticResource TimeSpanToSecondsConverter}}"
-      Maximum="{Binding MaximumIdleSleepDelay, Mode=OneWay, Converter={StaticResource TimeSpanToSecondsConverter}}"
-      Minimum="{Binding MinimumIdleSleepDelay, Mode=OneWay, Converter={StaticResource TimeSpanToSecondsConverter}}"
+      Value="{x:Bind PowerFeatures.IdleSleepDelay, Converter={StaticResource TimeSpanToSecondsConverter}, Mode=TwoWay}"
+      Maximum="{x:Bind PowerFeatures.MaximumIdleSleepDelay, Converter={StaticResource TimeSpanToSecondsConverter}, Mode=OneWay}"
+      Minimum="{x:Bind PowerFeatures.MinimumIdleSleepDelay, Converter={StaticResource TimeSpanToSecondsConverter}, Mode=OneWay}"
       StepFrequency="5"
       TickFrequency="60"
       SnapsTo="StepValues"
       ThumbToolTipValueConverter="{StaticResource SecondsToStringConverter}"
-      Visibility="{Binding HasIdleTimer, Converter={StaticResource BooleanToVisibilityConverter}}" />
-		<TextBlock x:Uid="WirelessBrightnessLabel" Grid.Row="5" Margin="{StaticResource RowLabelMargin}" Visibility="{Binding HasWirelessBrightness, Converter={StaticResource BooleanToVisibilityConverter}}" />
+      Visibility="{x:Bind PowerFeatures.HasIdleTimer, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
+		<TextBlock x:Uid="WirelessBrightnessLabel" Grid.Row="5" Margin="{StaticResource RowLabelMargin}" Visibility="{x:Bind PowerFeatures.HasWirelessBrightness, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}" />
 		<Slider
       Grid.Row="5"
       Grid.Column="1"
-      Value="{Binding WirelessBrightness, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
-      Maximum="{Binding MaximumBrightness, Mode=OneTime}"
-      Minimum="{Binding MinimumBrightness, Mode=OneTime}"
-      Visibility="{Binding HasWirelessBrightness, Converter={StaticResource BooleanToVisibilityConverter}}"
+      Value="{x:Bind PowerFeatures.WirelessBrightness, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+      Maximum="{x:Bind PowerFeatures.MaximumBrightness, Mode=OneWay}"
+      Minimum="{x:Bind PowerFeatures.MinimumBrightness, Mode=OneWay}"
+      Visibility="{x:Bind PowerFeatures.HasWirelessBrightness, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}"
       Style="{StaticResource BrightnessSliderStyle}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumBrightness, Mode=OneTime}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind PowerFeatures.MaximumBrightness, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 		<StackPanel Grid.ColumnSpan="2" Grid.Row="6" Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Right">
-			<Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
-			<Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
+			<Button x:Uid="ResetButton" HorizontalAlignment="Right" Margin="0,0,6,0" Command="{x:Bind PowerFeatures.ResetCommand, Mode=OneWay}" CommandParameter="{x:Bind PowerFeatures, Mode=OneWay}" />
+			<Button x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" HorizontalAlignment="Right" Margin="6,0,0,0" Command="{x:Bind PowerFeatures.ApplyCommand, Mode=OneWay}" CommandParameter="{x:Bind PowerFeatures, Mode=OneWay}" />
 		</StackPanel>
 	</Grid>
 </UserControl>

@@ -11,9 +11,9 @@
 	mc:Ignorable="d">
 
 	<Grid>
-		<ItemsRepeater ItemsSource="{Binding Mode=OneWay}">
+		<ItemsRepeater ItemsSource="{x:Bind LightCollection, Mode=OneWay}">
 			<ItemsRepeater.ItemTemplate>
-				<DataTemplate>
+				<DataTemplate x:DataType="vm:LightViewModel">
 					<Border Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="{ThemeResource ToolTipBorderThemeThickness}" CornerRadius="{ThemeResource ControlCornerRadius}">
 						<StackPanel Padding="12" Orientation="Vertical">
 							<Grid>
@@ -21,12 +21,13 @@
 									<ColumnDefinition Width="Auto" />
 									<ColumnDefinition Width="*" />
 								</Grid.ColumnDefinitions>
-								<ToggleButton Grid.Column="0" Margin="{StaticResource RowLabelMargin}" IsChecked="{Binding IsOn, Mode=TwoWay}">
+								<ToggleButton Grid.Column="0" Margin="{StaticResource RowLabelMargin}" IsChecked="{x:Bind IsOn, Mode=TwoWay}">
 									<FontIcon Glyph="&#xE7E8;" FontSize="14" />
 								</ToggleButton>
-								<TextBlock Grid.Column="1" Margin="{StaticResource SmallButtonNeighborMargin}" Text="{Binding DisplayName}" VerticalAlignment="Center" />
+								<TextBlock Grid.Column="1" Margin="{StaticResource SmallButtonNeighborMargin}" Text="{x:Bind DisplayName, Mode=OneWay}" VerticalAlignment="Center" />
 							</Grid>
-							<Grid Visibility="{Binding HasBrightness, Mode=OneWay}">
+							<!-- Somehow, the binding breaks if the DataContext is not explicitly bound?! -->
+							<Grid Visibility="{x:Bind HasBrightness, Mode=OneWay}" DataContext="{x:Bind Mode=OneWay}">
 								<Grid.ColumnDefinitions>
 									<ColumnDefinition Width="Auto" />
 									<ColumnDefinition Width="*" />
@@ -44,17 +45,18 @@
 									Grid.Column="1"
 									Margin="{StaticResource RowContentLabelMargin}"
 									Value="{Binding Brightness, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}, UpdateSourceTrigger=Explicit}"
-									Maximum="{Binding MaximumBrightness, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
-									Minimum="{Binding MinimumBrightness, Mode=OneTime, Converter={StaticResource ByteToDoubleConverter}}"
+									Maximum="{x:Bind MaximumBrightness, Mode=OneWay, Converter={StaticResource ByteToDoubleConverter}}"
+									Minimum="{x:Bind MinimumBrightness, Mode=OneWay, Converter={StaticResource ByteToDoubleConverter}}"
 									Loaded="OnSliderLoaded"
 									HorizontalAlignment="Stretch"
 									Style="{StaticResource BrightnessSliderStyle}">
 									<Slider.ThumbToolTipValueConverter>
-										<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumBrightness, Mode=OneTime}" />
+										<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MaximumBrightness, Mode=OneWay}" />
 									</Slider.ThumbToolTipValueConverter>
 								</Slider>
 							</Grid>
-							<Grid Visibility="{Binding HasTemperature, Mode=OneWay}">
+							<!-- Somehow, the binding breaks if the DataContext is not explicitly bound?! -->
+							<Grid Visibility="{x:Bind HasTemperature, Mode=OneWay}" DataContext="{x:Bind Mode=OneWay}">
 								<Grid.ColumnDefinitions>
 									<ColumnDefinition Width="Auto" />
 									<ColumnDefinition Width="*" />
@@ -72,8 +74,8 @@
 									Grid.Column="1"
 									Margin="{StaticResource RowContentLabelMargin}"
 									Value="{Binding Temperature, Mode=TwoWay, Converter={StaticResource UInt32ToDoubleConverter}, UpdateSourceTrigger=Explicit}"
-									Maximum="{Binding MaximumTemperature, Mode=OneTime, Converter={StaticResource UInt32ToDoubleConverter}}"
-									Minimum="{Binding MinimumTemperature, Mode=OneTime, Converter={StaticResource UInt32ToDoubleConverter}}"
+									Maximum="{x:Bind MaximumTemperature, Mode=OneWay, Converter={StaticResource UInt32ToDoubleConverter}}"
+									Minimum="{x:Bind MinimumTemperature, Mode=OneWay, Converter={StaticResource UInt32ToDoubleConverter}}"
 									Loaded="OnSliderLoaded"
 									HorizontalAlignment="Stretch"
 									Style="{StaticResource ColorTemperatureSliderStyle}"

@@ -11,10 +11,9 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:MonitorDeviceFeaturesViewModel, IsDesignTimeCreatable=False}"
-  IsEnabled="{Binding IsReady, Mode=TwoWay}">
+  IsEnabled="{x:Bind MonitorDeviceFeatures.IsReady, Mode=OneWay}">
 
-	<StackPanel Orientation="Vertical" Visibility="{Binding Converter={StaticResource NullabilityToVisibilityConverter}}">
+	<StackPanel Orientation="Vertical" Visibility="{x:Bind MonitorDeviceFeatures, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}">
 		<Grid>
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="Auto" />
@@ -41,30 +40,28 @@
         Glyph="&#xE706;"
         VerticalAlignment="Center"
         HorizontalAlignment="Stretch"
-        Visibility="{Binding BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        Visibility="{x:Bind MonitorDeviceFeatures.BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 			<Slider
         Grid.Row="0"
         Grid.Column="1"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding BrightnessSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Maximum="{Binding MaximumValue, Mode=OneTime}"
-        Minimum="{Binding MinimumValue, Mode=OneTime}"
-        Value="{Binding Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+        Visibility="{x:Bind MonitorDeviceFeatures.BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Maximum="{x:Bind MonitorDeviceFeatures.BrightnessSetting.MaximumValue, Mode=OneWay}"
+        Minimum="{x:Bind MonitorDeviceFeatures.BrightnessSetting.MinimumValue, Mode=OneWay}"
+        Value="{x:Bind MonitorDeviceFeatures.BrightnessSetting.Value, Mode=TwoWay}"
         HorizontalAlignment="Stretch"
         Style="{StaticResource BrightnessSliderStyle}">
 				<Slider.ThumbToolTipValueConverter>
-					<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+					<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.BrightnessSetting.MaximumValue, Mode=OneWay}" />
 				</Slider.ThumbToolTipValueConverter>
 			</Slider>
 			<Button
         Grid.Row="0"
         Grid.Column="2"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding BrightnessSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Command="{Binding ResetCommand}"
-        CommandParameter="{Binding}">
+        Visibility="{x:Bind MonitorDeviceFeatures.BrightnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Command="{x:Bind MonitorDeviceFeatures.BrightnessSetting.ResetCommand, Mode=OneWay}"
+        CommandParameter="{x:Bind MonitorDeviceFeatures.BrightnessSetting, Mode=OneWay}">
 				<FontIcon Glyph="&#xE777;" />
 			</Button>
 
@@ -76,30 +73,28 @@
         Glyph="&#xE793;"
         VerticalAlignment="Center"
         HorizontalAlignment="Stretch"
-        Visibility="{Binding ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        Visibility="{x:Bind MonitorDeviceFeatures.ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 			<Slider
         Grid.Row="1"
         Grid.Column="1"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding ContrastSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Value="{Binding Value, Mode=TwoWay}"
-        Maximum="{Binding MaximumValue, Mode=OneTime}"
-        Minimum="{Binding MinimumValue, Mode=OneTime}"
+        Visibility="{x:Bind MonitorDeviceFeatures.ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Value="{x:Bind MonitorDeviceFeatures.ContrastSetting.Value, Mode=TwoWay}"
+        Maximum="{x:Bind MonitorDeviceFeatures.ContrastSetting.MaximumValue, Mode=OneWay}"
+        Minimum="{x:Bind MonitorDeviceFeatures.ContrastSetting.MinimumValue, Mode=OneWay}"
         HorizontalContentAlignment="Stretch"
         HorizontalAlignment="Stretch">
 				<Slider.ThumbToolTipValueConverter>
-					<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+					<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.ContrastSetting.MaximumValue, Mode=OneWay}" />
 				</Slider.ThumbToolTipValueConverter>
 			</Slider>
 			<Button
         Grid.Row="1"
         Grid.Column="2"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding ContrastSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Command="{Binding ResetCommand}"
-        CommandParameter="{Binding}">
+        Visibility="{x:Bind MonitorDeviceFeatures.ContrastSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Command="{x:Bind MonitorDeviceFeatures.ContrastSetting.ResetCommand, Mode=OneWay}"
+        CommandParameter="{x:Bind MonitorDeviceFeatures.ContrastSetting, Mode=OneWay}">
 				<FontIcon Glyph="&#xE777;" />
 			</Button>
 
@@ -111,30 +106,28 @@
         Glyph="&#xF7AF;"
         VerticalAlignment="Center"
         HorizontalAlignment="Stretch"
-        Visibility="{Binding SharpnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        Visibility="{x:Bind MonitorDeviceFeatures.SharpnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 			<Slider
         Grid.Row="2"
         Grid.Column="1"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding SharpnessSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Value="{Binding Value, Mode=TwoWay}"
-        Maximum="{Binding MaximumValue, Mode=OneTime}"
-        Minimum="{Binding MinimumValue, Mode=OneTime}"
+        Visibility="{x:Bind MonitorDeviceFeatures.SharpnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Value="{x:Bind MonitorDeviceFeatures.SharpnessSetting.Value, Mode=TwoWay}"
+        Maximum="{x:Bind MonitorDeviceFeatures.SharpnessSetting.MaximumValue, Mode=OneWay}"
+        Minimum="{x:Bind MonitorDeviceFeatures.SharpnessSetting.MinimumValue, Mode=OneWay}"
         HorizontalContentAlignment="Stretch"
         HorizontalAlignment="Stretch">
 				<Slider.ThumbToolTipValueConverter>
-					<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+					<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.SharpnessSetting.MaximumValue, Mode=OneWay}" />
 				</Slider.ThumbToolTipValueConverter>
 			</Slider>
 			<Button
         Grid.Row="2"
         Grid.Column="2"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding SharpnessSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Command="{Binding ResetCommand}"
-        CommandParameter="{Binding}">
+        Visibility="{x:Bind MonitorDeviceFeatures.SharpnessSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Command="{x:Bind MonitorDeviceFeatures.SharpnessSetting.ResetCommand, Mode=OneWay}"
+        CommandParameter="{x:Bind MonitorDeviceFeatures.SharpnessSetting, Mode=OneWay}">
 				<FontIcon Glyph="&#xE777;" />
 			</Button>
 
@@ -146,33 +139,31 @@
         Glyph="&#xF08C;"
         VerticalAlignment="Center"
         HorizontalAlignment="Stretch"
-        Visibility="{Binding BlueLightFilterLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        Visibility="{x:Bind MonitorDeviceFeatures.BlueLightFilterLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 			<Slider
         Grid.Row="3"
         Grid.Column="1"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding BlueLightFilterLevelSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Value="{Binding Value, Mode=TwoWay}"
-        Maximum="{Binding MaximumValue, Mode=OneTime}"
-        Minimum="{Binding MinimumValue, Mode=OneTime}"
+        Visibility="{x:Bind MonitorDeviceFeatures.BlueLightFilterLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Value="{x:Bind MonitorDeviceFeatures.BlueLightFilterLevelSetting.Value, Mode=TwoWay}"
+        Maximum="{x:Bind MonitorDeviceFeatures.BlueLightFilterLevelSetting.MaximumValue, Mode=OneWay}"
+        Minimum="{x:Bind MonitorDeviceFeatures.BlueLightFilterLevelSetting.MinimumValue, Mode=OneWay}"
         HorizontalContentAlignment="Stretch"
         HorizontalAlignment="Stretch"
         Style="{StaticResource ColorSliderStyle}"
         Background="{StaticResource BlueLightLinearGradientBrush}"
         Foreground="#666">
 				<Slider.ThumbToolTipValueConverter>
-					<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+					<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.BlueLightFilterLevelSetting.MaximumValue, Mode=OneWay}" />
 				</Slider.ThumbToolTipValueConverter>
 			</Slider>
 			<Button
         Grid.Row="3"
         Grid.Column="2"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding BlueLightFilterLevelSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Command="{Binding ResetCommand}"
-        CommandParameter="{Binding}">
+        Visibility="{x:Bind MonitorDeviceFeatures.BlueLightFilterLevelSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Command="{x:Bind MonitorDeviceFeatures.BlueLightFilterLevelSetting.ResetCommand, Mode=OneWay}"
+        CommandParameter="{x:Bind MonitorDeviceFeatures.BlueLightFilterLevelSetting, Mode=OneWay}">
 				<FontIcon Glyph="&#xE777;" />
 			</Button>
 
@@ -184,30 +175,28 @@
         Glyph="&#xE767;"
         VerticalAlignment="Center"
         HorizontalAlignment="Stretch"
-        Visibility="{Binding AudioVolumeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        Visibility="{x:Bind MonitorDeviceFeatures.AudioVolumeSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
 			<Slider
         Grid.Row="4"
         Grid.Column="1"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding AudioVolumeSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Value="{Binding Value, Mode=TwoWay}"
-        Maximum="{Binding MaximumValue, Mode=OneTime}"
-        Minimum="{Binding MinimumValue, Mode=OneTime}"
+        Visibility="{x:Bind MonitorDeviceFeatures.AudioVolumeSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Value="{x:Bind MonitorDeviceFeatures.AudioVolumeSetting.Value, Mode=TwoWay}"
+        Maximum="{x:Bind MonitorDeviceFeatures.AudioVolumeSetting.MaximumValue, Mode=OneWay}"
+        Minimum="{x:Bind MonitorDeviceFeatures.AudioVolumeSetting.MinimumValue, Mode=OneWay}"
         HorizontalContentAlignment="Stretch"
         HorizontalAlignment="Stretch">
 				<Slider.ThumbToolTipValueConverter>
-					<lconverters:CappedValueToPercentConverter MaximumValue="{Binding MaximumValue, Mode=OneTime}" />
+					<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MonitorDeviceFeatures.AudioVolumeSetting.MaximumValue, Mode=OneWay}" />
 				</Slider.ThumbToolTipValueConverter>
 			</Slider>
 			<Button
         Grid.Row="4"
         Grid.Column="2"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding AudioVolumeSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Command="{Binding ResetCommand}"
-        CommandParameter="{Binding}">
+        Visibility="{x:Bind MonitorDeviceFeatures.AudioVolumeSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Command="{x:Bind MonitorDeviceFeatures.AudioVolumeSetting.ResetCommand, Mode=OneWay}"
+        CommandParameter="{x:Bind MonitorDeviceFeatures.AudioVolumeSetting, Mode=OneWay}">
 				<FontIcon Glyph="&#xE777;" />
 			</Button>
 
@@ -219,20 +208,19 @@
         Glyph="&#xE7B5;"
         VerticalAlignment="Center"
         HorizontalAlignment="Stretch"
-        Visibility="{Binding InputSelectSetting, Converter={StaticResource NullabilityToVisibilityConverter}}" />
+        Visibility="{x:Bind MonitorDeviceFeatures.InputSelectSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}" />
 			<ComboBox
         Grid.Row="5"
         Grid.Column="1"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding InputSelectSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        SelectedItem="{Binding Value, Mode=TwoWay}"
-        ItemsSource="{Binding SupportedValues, Mode=OneWay}"
+        Visibility="{x:Bind MonitorDeviceFeatures.InputSelectSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        SelectedItem="{x:Bind MonitorDeviceFeatures.InputSelectSetting.Value, Mode=TwoWay}"
+        ItemsSource="{x:Bind MonitorDeviceFeatures.InputSelectSetting.SupportedValues, Mode=OneWay}"
         HorizontalContentAlignment="Stretch"
         HorizontalAlignment="Stretch">
 				<ComboBox.ItemTemplate>
-					<DataTemplate>
-						<TextBlock Text="{Binding FriendlyName}" />
+					<DataTemplate x:DataType="vm:NonContinuousValueViewModel">
+						<TextBlock Text="{x:Bind FriendlyName, Mode=OneWay}" />
 					</DataTemplate>
 				</ComboBox.ItemTemplate>
 				<mxi:Interaction.Behaviors>
@@ -243,10 +231,9 @@
         Grid.Row="5"
         Grid.Column="2"
         Margin="{StaticResource RowContentLabelMargin}"
-        DataContext="{Binding InputSelectSetting}"
-        Visibility="{Binding DataContext, Converter={StaticResource NullabilityToVisibilityConverter}, RelativeSource={RelativeSource Self}}"
-        Command="{Binding ResetCommand}"
-        CommandParameter="{Binding}">
+        Visibility="{x:Bind MonitorDeviceFeatures.InputSelectSetting, Converter={StaticResource NullabilityToVisibilityConverter}, Mode=OneWay}"
+        Command="{x:Bind MonitorDeviceFeatures.InputSelectSetting.ResetCommand, Mode=OneWay}"
+        CommandParameter="{x:Bind MonitorDeviceFeatures.InputSelectSetting, Mode=OneWay}">
 				<FontIcon Glyph="&#xE777;" />
 			</Button>
 
@@ -257,15 +244,15 @@
         Margin="{StaticResource VerticalItemSpacing}"
         HorizontalAlignment="Stretch"
         HorizontalContentAlignment="Stretch"
-        Visibility="{Binding HasPerformanceSection, Converter={StaticResource BooleanToVisibilityConverter}}"
-        IsExpanded="{Binding IsPerformanceSectionExpanded, Mode=TwoWay}">
+        Visibility="{x:Bind MonitorDeviceFeatures.HasPerformanceSection, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}"
+        IsExpanded="{x:Bind MonitorDeviceFeatures.IsPerformanceSectionExpanded, Mode=TwoWay}">
 				<Expander.Header>
 					<StackPanel Orientation="Horizontal">
 						<FontIcon Glyph="&#xEC4A;" />
 						<TextBlock x:Uid="MonitorPerformanceSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
 					</StackPanel>
 				</Expander.Header>
-				<local:MonitorPerformanceSettingsControl DataContext="{Binding Mode=OneTime}" />
+				<local:MonitorPerformanceSettingsControl MonitorDeviceFeatures="{x:Bind MonitorDeviceFeatures, Mode=OneWay}" />
 			</Expander>
 
 			<Expander
@@ -275,15 +262,15 @@
         Margin="{StaticResource VerticalItemSpacing}"
         HorizontalAlignment="Stretch"
         HorizontalContentAlignment="Stretch"
-        Visibility="{Binding HasRgbSection, Converter={StaticResource BooleanToVisibilityConverter}}"
-        IsExpanded="{Binding IsRgbSectionExpanded, Mode=TwoWay}">
+        Visibility="{x:Bind MonitorDeviceFeatures.HasRgbSection, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}"
+        IsExpanded="{x:Bind MonitorDeviceFeatures.IsRgbSectionExpanded, Mode=TwoWay}">
 				<Expander.Header>
 					<StackPanel Orientation="Horizontal">
 						<FontIcon Glyph="&#xE790;" />
 						<TextBlock x:Uid="MonitorRgbSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
 					</StackPanel>
 				</Expander.Header>
-				<local:MonitorRgbSettingsControl DataContext="{Binding Mode=OneTime}" />
+				<local:MonitorRgbSettingsControl MonitorDeviceFeatures="{x:Bind MonitorDeviceFeatures, Mode=OneWay}" />
 			</Expander>
 
 			<Expander
@@ -293,15 +280,15 @@
         Margin="{StaticResource VerticalItemSpacing}"
         HorizontalAlignment="Stretch"
         HorizontalContentAlignment="Stretch"
-        Visibility="{Binding HasSixAxisSection, Converter={StaticResource BooleanToVisibilityConverter}}"
-        IsExpanded="{Binding IsSixAxisSectionExpanded, Mode=TwoWay}">
+        Visibility="{x:Bind MonitorDeviceFeatures.HasSixAxisSection, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}"
+        IsExpanded="{x:Bind MonitorDeviceFeatures.IsSixAxisSectionExpanded, Mode=TwoWay}">
 				<Expander.Header>
 					<StackPanel Orientation="Horizontal">
 						<FontIcon Glyph="&#xE790;" />
 						<TextBlock x:Uid="MonitorSixAxisSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
 					</StackPanel>
 				</Expander.Header>
-				<local:MonitorSixAxisSettingsControl DataContext="{Binding Mode=OneTime}" />
+				<local:MonitorSixAxisSettingsControl MonitorDeviceFeatures="{x:Bind MonitorDeviceFeatures, Mode=OneWay}" />
 			</Expander>
 
 			<Expander
@@ -311,15 +298,15 @@
         Margin="{StaticResource VerticalItemSpacing}"
         HorizontalAlignment="Stretch"
         HorizontalContentAlignment="Stretch"
-        Visibility="{Binding HasMiscellaneousSection, Converter={StaticResource BooleanToVisibilityConverter}}"
-        IsExpanded="{Binding IsMiscellaneousSectionExpanded, Mode=TwoWay}">
+        Visibility="{x:Bind MonitorDeviceFeatures.HasMiscellaneousSection, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}"
+        IsExpanded="{x:Bind MonitorDeviceFeatures.IsMiscellaneousSectionExpanded, Mode=TwoWay}">
 				<Expander.Header>
 					<StackPanel Orientation="Horizontal">
 						<FontIcon Glyph="&#xE713;" />
 						<TextBlock x:Uid="MonitorMiscellaneousSettingsSectionHeader" Margin="{StaticResource TitleTextIconMargin}" />
 					</StackPanel>
 				</Expander.Header>
-				<local:MonitorMiscSettingsControl DataContext="{Binding Mode=OneTime}" />
+				<local:MonitorMiscSettingsControl MonitorDeviceFeatures="{x:Bind MonitorDeviceFeatures, Mode=OneWay}" />
 			</Expander>
 		</Grid>
 		<Grid Margin="0,12,0,0">
@@ -331,9 +318,9 @@
 				<ColumnDefinition Width="6" />
 				<ColumnDefinition Width="Auto" />
 			</Grid.ColumnDefinitions>
-			<Button Grid.Column="0" x:Uid="RefreshButton" HorizontalAlignment="Right" Content="Reset" Command="{Binding RefreshCommand}" CommandParameter="{Binding}" />
-			<Button Grid.Column="3" x:Uid="ResetButton" HorizontalAlignment="Right" Content="Reset" Command="{Binding ResetCommand}" CommandParameter="{Binding}" />
-			<Button Grid.Column="5" x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" Command="{Binding ApplyCommand}" CommandParameter="{Binding}" />
+			<Button Grid.Column="0" x:Uid="RefreshButton" HorizontalAlignment="Right" Content="Reset" Command="{x:Bind MonitorDeviceFeatures.RefreshCommand, Mode=OneWay}" CommandParameter="{x:Bind MonitorDeviceFeatures, Mode=OneWay}" />
+			<Button Grid.Column="3" x:Uid="ResetButton" HorizontalAlignment="Right" Content="Reset" Command="{x:Bind MonitorDeviceFeatures.ResetCommand, Mode=OneWay}" CommandParameter="{x:Bind MonitorDeviceFeatures, Mode=OneWay}" />
+			<Button Grid.Column="5" x:Uid="ApplyButton" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind MonitorDeviceFeatures.ApplyCommand, Mode=OneWay}" CommandParameter="{x:Bind MonitorDeviceFeatures, Mode=OneWay}" />
 		</Grid>
 	</StackPanel>
 </UserControl>

@@ -8,7 +8,8 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:MonitorDeviceSettingViewModel, IsDesignTimeCreatable=False}">
+  d:DataContext="{d:DesignInstance vm:MonitorDeviceSettingViewModel, IsDesignTimeCreatable=False}"
+	x:DataType="vm:MonitorDeviceSettingViewModel">
 
 	<Grid Margin="{StaticResource RowLabelMargin}" HorizontalAlignment="Stretch">
 		<Grid.ColumnDefinitions>

@@ -8,18 +8,27 @@
 		<Nullable>enable</Nullable>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<Platforms>x86;x64;ARM64</Platforms>
-		<RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) &gt;= 8">win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-		<RuntimeIdentifiers Condition="$([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')) &lt; 8">win10-x86;win10-x64;win10-arm64</RuntimeIdentifiers>
-		<PublishProfile>win10-$(Platform).pubxml</PublishProfile>
+		<RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+		<PublishProfile>win-$(Platform).pubxml</PublishProfile>
 		<UseWinUI>true</UseWinUI>
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<WindowsPackageType>None</WindowsPackageType>
 		<PublishSingleFile>false</PublishSingleFile>
 		<ApplicationIcon>..\..\..\..\exo-icon.ico</ApplicationIcon>
-		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN;EXO_UI</DefineConstants>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<ExoEnableAot>true</ExoEnableAot>
+	</PropertyGroup>
+	<!-- Swap this condition to enable or disable AOT -->
+	<PropertyGroup Condition="'$(ExoEnableAot)' != 'true'">
+		<PublishAot>true</PublishAot>
+		<SelfContained>true</SelfContained>
+		<Optimize>true</Optimize>
+		<OptimizationPreference>Speed</OptimizationPreference>
+		<SelfContained>true</SelfContained>
+		<PublishTrimmed>true</PublishTrimmed>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -151,7 +160,7 @@
 		<Content Include="Assets\StoreLogo.png" />
 		<Content Include="Assets\Wide310x150Logo.scale-200.png" />
 		<Content Include="..\FluentSystemIcons-Resizable.ttf" Link="FluentSystemIcons-Resizable.ttf">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
 
@@ -173,10 +182,10 @@
 	</ItemGroup>
 
 	<!-- 
-    Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
-    Tools extension to be activated for this project even if the Windows App SDK Nuget
-    package has not yet been restored.
-  -->
+		Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
+		Tools extension to be activated for this project even if the Windows App SDK Nuget
+		package has not yet been restored.
+	-->
 	<ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
 		<ProjectCapability Include="Msix" />
 	</ItemGroup>
@@ -193,7 +202,7 @@
 
 	<ItemGroup>
 		<Page Update="Controls\ColorSwatch.xaml">
-		  <SubType>Designer</SubType>
+			<SubType>Designer</SubType>
 		</Page>
 		<Page Update="Controls\GlyphToggleButton.xaml">
 			<SubType>Designer</SubType>
@@ -334,10 +343,10 @@
 	</ItemGroup>
 
 	<!-- 
-    Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
-    Explorer "Package and Publish" context menu entry to be enabled for this project even if 
-    the Windows App SDK Nuget package has not yet been restored.
-  -->
+		Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution 
+		Explorer "Package and Publish" context menu entry to be enabled for this project even if 
+		the Windows App SDK Nuget package has not yet been restored.
+	-->
 	<PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
 		<HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
 	</PropertyGroup>
