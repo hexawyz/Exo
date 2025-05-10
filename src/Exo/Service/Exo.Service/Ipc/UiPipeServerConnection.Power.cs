@@ -258,7 +258,7 @@ partial class UiPipeServerConnection
 		static int Write(Span<byte> buffer, in PowerDeviceIdleSleepTimerNotification notification)
 		{
 			var writer = new BufferWriter(buffer);
-			writer.Write((byte)ExoUiProtocolServerMessage.LowPowerBatteryThreshold);
+			writer.Write((byte)ExoUiProtocolServerMessage.IdleSleepTimer);
 			writer.Write(notification.DeviceId);
 			writer.Write((ulong)notification.IdleTime.Ticks);
 
