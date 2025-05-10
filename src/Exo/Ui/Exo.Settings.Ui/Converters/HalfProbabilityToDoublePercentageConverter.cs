@@ -1,8 +1,8 @@
-﻿using Microsoft.UI.Xaml.Data;
+using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class HalfProbabilityToDoublePercentageConverter : IValueConverter
+internal sealed partial class HalfProbabilityToDoublePercentageConverter : IValueConverter
 {
 	public object? Convert(object value, Type targetType, object parameter, string language)
 	{

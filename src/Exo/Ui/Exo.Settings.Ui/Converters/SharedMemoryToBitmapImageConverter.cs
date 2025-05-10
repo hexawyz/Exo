@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class SharedMemoryToBitmapImageConverter : IValueConverter
+internal sealed partial class SharedMemoryToBitmapImageConverter : IValueConverter
 {
 	public object? Convert(object value, Type targetType, object parameter, string language)
 	{

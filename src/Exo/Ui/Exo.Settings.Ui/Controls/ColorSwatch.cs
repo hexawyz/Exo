@@ -14,7 +14,7 @@ namespace Exo.Settings.Ui.Controls;
 /// and a right click will copy <see cref="Color"/> into <see cref="IEditionService.Color"/>.
 /// </remarks>
 [ContentProperty(Name = nameof(Color))]
-internal sealed class ColorSwatch : Control
+internal sealed partial class ColorSwatch : Control
 {
 	public Color Color
 	{

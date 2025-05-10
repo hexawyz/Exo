@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-public class DeviceCategoryToGlyphConverter : IValueConverter
+public sealed partial class DeviceCategoryToGlyphConverter : IValueConverter
 {
 	private static readonly Dictionary<DeviceCategory, string> DeviceCategoryToGlyphMapping = new()
 	{

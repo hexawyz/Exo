@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class NotificationSeverityConverter : IValueConverter
+internal sealed partial class NotificationSeverityConverter : IValueConverter
 {
 	public object Convert(object value, Type targetType, object parameter, string language)
 		=> (value as NotificationSeverity?) switch

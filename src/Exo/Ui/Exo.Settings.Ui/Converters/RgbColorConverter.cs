@@ -4,7 +4,7 @@ using Windows.UI;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class RgbColorConverter : IValueConverter
+internal sealed partial class RgbColorConverter : IValueConverter
 {
 	public object? Convert(object value, Type targetType, object parameter, string language) => value is RgbColor color ? Color.FromArgb(255, color.R, color.G, color.B) : null;
 

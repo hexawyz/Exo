@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class NullabilityToBooleanConverter : IValueConverter
+internal sealed partial class NullabilityToBooleanConverter : IValueConverter
 {
 	private static readonly object True = true;
 	private static readonly object False = false;

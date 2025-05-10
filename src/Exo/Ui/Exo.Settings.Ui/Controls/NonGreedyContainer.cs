@@ -4,7 +4,7 @@ using Windows.Foundation;
 
 namespace Exo.Settings.Ui.Controls;
 
-internal sealed class NonGreedyScrollViewer : ContentControl
+internal sealed partial class NonGreedyScrollViewer : ContentControl
 {
 	private Size? _finalSize;
 

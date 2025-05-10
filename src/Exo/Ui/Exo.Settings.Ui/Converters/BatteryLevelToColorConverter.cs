@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class BatteryLevelToColorConverter : IValueConverter
+internal sealed partial class BatteryLevelToColorConverter : IValueConverter
 {
 	private static readonly object Lime = Colors.Lime;
 	private static readonly object Orange = Colors.Orange;

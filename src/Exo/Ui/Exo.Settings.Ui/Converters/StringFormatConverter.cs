@@ -2,7 +2,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class StringFormatConverter : IValueConverter
+internal sealed partial class StringFormatConverter : IValueConverter
 {
 	public object? Convert(object value, Type targetType, object parameter, string language)
 	{

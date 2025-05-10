@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class CappedValueToPercentConverter : DependencyObject, IValueConverter
+internal sealed partial class CappedValueToPercentConverter : DependencyObject, IValueConverter
 {
 	public int MaximumValue
 	{

@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class BatteryStateToExternalPowerVisibilityConverter : IValueConverter
+internal sealed partial class BatteryStateToExternalPowerVisibilityConverter : IValueConverter
 {
 	private static readonly object Visible = Visibility.Visible;
 	private static readonly object Collapsed = Visibility.Collapsed;

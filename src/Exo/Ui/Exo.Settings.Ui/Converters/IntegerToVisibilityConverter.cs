@@ -1,9 +1,9 @@
-﻿using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class IntegerToVisibilityConverter : IValueConverter
+internal sealed partial class IntegerToVisibilityConverter : IValueConverter
 {
 	private static readonly object Visible = Visibility.Visible;
 	private static readonly object Collapsed = Visibility.Collapsed;

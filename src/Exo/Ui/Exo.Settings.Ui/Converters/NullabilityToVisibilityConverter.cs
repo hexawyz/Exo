@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class NullabilityToVisibilityConverter : IValueConverter
+internal sealed partial class NullabilityToVisibilityConverter : IValueConverter
 {
 	private static readonly object Visible = Visibility.Visible;
 	private static readonly object Collapsed = Visibility.Collapsed;

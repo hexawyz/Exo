@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-public class LightingZoneComponentTypeToGlyphConverter : IValueConverter
+public sealed partial class LightingZoneComponentTypeToGlyphConverter : IValueConverter
 {
 	// ic_fluent_layout_cell_four_20_filled (Also tried: ic_fluent_developer_board_20_regular, and ic_fluent_connected_20_regular but it doesn't look good in that case TBH; Other alternative: ic_fluent_iot_20_regular)
 	private const string DefaultGlyph = "\uEA2E";

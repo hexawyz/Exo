@@ -5,7 +5,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class EnumerationValueToNameConverter : DependencyObject, IValueConverter
+internal sealed partial class EnumerationValueToNameConverter : DependencyObject, IValueConverter
 {
 	public ReadOnlyCollection<EnumerationValueViewModel> Values
 	{

@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class ConnectionStatusToObjectConverter : DependencyObject, IValueConverter
+internal sealed partial class ConnectionStatusToObjectConverter : DependencyObject, IValueConverter
 {
 	public object DisconnectedValue
 	{

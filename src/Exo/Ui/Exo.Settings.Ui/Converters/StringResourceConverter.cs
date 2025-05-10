@@ -3,7 +3,7 @@ using Microsoft.Windows.ApplicationModel.Resources;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class StringResourceConverter : IValueConverter
+internal sealed partial class StringResourceConverter : IValueConverter
 {
 	private static readonly ResourceManager ResourceManager = new ResourceManager();
 

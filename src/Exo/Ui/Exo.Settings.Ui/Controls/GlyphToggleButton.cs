@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Media;
 
 namespace Exo.Settings.Ui.Controls;
 
-internal class GlyphToggleButton : ToggleButton
+internal sealed partial class GlyphToggleButton : ToggleButton
 {
 	public string Glyph
 	{

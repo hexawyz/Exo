@@ -5,7 +5,7 @@ using Windows.Storage.Streams;
 
 namespace Exo.Settings.Ui.Converters;
 
-internal sealed class ImageToWriteableBitmapConverter : IValueConverter
+internal sealed partial class ImageToWriteableBitmapConverter : IValueConverter
 {
 	private readonly Dictionary<string, WeakReference<WriteableBitmap>> _bitmapCache = new(StringComparer.OrdinalIgnoreCase);
 
