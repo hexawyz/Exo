@@ -17,7 +17,7 @@ using WinRT;
 namespace Exo.Settings.Ui.ViewModels;
 
 [GeneratedBindableCustomProperty]
-internal sealed class SensorsViewModel
+internal sealed partial class SensorsViewModel
 {
 	private readonly DevicesViewModel _devicesViewModel;
 	private ISensorService? _sensorService;
