@@ -49,7 +49,7 @@ jobs:
 
     # Build the WiX project, which depends on the main projects
     - name: Build the installer
-      run: msbuild src\Exo\Exo.InstallerPackage\Exo.InstallerPackage.wixproj /t:Build /p:Configuration=$env:Configuration /p:Platform=x64 /p:OutputName="$env:MSI_ARTIFACT_NAME"
+      run: msbuild src\Exo\Exo.InstallerPackage\Exo.InstallerPackage.wixproj /t:Build /p:Configuration=$env:Configuration /p:Platform=x64 /p:RuntimeIdentifier=win-x64 /p:OutputName="$env:MSI_ARTIFACT_NAME"
       env:
         Configuration: ${{ matrix.configuration }}
 
