@@ -7,6 +7,7 @@
 		<Nullable>enable</Nullable>
 		<EnableExoGuidGeneration>true</EnableExoGuidGeneration>
 		<EnableExoSerializerGeneration>true</EnableExoSerializerGeneration>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -8,11 +8,18 @@ using Exo.Configuration;
 using Exo.Features;
 using Exo.Features.Lighting;
 using Exo.Lighting;
+using Exo.Lighting.Effects;
 using Exo.PowerManagement;
 using Exo.Primitives;
 using Exo.Programming.Annotations;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
+
+// I ideally would not rely on an external library to do the color conversions, but we already depend on ImageSharp for image stuff and that is unlikely to change. Might as well use it.
+using ColorSpaceConverter = SixLabors.ImageSharp.ColorSpaces.Conversion.ColorSpaceConverter;
+using RgbWorkingSpaces = SixLabors.ImageSharp.ColorSpaces.RgbWorkingSpaces;
+using ImageSharpRgb = SixLabors.ImageSharp.ColorSpaces.Rgb;
+using ImageSharpLinearRgb = SixLabors.ImageSharp.ColorSpaces.LinearRgb;
 
 namespace Exo.Service;
 
@@ -146,7 +153,6 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
 		IPowerNotificationService powerNotificationService,
-		LightingEffectMetadataService lightingEffectMetadataService,
 		CancellationToken cancellationToken
 	)
 	{
@@ -245,18 +251,25 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			}
 		}
 
-		return new LightingService(logger, devicesConfigurationContainer, deviceWatcher, powerNotificationService, lightingEffectMetadataService, deviceStates);
+		return new LightingService(logger, devicesConfigurationContainer, deviceWatcher, powerNotificationService, deviceStates);
 	}
 
 	private readonly IDeviceWatcher _deviceWatcher;
 	private readonly ConcurrentDictionary<Guid, DeviceState> _lightingDeviceStates;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
-	private readonly object _changeLock;
+	private readonly Lock _changeLock;
 	private readonly AsyncLock _restoreLock;
 	private TaskCompletionSource _restoreTaskCompletionSource;
 	private ChangeBroadcaster<LightingDeviceInformation> _deviceInformationBroadcaster;
 	private ChangeBroadcaster<LightingDeviceConfiguration> _deviceConfigurationBroadcaster;
-	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
+
+	// Setting a global effect will involve fallbacks in order to cover all devices.
+	// The fallbacks can always be programmatically computed, but it is easier to just store all of them here.
+	private LightingEffect[]? _globalEffects;
+	private bool _isGlobalLighting;
+
+	private readonly ColorSpaceConverter _colorSpaceConverter;
+
 	private readonly ILogger<LightingService> _logger;
 
 	private CancellationTokenSource? _cancellationTokenSource;
@@ -270,17 +283,16 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
 		IPowerNotificationService powerNotificationService,
-		LightingEffectMetadataService lightingEffectMetadataService,
 		ConcurrentDictionary<Guid, DeviceState> lightingDeviceStates
 	)
 	{
 		_logger = logger;
 		_devicesConfigurationContainer = devicesConfigurationContainer;
 		_deviceWatcher = deviceWatcher;
-		_lightingEffectMetadataService = lightingEffectMetadataService;
 		_lightingDeviceStates = lightingDeviceStates;
 		_changeLock = new();
 		_restoreLock = new();
+		_colorSpaceConverter = new();
 		_restoreTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
@@ -306,7 +318,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	private CancellationToken GetCancellationToken()
 	{
 		var cts = Volatile.Read(ref _cancellationTokenSource);
-		ObjectDisposedException.ThrowIf(cts is null, typeof(LightingEffectMetadataService));
+		ObjectDisposedException.ThrowIf(cts is null, typeof(LightingService));
 		return cts.Token;
 	}
 
@@ -635,7 +647,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 				}
 			}
 
-			// After the previous steps, reste the HashSet and start listing the changed lighting zones instead.
+			// After the previous steps, reset the HashSet and start listing the changed lighting zones instead.
 			changedLightingZones.Clear();
 
 			// After the steps above, we know for sure that there isn't any conflict with lighting zone IDs, and we can start killing old states.
@@ -1022,6 +1034,72 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 
 	Completed:;
 		return applyChangesTask;
+	}
+
+	public ReadOnlySpan<Guid> GetSupportedGlobalEffects() => SupportedGlobalEffects;
+
+	public async Task DisableGlobalLightingAsync(CancellationToken cancellationToken)
+	{
+		lock (_changeLock)
+		{
+			_isGlobalLighting = false;
+
+			// TODO: Enable
+		}
+	}
+
+	public async Task ApplyGlobalEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
+	{
+		lock (_changeLock)
+		{
+			if (_globalEffects is { Length: > 0 } && _globalEffects[0] == effect)
+			{
+				if (_isGlobalLighting) return;
+			}
+			else if (effect.EffectId == StaticColorEffectId)
+			{
+				var staticColorEffect = EffectSerializer.UnsafeDeserialize<StaticColorEffect>(effect.EffectData);
+				var color = ColorSpaceConverter.ToLinearRgb(new ImageSharpRgb());
+				float equivalentBrightness = 0.2126f * color.R + 0.7152f * color.G + 0.0722f * color.B;
+				_globalEffects =
+				[
+					EffectSerializer.Serialize(staticColorEffect),
+				// TODO: Solve the brightness problem. We should have a uniform way to represent brightness across devices but also allow device-specific representations.
+				// The main problem is that the discrete brightness values supported by a device can vary across devices.
+				// For now, the code below assumes that brightness ranges from 0 to 100, which is wrong.
+				// Maybe splitting brightness in two flavors would be enough, but in some cases, being able to read back the actual brightness from the device might be necessary.
+				EffectSerializer.Serialize(new StaticBrightnessEffect((byte)(RgbWorkingSpaces.SRgb.Compress(equivalentBrightness) * 100))),
+				equivalentBrightness >= 0.5f ? EffectSerializer.Serialize(new EnabledEffect()) : EffectSerializer.Serialize(new DisabledEffect()),
+				EffectSerializer.Serialize(new DisabledEffect()),
+			];
+			}
+			else if (effect.EffectId == SpectrumCycleEffectId)
+			{
+				_globalEffects =
+				[
+					EffectSerializer.Serialize(new SpectrumCycleEffect()),
+				EffectSerializer.Serialize(new EnabledEffect()),
+				EffectSerializer.Serialize(new DisabledEffect()),
+			];
+			}
+			else if (effect.EffectId == SpectrumWaveEffectId)
+			{
+				_globalEffects =
+				[
+					EffectSerializer.Serialize(new SpectrumWaveEffect()),
+				EffectSerializer.Serialize(new EnabledEffect()),
+				EffectSerializer.Serialize(new DisabledEffect()),
+			];
+			}
+			else
+			{
+				throw new ArgumentException("Unsupported effect.");
+			}
+
+			_isGlobalLighting = true;
+
+			// TODO: Enable
+		}
 	}
 
 	private static async ValueTask ApplyChangesAsync(IDeviceFeatureSet<ILightingDeviceFeature> lightingFeatures, bool shouldPersist)

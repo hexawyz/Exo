@@ -12,7 +12,7 @@ namespace Exo.Lighting;
 
 public static class EffectSerializer
 {
-	private delegate void SetEffectDelegate(ILightingZone lightingZone, ReadOnlySpan<byte> data);
+	private delegate bool TrySetEffectDelegate(ILightingZone lightingZone, ReadOnlySpan<byte> data);
 
 	private static readonly ConcurrentDictionary<Guid, RegisteredEffectState> EffectStates = new();
 	private static readonly Lock EffectAddLock = new();
@@ -174,6 +174,61 @@ public static class EffectSerializer
 		}
 	}
 
+	public static LightingEffect Serialize<TEffect>(in TEffect effect)
+		where TEffect : struct, ILightingEffect<TEffect>
+	{
+		if (effect.TryGetSize(out uint size) || size > 0)
+		{
+			var effectId = effect.GetEffectId();
+			byte[] buffer;
+			if (size == 0)
+			{
+				buffer = [];
+			}
+			else
+			{
+				buffer = new byte[size];
+				var writer = new BufferWriter(buffer);
+				effect.Serialize(ref writer);
+				var finalSize = buffer.Length;
+				if (finalSize != size) buffer = finalSize > 0 ? buffer[..(int)(uint)finalSize] : [];
+			}
+			return new LightingEffect(effectId, buffer);
+		}
+		else
+		{
+			return SerializeFromPoolBuffer(effect);
+		}
+	}
+
+	private static LightingEffect SerializeFromPoolBuffer<TEffect>(in TEffect effect)
+		where TEffect : struct, ILightingEffect<TEffect>
+	{
+		var buffer = ArrayPool<byte>.Shared.Rent(256);
+		try
+		{
+			var effectId = effect.GetEffectId();
+			var writer = new BufferWriter(buffer);
+			effect.Serialize(ref writer);
+			var finalSize = buffer.Length;
+			return new LightingEffect(effectId, finalSize > 0 ? buffer[..(int)(uint)finalSize] : []);
+		}
+		finally
+		{
+			ArrayPool<byte>.Shared.Return(buffer, false);
+		}
+	}
+
+	[EditorBrowsable(EditorBrowsableState.Advanced)]
+	[SkipLocalsInit]
+	public static TEffect UnsafeDeserialize<TEffect>(ReadOnlySpan<byte> data)
+		where TEffect : struct, ILightingEffect<TEffect>
+	{
+		var reader = new BufferReader(data);
+		TEffect.Deserialize(ref reader, out var effect);
+		return effect;
+	}
+
 	public static async IAsyncEnumerable<LightingEffectInformation> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
@@ -237,35 +292,40 @@ public static class EffectSerializer
 		{
 			if (_dependentHandle.IsAllocated)
 			{
-				_dependentHandle.Dependent = new SetEffectDelegate(SetEffect<TEffect>);
+				_dependentHandle.Dependent = new TrySetEffectDelegate(TrySetEffect<TEffect>);
 			}
 			else
 			{
-				_dependentHandle = new(typeof(TEffect), new SetEffectDelegate(SetEffect<TEffect>));
+				_dependentHandle = new(typeof(TEffect), new TrySetEffectDelegate(TrySetEffect<TEffect>));
 			}
 		}
 
 		public bool SetEffect(ILightingZone lightingZone, ReadOnlySpan<byte> data)
 		{
-			if (_dependentHandle.Dependent is SetEffectDelegate d)
+			if (_dependentHandle.Dependent is TrySetEffectDelegate d)
 			{
-				d.Invoke(lightingZone, data);
+				if (!d.Invoke(lightingZone, data))
+				{
+					throw _dependentHandle.Target is Type effectType ?
+						new InvalidOperationException($"The specified zone does not support effects of type {effectType}.") :
+						new InvalidOperationException($"The specified zone does not support effects of the specified type.");
+				}
 				return true;
 			}
 			return false;
 		}
 
-		private void SetEffect<TEffect>(ILightingZone lightingZone, ReadOnlySpan<byte> data)
+		public bool TrySetEffect(ILightingZone lightingZone, ReadOnlySpan<byte> data)
+			=> (_dependentHandle.Dependent as TrySetEffectDelegate)?.Invoke(lightingZone, data) ?? false;
+
+		private bool TrySetEffect<TEffect>(ILightingZone lightingZone, ReadOnlySpan<byte> data)
 			where TEffect : struct, ILightingEffect<TEffect>
 		{
-			TEffect effect;
 			var reader = new BufferReader(data);
-			TEffect.Deserialize(ref reader, out effect);
-			if (lightingZone is not ILightingZoneEffect<TEffect> typedLightingZone)
-			{
-				throw new InvalidOperationException($"The specified zone does not support effects of type {typeof(TEffect)}.");
-			}
+			TEffect.Deserialize(ref reader, out var effect);
+			if (lightingZone is not ILightingZoneEffect<TEffect> typedLightingZone) return false;
 			typedLightingZone.ApplyEffect(in effect);
+			return true;
 		}
 	}
 }

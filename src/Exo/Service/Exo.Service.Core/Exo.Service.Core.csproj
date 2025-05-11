@@ -6,6 +6,7 @@
 		<RootNamespace>Exo.Service</RootNamespace>
 		<WarningsAsErrors>Nullable</WarningsAsErrors>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<EnableExoGuidGeneration>true</EnableExoGuidGeneration>
 	</PropertyGroup>
 	
 	<ItemGroup>
