@@ -112,7 +112,10 @@
     <Project Path="src/Exo/Service/Exo.Service.Core.Tests/Exo.Service.Core.Tests.csproj" />
     <Project Path="src/Exo/Service/Exo.Service.Core/Exo.Service.Core.csproj" />
     <Project Path="src/Exo/Service/Exo.Service.ImageService/Exo.Service.ImageService.csproj" />
-    <Project Path="src/Exo/Service/Exo.Service/Exo.Service.csproj" />
+    <Project Path="src/Exo/Service/Exo.Service/Exo.Service.csproj">
+      <Platform Solution="Debug|arm64" Project="ARM64" />
+      <Platform Solution="Debug|x64" Project="x64" />
+    </Project>
     <Project Path="src/Exo/Service/Exo.ServiceProcess.ServiceController/Exo.ServiceProcess.ServiceController.csproj" />
   </Folder>
   <Folder Name="/Exo/Ui/">

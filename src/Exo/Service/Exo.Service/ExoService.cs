@@ -186,7 +186,6 @@ public class ExoService : ServiceBase
 				devicesConfigurationContainer,
 				deviceRegistry,
 				powerNotificationService,
-				lightingEffectMetadataService,
 				cancellationToken
 			).ConfigureAwait(false);
 			await using var lightService = await LightService.CreateAsync
