@@ -13,6 +13,8 @@ namespace Exo.Lighting;
 public static class EffectSerializer
 {
 	private delegate bool TrySetEffectDelegate(ILightingZone lightingZone, ReadOnlySpan<byte> data);
+	private delegate bool TrySetEffectDelegate<TEffect>(ILightingZone lightingZone, in TEffect effect)
+		where TEffect : struct, ILightingEffect<TEffect>;
 
 	private static readonly ConcurrentDictionary<Guid, RegisteredEffectState> EffectStates = new();
 	private static readonly Lock EffectAddLock = new();
@@ -51,7 +53,13 @@ public static class EffectSerializer
 		where TSourceEffect : struct, ILightingEffect<TSourceEffect>
 		where TDestinationEffect : struct, IConvertibleLightingEffect<TSourceEffect, TDestinationEffect>
 	{
-		// TODO: Implement the actual conversion process.
+		if (EffectStates.TryGetValue(TSourceEffect.EffectId, out var state))
+		{
+			lock (EffectAddLock)
+			{
+				state.RegisterConverter<TSourceEffect, TDestinationEffect>();
+			}
+		}
 	}
 
 	public static bool TryGetEffectMetadata(Guid effectId, [NotNullWhen(true)] out LightingEffectInformation? metadata)
@@ -271,6 +279,7 @@ public static class EffectSerializer
 		// TODO: ConditionalWeakTable< Type, SetConvertedEffect >
 		public LightingEffectInformation Metadata;
 		private DependentHandle _dependentHandle;
+		private ConditionalWeakTable<Type, Delegate>? _converters;
 
 		public RegisteredEffectState(LightingEffectInformation information)
 		{
@@ -285,7 +294,11 @@ public static class EffectSerializer
 			GC.SuppressFinalize(this);
 		}
 
-		private void Dispose(bool disposing) => _dependentHandle.Dispose();
+		private void Dispose(bool disposing)
+		{
+			_dependentHandle.Dispose();
+			_converters?.Clear();
+		}
 
 		public void RegisterDeserializer<TEffect>()
 			where TEffect : struct, ILightingEffect<TEffect>
@@ -298,6 +311,13 @@ public static class EffectSerializer
 			{
 				_dependentHandle = new(typeof(TEffect), new TrySetEffectDelegate(TrySetEffect<TEffect>));
 			}
+		}
+
+		public void RegisterConverter<TSourceEffect, TDestinationEffect>()
+			where TSourceEffect : struct, ILightingEffect<TSourceEffect>
+			where TDestinationEffect : struct, IConvertibleLightingEffect<TSourceEffect, TDestinationEffect>
+		{
+			_ = (_converters ??= new()).GetValue(typeof(TDestinationEffect), _ => new TrySetEffectDelegate<TSourceEffect>(TrySetConvertedEffect<TSourceEffect, TDestinationEffect>));
 		}
 
 		public bool SetEffect(ILightingZone lightingZone, ReadOnlySpan<byte> data)
@@ -323,8 +343,32 @@ public static class EffectSerializer
 		{
 			var reader = new BufferReader(data);
 			TEffect.Deserialize(ref reader, out var effect);
-			if (lightingZone is not ILightingZoneEffect<TEffect> typedLightingZone) return false;
-			typedLightingZone.ApplyEffect(in effect);
+			if (lightingZone is ILightingZoneEffect<TEffect> typedLightingZone)
+			{
+				typedLightingZone.ApplyEffect(in effect);
+				return true;
+			}
+
+			// TODO: Enumerating ConditionalWeakTable is probably far from efficient but we can rework that part later.
+			// We do want to allow unloading assemblies so we can't keep strong references, but we also don't want to double register anything.
+			// As we know the list of converters is unlikely to change frequently, it would probably work it to do the job of ConditionalWeakTable manually in a lighter way.
+			if (_converters is { } converters)
+			{
+				foreach (var kvp in _converters)
+				{
+					if (Unsafe.As<TrySetEffectDelegate<TEffect>>(kvp.Value)(lightingZone, in effect)) return true;
+				}
+			}
+
+			return false;
+		}
+
+		private bool TrySetConvertedEffect<TSourceEffect, TDestinationEffect>(ILightingZone lightingZone, in TSourceEffect effect)
+			where TSourceEffect : struct, ILightingEffect<TSourceEffect>
+			where TDestinationEffect : struct, IConvertibleLightingEffect<TSourceEffect, TDestinationEffect>
+		{
+			if (lightingZone is not ILightingZoneEffect<TDestinationEffect> typedLightingZone) return false;
+			typedLightingZone.ApplyEffect(effect);
 			return true;
 		}
 	}
