@@ -399,7 +399,8 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			{
 				if (deviceState.Driver is null) continue;
 
-				if (deviceState.IsUnifiedLightingEnabled)
+				// TODO: Optimize redundant condition checks (using goto, probably 😄)
+				if (deviceState.IsUnifiedLightingEnabled || globalEffects is not null && deviceState.UnifiedLightingZoneId != default)
 				{
 					var zoneState = deviceState.LightingZones[deviceState.UnifiedLightingZoneId];
 					if (zoneState.LightingZone is null) continue;
@@ -413,23 +414,20 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 						EffectSerializer.TrySetEffect(zoneState.LightingZone, zoneState.SerializedCurrentEffect);
 					}
 				}
+				else if (globalEffects is not null)
+				{
+					foreach (var (zoneId, zoneState) in deviceState.LightingZones)
+					{
+						if (zoneId == deviceState.UnifiedLightingZoneId || zoneState.LightingZone is null) continue;
+						EffectSerializer.TrySetEffect(zoneState.LightingZone, globalEffects);
+					}
+				}
 				else
 				{
-					if (globalEffects is not null)
+					foreach (var (zoneId, zoneState) in deviceState.LightingZones)
 					{
-						foreach (var (zoneId, zoneState) in deviceState.LightingZones)
-						{
-							if (zoneId == deviceState.UnifiedLightingZoneId || zoneState.LightingZone is null) continue;
-							EffectSerializer.TrySetEffect(zoneState.LightingZone, globalEffects);
-						}
-					}
-					else
-					{
-						foreach (var (zoneId, zoneState) in deviceState.LightingZones)
-						{
-							if (zoneId == deviceState.UnifiedLightingZoneId || zoneState.LightingZone is null || zoneState.SerializedCurrentEffect is null) continue;
-							EffectSerializer.TrySetEffect(zoneState.LightingZone, zoneState.SerializedCurrentEffect);
-						}
+						if (zoneId == deviceState.UnifiedLightingZoneId || zoneState.LightingZone is null || zoneState.SerializedCurrentEffect is null) continue;
+						EffectSerializer.TrySetEffect(zoneState.LightingZone, zoneState.SerializedCurrentEffect);
 					}
 				}
 
