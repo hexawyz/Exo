@@ -52,7 +52,10 @@ public sealed partial class SmBios
 
 	public Structure.BiosInformation BiosInformation { get; }
 	public Structure.SystemInformation SystemInformation { get; }
+	public ImmutableArray<Structure.BaseboardInformation> BaseboardInformations { get; }
+	public ImmutableArray<Structure.SystemEnclosure> SystemEnclosures { get; }
 	public ImmutableArray<Structure.ProcessorInformation> ProcessorInformations { get; }
+	public ImmutableArray<Structure.PortConnectorInformation> PortConnectorInformations { get; }
 	public ImmutableArray<Structure.MemoryDevice> MemoryDevices { get; }
 
 	private SmBios(ReadOnlySpan<byte> data)
@@ -63,7 +66,10 @@ public sealed partial class SmBios
 		DmiRevision = header.DmiRevision;
 
 		var strings = new List<string>();
+		var baseboardInformations = ImmutableArray.CreateBuilder<Structure.BaseboardInformation>(1);
+		var systemEnclosures = ImmutableArray.CreateBuilder<Structure.SystemEnclosure>(1);
 		var processorInformations = ImmutableArray.CreateBuilder<Structure.ProcessorInformation>(1);
+		var portConnectorInformations = ImmutableArray.CreateBuilder<Structure.PortConnectorInformation>(4);
 		var memoryDevices = ImmutableArray.CreateBuilder<Structure.MemoryDevice>(4);
 
 		var remaining = data[Unsafe.SizeOf<RawSmBiosHeader>()..];
@@ -90,11 +96,22 @@ public sealed partial class SmBios
 				if (SystemInformation is not null) throw new InvalidDataException("System Information structure must only appear once.");
 				SystemInformation = new(structureHeader.Handle, structureData, strings);
 				break;
+			case 2:
+				baseboardInformations.Add(new(structureHeader.Handle, structureData, strings));
+				break;
+			case 3:
+				systemEnclosures.Add(new(structureHeader.Handle, structureData, strings, MajorVersion, MinorVersion));
+				break;
 			case 4:
 				processorInformations.Add(new(structureHeader.Handle, structureData, strings));
 				break;
+			case 8:
+				portConnectorInformations.Add(new(structureHeader.Handle, structureData, strings));
+				break;
 			case 17:
 				memoryDevices.Add(new(structureHeader.Handle, structureData, strings));
+				break;
+			default:
 				break;
 			}
 		}
@@ -104,7 +121,10 @@ public sealed partial class SmBios
 		if (SystemInformation is null) throw new InvalidDataException("System Information structure is missing.");
 		if (processorInformations.Count == 0) throw new InvalidDataException("Processor Information structure is missing.");
 		if (memoryDevices.Count == 0) throw new InvalidDataException("Memory Device structure is missing.");
+		BaseboardInformations = baseboardInformations.Count == baseboardInformations.Capacity ? baseboardInformations.MoveToImmutable() : baseboardInformations.ToImmutable();
+		SystemEnclosures = systemEnclosures.Count == systemEnclosures.Capacity ? systemEnclosures.MoveToImmutable() : systemEnclosures.ToImmutable();
 		ProcessorInformations = processorInformations.Count == processorInformations.Capacity ? processorInformations.MoveToImmutable() : processorInformations.ToImmutable();
+		PortConnectorInformations = portConnectorInformations.Count == portConnectorInformations.Capacity ? portConnectorInformations.MoveToImmutable() : portConnectorInformations.ToImmutable();
 		MemoryDevices = memoryDevices.Count == memoryDevices.Capacity ? memoryDevices.MoveToImmutable() : memoryDevices.ToImmutable();
 	}
 
