@@ -33,6 +33,10 @@ internal enum ExoUiProtocolClientMessage : byte
 	MouseActiveDpiPreset,
 	MouseDpiPresets,
 	MousePollingFrequency,
+	/// <summary>Requests enabling the lighting configuration, optionally setting the global effect.</summary>
+	LightingEnableGlobal,
+	/// <summary>Requests disabling the global lighting configuration.</summary>
+	LightingDisableGlobal,
 	/// <summary>Requests the update of lighting configuration for a device.</summary>
 	LightingDeviceConfiguration,
 	EmbeddedMonitorBuiltInGraphics,
@@ -141,6 +145,7 @@ internal enum ExoUiProtocolServerMessage : byte
 	MousePollingFrequency,
 	MouseDeviceOperationStatus,
 	LightingDevice,
+	LightingConfiguration,
 	LightingDeviceConfiguration,
 	/// <summary>Acknowledges a lighting update.</summary>
 	LightingDeviceOperationStatus,

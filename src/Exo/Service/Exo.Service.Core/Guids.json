@@ -3,6 +3,8 @@
 		"LightingService": {
 			// hardcoded list of lighting effects.
 			"SupportedGlobalEffects": [
+				// Disabled
+				"6b972c66-0987-4a0f-a20f-cbfc1b0f3d4b",
 				// Static Color
 				"2a30cb46-8bf2-4f0e-9835-774eb02d248d",
 				// Spectrum Cycle
@@ -10,6 +12,7 @@
 				// Spectrum Wave
 				"b93254e0-d39c-40df-bf1f-89d6ceb61615"
 			],
+			"DisabledEffectId": "6b972c66-0987-4a0f-a20f-cbfc1b0f3d4b",
 			"StaticColorEffectId": "2a30cb46-8bf2-4f0e-9835-774eb02d248d",
 			"SpectrumCycleEffectId": "2818d561-15fb-43b0-9c2e-9ff508822b7a",
 			"SpectrumWaveEffectId": "b93254e0-d39c-40df-bf1f-89d6ceb61615"

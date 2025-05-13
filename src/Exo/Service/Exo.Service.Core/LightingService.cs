@@ -265,7 +265,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 
 	// Setting a global effect will involve fallbacks in order to cover all devices.
 	// The fallbacks can always be programmatically computed, but it is easier to just store all of them here.
-	private LightingEffect[]? _globalEffects;
+	private LightingEffect[] _globalEffects;
 	private bool _isGlobalLighting;
 
 	private readonly ColorSpaceConverter _colorSpaceConverter;
@@ -293,11 +293,15 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		_changeLock = new();
 		_restoreLock = new();
 		_colorSpaceConverter = new();
+		_globalEffects = [new(DisabledEffectId, [])];
 		_restoreTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
 		_watchSuspendResumeTask = WatchSuspendResumeAsync(_cancellationTokenSource.Token);
 		_powerNotificationsRegistration = powerNotificationService.Register(this, PowerSettings.None);
+
+		// Global lighting test:
+		//_ = Task.Run(async () => { await Task.Delay(10_000); await ApplyGlobalEffectAsync(EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 0))), default); });
 	}
 
 	public async ValueTask DisposeAsync()
@@ -370,57 +374,88 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			Volatile.Write(ref _restoreTaskCompletionSource, new(TaskCreationOptions.RunContinuationsAsynchronously));
 			using (await _restoreLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
-				List<ValueTask>? applyChangeTasks = null;
-				foreach (var (deviceId, deviceState) in _lightingDeviceStates)
+				bool isGlobalLighting;
+				LightingEffect[]? globalEffects;
+				lock (_changeLock)
 				{
-					cancellationToken.ThrowIfCancellationRequested();
-					lock (deviceState.Lock)
-					{
-						if (deviceState.Driver is null) continue;
-
-						if (deviceState.IsUnifiedLightingEnabled)
-						{
-							var zoneState = deviceState.LightingZones[deviceState.UnifiedLightingZoneId];
-							if (zoneState.LightingZone is null || zoneState.SerializedCurrentEffect is null) continue;
-							EffectSerializer.TrySetEffect(zoneState.LightingZone, zoneState.SerializedCurrentEffect);
-						}
-						else
-						{
-							foreach (var (zoneId, zoneState) in deviceState.LightingZones)
-							{
-								if (zoneId == deviceState.UnifiedLightingZoneId || zoneState.LightingZone is null || zoneState.SerializedCurrentEffect is null) continue;
-								EffectSerializer.TrySetEffect(zoneState.LightingZone, zoneState.SerializedCurrentEffect);
-							}
-						}
-
-						var applyChangesTask = ApplyChangesAsync(deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>(), false);
-						if (!applyChangesTask.IsCompletedSuccessfully)
-						{
-							(applyChangeTasks ??= new()).Add(applyChangesTask);
-						}
-					}
+					isGlobalLighting = _isGlobalLighting;
+					globalEffects = _globalEffects;
 				}
-				if (applyChangeTasks is not null)
-				{
-					foreach (var applyChangeTask in applyChangeTasks)
-					{
-						cancellationToken.ThrowIfCancellationRequested();
-						try
-						{
-							await applyChangeTask.ConfigureAwait(false);
-						}
-						catch (Exception)
-						{
-							// TODO: Log
-						}
-					}
-				}
-				applyChangeTasks = null;
+				await RestoreEffectsAsync(isGlobalLighting ? globalEffects : null, cancellationToken).ConfigureAwait(false);
 			}
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{
 		}
+	}
+
+	private async Task RestoreEffectsAsync(LightingEffect[]? globalEffects, CancellationToken cancellationToken)
+	{
+		List<ValueTask>? applyChangeTasks = null;
+		foreach (var (deviceId, deviceState) in _lightingDeviceStates)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			lock (deviceState.Lock)
+			{
+				if (deviceState.Driver is null) continue;
+
+				if (deviceState.IsUnifiedLightingEnabled)
+				{
+					var zoneState = deviceState.LightingZones[deviceState.UnifiedLightingZoneId];
+					if (zoneState.LightingZone is null) continue;
+					if (globalEffects is not null)
+					{
+						EffectSerializer.TrySetEffect(zoneState.LightingZone, globalEffects);
+					}
+					else
+					{
+						if (zoneState.SerializedCurrentEffect is null) continue;
+						EffectSerializer.TrySetEffect(zoneState.LightingZone, zoneState.SerializedCurrentEffect);
+					}
+				}
+				else
+				{
+					if (globalEffects is not null)
+					{
+						foreach (var (zoneId, zoneState) in deviceState.LightingZones)
+						{
+							if (zoneId == deviceState.UnifiedLightingZoneId || zoneState.LightingZone is null) continue;
+							EffectSerializer.TrySetEffect(zoneState.LightingZone, globalEffects);
+						}
+					}
+					else
+					{
+						foreach (var (zoneId, zoneState) in deviceState.LightingZones)
+						{
+							if (zoneId == deviceState.UnifiedLightingZoneId || zoneState.LightingZone is null || zoneState.SerializedCurrentEffect is null) continue;
+							EffectSerializer.TrySetEffect(zoneState.LightingZone, zoneState.SerializedCurrentEffect);
+						}
+					}
+				}
+
+				var applyChangesTask = ApplyChangesAsync(deviceState.Driver.GetFeatureSet<ILightingDeviceFeature>(), false);
+				if (!applyChangesTask.IsCompletedSuccessfully)
+				{
+					(applyChangeTasks ??= new()).Add(applyChangesTask);
+				}
+			}
+		}
+		if (applyChangeTasks is not null)
+		{
+			foreach (var applyChangeTask in applyChangeTasks)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
+				try
+				{
+					await applyChangeTask.ConfigureAwait(false);
+				}
+				catch (Exception)
+				{
+					// TODO: Log
+				}
+			}
+		}
+		applyChangeTasks = null;
 	}
 
 	private static LightingDeviceInformation CreateDeviceInformation(Guid deviceId, DeviceState deviceState)
@@ -465,6 +500,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	private static LightingZoneInformation CreateLightingZoneInformation(Guid zoneId, LightingZoneState zoneState)
 		=> new(zoneId, zoneState.SupportedEffectTypeIds);
 
+	// TODO: Apply global lighting on arrival.
 	private async ValueTask HandleArrivalAsync(DeviceWatchNotification notification, CancellationToken cancellationToken)
 	{
 		Dictionary<Guid, LightingZoneState> lightingZoneStates;
@@ -929,13 +965,16 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			// Skip the actual update if the serialized data is already up-to-date.
 			if (!hasEffectChanged && !isUnifiedLightingUpdated) return;
 
-			if (zoneState.LightingZone is { } zone)
+			if (zoneState.LightingZone is { } zone && !_isGlobalLighting)
 			{
 				EffectSerializer.TrySetEffect(zone, effectId, data);
 			}
 
 			var effect = new LightingEffect(effectId, data.ToArray());
 			zoneState.SerializedCurrentEffect = effect;
+
+			// Skip the rest of the updates if global lighting is currently enabled.
+			if (_isGlobalLighting) return;
 
 			if (isUnifiedLightingUpdated)
 			{
@@ -1040,65 +1079,72 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 
 	public async Task DisableGlobalLightingAsync(CancellationToken cancellationToken)
 	{
-		lock (_changeLock)
+		using (await _restoreLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			_isGlobalLighting = false;
+			lock (_changeLock)
+			{
+				_isGlobalLighting = false;
+			}
 
-			// TODO: Enable
+			await RestoreEffectsAsync(null, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
 	public async Task ApplyGlobalEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
 	{
-		lock (_changeLock)
+		using (await _restoreLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
-			if (_globalEffects is { Length: > 0 } && _globalEffects[0] == effect)
+			lock (_changeLock)
 			{
-				if (_isGlobalLighting) return;
-			}
-			else if (effect.EffectId == StaticColorEffectId)
-			{
-				var staticColorEffect = EffectSerializer.UnsafeDeserialize<StaticColorEffect>(effect.EffectData);
-				var color = ColorSpaceConverter.ToLinearRgb(new ImageSharpRgb());
-				float equivalentBrightness = 0.2126f * color.R + 0.7152f * color.G + 0.0722f * color.B;
-				_globalEffects =
-				[
-					EffectSerializer.Serialize(staticColorEffect),
-				// TODO: Solve the brightness problem. We should have a uniform way to represent brightness across devices but also allow device-specific representations.
-				// The main problem is that the discrete brightness values supported by a device can vary across devices.
-				// For now, the code below assumes that brightness ranges from 0 to 100, which is wrong.
-				// Maybe splitting brightness in two flavors would be enough, but in some cases, being able to read back the actual brightness from the device might be necessary.
-				EffectSerializer.Serialize(new StaticBrightnessEffect((byte)(RgbWorkingSpaces.SRgb.Compress(equivalentBrightness) * 100))),
-				equivalentBrightness >= 0.5f ? EffectSerializer.Serialize(new EnabledEffect()) : EffectSerializer.Serialize(new DisabledEffect()),
-				EffectSerializer.Serialize(new DisabledEffect()),
-			];
-			}
-			else if (effect.EffectId == SpectrumCycleEffectId)
-			{
-				_globalEffects =
-				[
-					EffectSerializer.Serialize(new SpectrumCycleEffect()),
-				EffectSerializer.Serialize(new EnabledEffect()),
-				EffectSerializer.Serialize(new DisabledEffect()),
-			];
-			}
-			else if (effect.EffectId == SpectrumWaveEffectId)
-			{
-				_globalEffects =
-				[
-					EffectSerializer.Serialize(new SpectrumWaveEffect()),
-				EffectSerializer.Serialize(new EnabledEffect()),
-				EffectSerializer.Serialize(new DisabledEffect()),
-			];
-			}
-			else
-			{
-				throw new ArgumentException("Unsupported effect.");
-			}
+				if (_globalEffects is { Length: > 0 } && _globalEffects[0] == effect)
+				{
+					if (_isGlobalLighting) return;
+				}
+				else if (effect.EffectId == StaticColorEffectId)
+				{
+					var staticColorEffect = EffectSerializer.UnsafeDeserialize<StaticColorEffect>(effect.EffectData);
+					var color = ColorSpaceConverter.ToLinearRgb(new ImageSharpRgb(staticColorEffect.Color.R, staticColorEffect.Color.G, staticColorEffect.Color.B));
+					float equivalentBrightness = 0.2126f * color.R + 0.7152f * color.G + 0.0722f * color.B;
+					_globalEffects =
+					[
+						EffectSerializer.Serialize(staticColorEffect),
+						// TODO: Solve the brightness problem. We should have a uniform way to represent brightness across devices but also allow device-specific representations.
+						// The main problem is that the discrete brightness values supported by a device can vary across devices.
+						// For now, the code below assumes that brightness ranges from 0 to 100, which is wrong.
+						// Maybe splitting brightness in two flavors would be enough, but in some cases, being able to read back the actual brightness from the device might be necessary.
+						EffectSerializer.Serialize(new StaticBrightnessEffect((byte)(RgbWorkingSpaces.SRgb.Compress(equivalentBrightness) * 100))),
+						equivalentBrightness >= 0.5f ? EffectSerializer.Serialize(new EnabledEffect()) : EffectSerializer.Serialize(new DisabledEffect()),
+						EffectSerializer.Serialize(new DisabledEffect()),
+					];
+				}
+				else if (effect.EffectId == SpectrumCycleEffectId)
+				{
+					_globalEffects =
+					[
+						EffectSerializer.Serialize(new SpectrumCycleEffect()),
+						EffectSerializer.Serialize(new SpectrumWaveEffect()),
+						EffectSerializer.Serialize(new EnabledEffect()),
+						EffectSerializer.Serialize(new DisabledEffect()),
+					];
+				}
+				else if (effect.EffectId == SpectrumWaveEffectId)
+				{
+					_globalEffects =
+					[
+						EffectSerializer.Serialize(new SpectrumWaveEffect()),
+						EffectSerializer.Serialize(new SpectrumCycleEffect()),
+						EffectSerializer.Serialize(new EnabledEffect()),
+						EffectSerializer.Serialize(new DisabledEffect()),
+					];
+				}
+				else
+				{
+					throw new ArgumentException("Unsupported effect.");
+				}
 
-			_isGlobalLighting = true;
-
-			// TODO: Enable
+				_isGlobalLighting = true;
+			}
+			await RestoreEffectsAsync(_globalEffects, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
