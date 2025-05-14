@@ -22,7 +22,19 @@ internal sealed class DebugAssemblyDiscovery : IAssemblyDiscovery
 
 		string separator = Path.DirectorySeparatorChar.ToString();
 
+		ReadOnlySpan<char> arch = "";
+		string binPart = separator + "bin" + separator;
+		int binIndex = location.LastIndexOf(binPart, StringComparison.OrdinalIgnoreCase);
+
+		if (binIndex >= 0)
+		{
+			binIndex += binPart.Length;
+			int endIndex = location.AsSpan(binIndex).IndexOf(separator, StringComparison.Ordinal);
+			if (endIndex > 0) arch = location.AsSpan(binIndex, endIndex);
+		}
+
 		string template = location.Replace("-windows" + separator, separator)
+			.Replace($"{separator}bin{separator}{arch}{separator}", binPart)
 			.Replace(separator + "Service" + separator + baseName + separator, separator + CategoryPlaceholder + separator + AssemblyNamePlaceholder + separator)
 			.Replace(separator + baseName + ".", separator + AssemblyNamePlaceholder + ".")[..^3] + "dll";
 
