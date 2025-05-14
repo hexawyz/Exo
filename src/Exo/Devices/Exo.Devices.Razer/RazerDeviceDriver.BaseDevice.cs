@@ -368,8 +368,7 @@ public abstract partial class RazerDeviceDriver
 			ILightingZoneEffect<StaticColorEffect>,
 			ILightingZoneEffect<MultiColorBreathingEffect>,
 			ILightingZoneEffect<RandomColorBreathingEffect>,
-			ILightingZoneEffect<SpectrumCycleEffect>,
-			ILightingZoneEffect<SpectrumWaveEffect>
+			ILightingZoneEffect<SpectrumCycleEffect>
 		{
 			public BasicLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
@@ -385,18 +384,36 @@ public abstract partial class RazerDeviceDriver
 
 			void ILightingZoneEffect<RandomColorBreathingEffect>.ApplyEffect(in RandomColorBreathingEffect effect) => SetCurrentEffect(RandomColorBreathingEffect.SharedInstance);
 			void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => SetCurrentEffect(SpectrumCycleEffect.SharedInstance);
-			void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => SetCurrentEffect(SpectrumWaveEffect.SharedInstance);
 
 			bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
 			bool ILightingZoneEffect<MultiColorBreathingEffect>.TryGetCurrentEffect(out MultiColorBreathingEffect effect) => CurrentEffect.TryGetEffect(out effect);
 			bool ILightingZoneEffect<RandomColorBreathingEffect>.TryGetCurrentEffect(out RandomColorBreathingEffect effect) => CurrentEffect.TryGetEffect(out effect);
 			bool ILightingZoneEffect<SpectrumCycleEffect>.TryGetCurrentEffect(out SpectrumCycleEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		}
+
+		protected class WaveLightingZoneV2 : BasicLightingZoneV2, ILightingZoneEffect<SpectrumWaveEffect>
+		{
+			public WaveLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
+			{
+			}
+
+			void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => SetCurrentEffect(SpectrumWaveEffect.SharedInstance);
 			bool ILightingZoneEffect<SpectrumWaveEffect>.TryGetCurrentEffect(out SpectrumWaveEffect effect) => CurrentEffect.TryGetEffect(out effect);
 		}
 
-		protected class ReactiveLightingZoneV2 : BasicLightingZoneV2, ILightingZoneEffect<ReactiveEffect>
+		protected class ReactiveLightingZoneV2 : LightingZoneV2, ILightingZoneEffect<ReactiveEffect>
 		{
 			public ReactiveLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
+			{
+			}
+
+			void ILightingZoneEffect<ReactiveEffect>.ApplyEffect(in ReactiveEffect effect) => SetCurrentEffect(effect);
+			bool ILightingZoneEffect<ReactiveEffect>.TryGetCurrentEffect(out ReactiveEffect effect) => CurrentEffect.TryGetEffect(out effect);
+		}
+
+		protected class ReactiveWaveLightingZoneV2 : WaveLightingZoneV2, ILightingZoneEffect<ReactiveEffect>
+		{
+			public ReactiveWaveLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 
@@ -411,9 +428,23 @@ public abstract partial class RazerDeviceDriver
 			}
 		}
 
+		protected class UnifiedWaveLightingZoneV2 : WaveLightingZoneV2, IUnifiedLightingFeature
+		{
+			public UnifiedWaveLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
+			{
+			}
+		}
+
 		protected class UnifiedReactiveLightingZoneV2 : ReactiveLightingZoneV2, IUnifiedLightingFeature
 		{
 			public UnifiedReactiveLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
+			{
+			}
+		}
+
+		protected class UnifiedReactiveWaveLightingZoneV2 : ReactiveWaveLightingZoneV2, IUnifiedLightingFeature
+		{
+			public UnifiedReactiveWaveLightingZoneV2(BaseDevice device, Guid zoneId, RazerLedId ledId) : base(device, zoneId, ledId)
 			{
 			}
 		}
@@ -616,9 +647,13 @@ public abstract partial class RazerDeviceDriver
 
 						RazerLedId ledId = ledIds[0];
 
-						unifiedLightingZone = deviceInformation.HasReactiveLighting ?
-							new UnifiedReactiveLightingZoneV2(this, lightingZoneGuid, ledId) :
-							new UnifiedBasicLightingZoneV2(this, lightingZoneGuid, ledId);
+						unifiedLightingZone = deviceInformation.HasWaveLighting ?
+							deviceInformation.HasReactiveLighting ?
+								new UnifiedReactiveWaveLightingZoneV2(this, lightingZoneGuid, ledId) :
+								new UnifiedWaveLightingZoneV2(this, lightingZoneGuid, ledId) :
+							deviceInformation.HasReactiveLighting ?
+								new UnifiedReactiveLightingZoneV2(this, lightingZoneGuid, ledId) :
+								new UnifiedBasicLightingZoneV2(this, lightingZoneGuid, ledId);
 					}
 				}
 				else

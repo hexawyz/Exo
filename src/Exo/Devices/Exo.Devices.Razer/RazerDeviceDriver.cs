@@ -102,6 +102,7 @@ public abstract partial class RazerDeviceDriver :
 		public bool HasLighting => (Flags & RazerDeviceFlags.HasLighting) != 0;
 		public bool HasLightingV2 => (Flags & RazerDeviceFlags.HasLightingV2) != 0;
 		public bool HasReactiveLighting => (Flags & RazerDeviceFlags.HasReactiveLighting) != 0;
+		public bool HasWaveLighting => (Flags & RazerDeviceFlags.HasWaveLighting) != 0;
 		public bool UseNonUnifiedLightingAsUnified => (Flags & RazerDeviceFlags.UseNonUnifiedLightingAsUnified) != 0;
 
 		public bool IsReceiver => DeviceCategory is RazerDeviceCategory.UsbReceiver or RazerDeviceCategory.DockReceiver;
@@ -179,17 +180,18 @@ public abstract partial class RazerDeviceDriver :
 
 		HasLighting = 0x08,
 		HasLightingV2 = 0x10,
-		HasReactiveLighting = 0x20,
-		UseNonUnifiedLightingAsUnified = 0x40,
+		HasWaveLighting = 0x20,
+		HasReactiveLighting = 0x40,
+		UseNonUnifiedLightingAsUnified = 0x80,
 
-		HasDpi = 0x80,
-		HasDpiPresets = 0x100,
-		HasDpiPresetsRead = 0x200,
-		HasDpiPresetsV2 = 0x400,
+		HasDpi = 0x100,
+		HasDpiPresets = 0x200,
+		HasDpiPresetsRead = 0x400,
+		HasDpiPresetsV2 = 0x800,
 
 		// Added for Mamba Chroma but maybe not necessary ?
-		MustSetDeviceMode3 = 0x800,
-		MustSetSensorState5 = 0x1000,
+		MustSetDeviceMode3 = 0x1000,
+		MustSetSensorState5 = 0x2000,
 	}
 
 	// Stores the device informations in a linear table that allow deduplicating information and accessing it by reference.
@@ -242,6 +244,7 @@ public abstract partial class RazerDeviceDriver :
 				RazerDeviceFlags.HasPowerNotifications |
 				RazerDeviceFlags.HasLighting |
 				RazerDeviceFlags.HasLightingV2 |
+				RazerDeviceFlags.HasWaveLighting |
 				RazerDeviceFlags.HasReactiveLighting |
 				RazerDeviceFlags.HasDpi |
 				RazerDeviceFlags.HasDpiPresets |
