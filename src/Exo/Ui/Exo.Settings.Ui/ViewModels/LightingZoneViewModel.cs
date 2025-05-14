@@ -16,7 +16,8 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 	private static readonly Guid NotAvailableEffectId = new(0xC771A454, 0xCAE5, 0x41CF, 0x91, 0x21, 0xBE, 0xF8, 0xAD, 0xC3, 0x80, 0xED);
 	private static readonly Guid DisabledEffectId = new(0x6B972C66, 0x0987, 0x4A0F, 0xA2, 0x0F, 0xCB, 0xFC, 0x1B, 0x0F, 0x3D, 0x4B);
 
-	private readonly LightingDeviceViewModel _device;
+	private readonly LightingViewModel _lightingViewModel;
+	private readonly LightingDeviceViewModel? _device;
 	private readonly ObservableCollection<LightingEffectViewModel> _supportedEffects;
 	private readonly ReadOnlyObservableCollection<LightingEffectViewModel> _readOnlySupportedEffects;
 
@@ -62,8 +63,16 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 	public LightingZoneComponentType ComponentType { get; }
 	public LightingZoneShape Shape { get; }
 
-	public LightingZoneViewModel(LightingDeviceViewModel device, LightingZoneInformation lightingZoneInformation, string displayName, uint displayOrder, LightingZoneComponentType componentType, LightingZoneShape shape)
+	public LightingZoneViewModel(
+		LightingViewModel lightingViewModel,
+		LightingDeviceViewModel? device,
+		LightingZoneInformation lightingZoneInformation,
+		string displayName,
+		uint displayOrder,
+		LightingZoneComponentType componentType,
+		LightingZoneShape shape)
 	{
+		_lightingViewModel = lightingViewModel;
 		_device = device;
 		_properties = ReadOnlyCollection<PropertyViewModel>.Empty;
 		_resetCommand = new(this);
@@ -71,7 +80,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 		_supportedEffects = new();
 		foreach (var effectId in ImmutableCollectionsMarshal.AsArray(lightingZoneInformation.SupportedEffectTypeIds)!)
 		{
-			var effect = _device.LightingViewModel.GetEffect(effectId);
+			var effect = _lightingViewModel.GetEffect(effectId);
 			_supportedEffects.Insert(IOrderable.FindInsertPosition(_supportedEffects, effect.DisplayOrder), effect);
 		}
 		_readOnlySupportedEffects = new(_supportedEffects);
@@ -114,7 +123,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 
 		foreach (var effectId in newEffectIds)
 		{
-			var effect = _device.LightingViewModel.GetEffect(effectId);
+			var effect = _lightingViewModel.GetEffect(effectId);
 			_supportedEffects.Insert(IOrderable.FindInsertPosition(_supportedEffects, effect.DisplayOrder), effect);
 		}
 
@@ -125,7 +134,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 		}
 		if (shouldResetCurrentEffect)
 		{
-			SetCurrentEffect(_initialEffect is null ? null : _device.LightingViewModel.GetEffect(_initialEffect.EffectId), false, wasChanged);
+			SetCurrentEffect(_initialEffect is null ? null : _lightingViewModel.GetEffect(_initialEffect.EffectId), false, wasChanged);
 		}
 	}
 
@@ -144,7 +153,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 		if (SetValue(ref _currentEffect, value, ChangedProperty.CurrentEffect))
 		{
 			var oldProperties = Properties;
-			var newProperties = value?.CreatePropertyViewModels(_device.BrightnessCapabilities) ?? ReadOnlyCollection<PropertyViewModel>.Empty;
+			var newProperties = value?.CreatePropertyViewModels(_device?.BrightnessCapabilities) ?? ReadOnlyCollection<PropertyViewModel>.Empty;
 			bool colorChanged = _colorProperty is not null;
 
 			if (SetValue(ref _properties, newProperties, ChangedProperty.Properties))
@@ -284,7 +293,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 
 		if (!wasChanged)
 		{
-			SetCurrentEffect(effect is null ? null : _device.LightingViewModel.GetEffect(effect.EffectId), true, wasChanged);
+			SetCurrentEffect(effect is null ? null : _lightingViewModel.GetEffect(effect.EffectId), true, wasChanged);
 		}
 		else if (effect?.EffectId == CurrentEffect?.EffectId)
 		{
@@ -323,7 +332,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 		// In that case, we don't want the "new effect" to show up as changed, so the easiest thing to do is just to reset the lighting zone.
 		if (_initialEffect is not null && _initialEffect.EffectId == effect.EffectId && _initialEffect.EffectData.SequenceEqual(effect.EffectData))
 		{
-			Reset();
+			ResetChanges();
 			return true;
 		}
 
@@ -350,7 +359,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 		return true;
 	}
 
-	public void Reset()
+	public void ResetChanges()
 	{
 		if (!IsChanged)
 		{
@@ -358,7 +367,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 		}
 		else if (_initialEffect?.EffectId != CurrentEffect?.EffectId)
 		{
-			SetCurrentEffect(_initialEffect is null ? null : _device.LightingViewModel.GetEffect(_initialEffect.EffectId), true, true);
+			SetCurrentEffect(_initialEffect is null ? null : _lightingViewModel.GetEffect(_initialEffect.EffectId), true, true);
 		}
 		else
 		{
@@ -389,7 +398,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 			public ResetCommand(LightingZoneViewModel lightingZone) => _lightingZone = lightingZone;
 
 			public bool CanExecute(object? parameter) => _lightingZone.IsChanged;
-			public void Execute(object? parameter) => _lightingZone.Reset();
+			public void Execute(object? parameter) => _lightingZone.ResetChanges();
 
 			public event EventHandler? CanExecuteChanged;
 

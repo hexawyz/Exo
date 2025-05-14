@@ -16,7 +16,7 @@ internal sealed partial class LightingDeviceViewModel : ChangeableBindableObject
 {
 	private readonly DeviceViewModel _deviceViewModel;
 
-	public LightingViewModel LightingViewModel { get; }
+	private readonly LightingViewModel _lightingViewModel;
 	private LightingZoneViewModel? _unifiedLightingZone;
 	private readonly ObservableCollection<LightingZoneViewModel> _lightingZones;
 	private readonly ReadOnlyObservableCollection<LightingZoneViewModel> _readOnlyLightingZones;
@@ -124,22 +124,22 @@ internal sealed partial class LightingDeviceViewModel : ChangeableBindableObject
 		_logger = logger;
 		_notificationSystem = notificationSystem;
 		_deviceViewModel = deviceViewModel;
-		LightingViewModel = lightingViewModel;
+		_lightingViewModel = lightingViewModel;
 		_applyChangesCommand = new(this);
 		_resetChangesCommand = new(this);
 		_persistenceMode = lightingDeviceInformation.PersistenceMode;
 		if (lightingDeviceInformation.UnifiedLightingZone is { } unifiedLightingZone)
 		{
-			var (displayName, displayOrder, componentType, shape) = LightingViewModel.GetZoneMetadata(unifiedLightingZone.ZoneId);
-			_unifiedLightingZone = new(this, unifiedLightingZone, displayName, displayOrder, componentType, shape);
+			var (displayName, displayOrder, componentType, shape) = _lightingViewModel.GetZoneMetadata(unifiedLightingZone.ZoneId);
+			_unifiedLightingZone = new(_lightingViewModel, this, unifiedLightingZone, displayName, displayOrder, componentType, shape);
 		}
 		_lightingZones = new();
 		if (!lightingDeviceInformation.LightingZones.IsDefault)
 		{
 			foreach (var lightingZone in lightingDeviceInformation.LightingZones)
 			{
-				var (displayName, displayOrder, componentType, shape) = LightingViewModel.GetZoneMetadata(lightingZone.ZoneId);
-				var vm = new LightingZoneViewModel(this, lightingZone, displayName, displayOrder, componentType, shape);
+				var (displayName, displayOrder, componentType, shape) = _lightingViewModel.GetZoneMetadata(lightingZone.ZoneId);
+				var vm = new LightingZoneViewModel(_lightingViewModel, this, lightingZone, displayName, displayOrder, componentType, shape);
 				_lightingZones.Insert(IOrderable.FindInsertPosition(_lightingZones, displayOrder), vm);
 			}
 		}
@@ -232,9 +232,9 @@ internal sealed partial class LightingDeviceViewModel : ChangeableBindableObject
 		{
 			if (_unifiedLightingZone is null || _unifiedLightingZone.Id != unifiedLightingZone.ZoneId)
 			{
-				var (displayName, displayOrder, componentType, shape) = LightingViewModel.GetZoneMetadata(unifiedLightingZone.ZoneId);
+				var (displayName, displayOrder, componentType, shape) = _lightingViewModel.GetZoneMetadata(unifiedLightingZone.ZoneId);
 				if (_unifiedLightingZone is not null) ClearUnifiedLightingZone();
-				var vm = new LightingZoneViewModel(this, unifiedLightingZone, displayName, displayOrder, componentType, shape);
+				var vm = new LightingZoneViewModel(_lightingViewModel, this, unifiedLightingZone, displayName, displayOrder, componentType, shape);
 				_unifiedLightingZone = vm;
 				_unifiedLightingZone.PropertyChanged += OnLightingZonePropertyChanged;
 				_lightingZoneById.Add(vm.Id, vm);
@@ -286,8 +286,8 @@ internal sealed partial class LightingDeviceViewModel : ChangeableBindableObject
 			}
 			else
 			{
-				var (displayName, displayOrder, componentType, shape) = LightingViewModel.GetZoneMetadata(lightingZone.ZoneId);
-				vm = new LightingZoneViewModel(this, lightingZone, displayName, displayOrder, componentType, shape);
+				var (displayName, displayOrder, componentType, shape) = _lightingViewModel.GetZoneMetadata(lightingZone.ZoneId);
+				vm = new LightingZoneViewModel(_lightingViewModel, this, lightingZone, displayName, displayOrder, componentType, shape);
 				_lightingZones.Insert(IOrderable.FindInsertPosition(_lightingZones, displayOrder), vm);
 				vm.PropertyChanged += OnLightingZonePropertyChanged;
 			}
@@ -379,7 +379,7 @@ internal sealed partial class LightingDeviceViewModel : ChangeableBindableObject
 			}
 			if (zoneEffects.Count > 0 || ShouldPersistChanges)
 			{
-				if (LightingViewModel.LightingService is { } lightingService)
+				if (_lightingViewModel.LightingService is { } lightingService)
 				{
 					await lightingService.SetLightingAsync
 					(
@@ -408,7 +408,7 @@ internal sealed partial class LightingDeviceViewModel : ChangeableBindableObject
 		}
 	}
 
-	private void Reset()
+	public void ResetChanges()
 	{
 		UseUnifiedLighting = IsUnifiedLightingInitiallyEnabled;
 		if (Brightness is { } brightness) brightness.Reset();
@@ -416,14 +416,14 @@ internal sealed partial class LightingDeviceViewModel : ChangeableBindableObject
 		{
 			if (UnifiedLightingZone.IsChanged)
 			{
-				UnifiedLightingZone.Reset();
+				UnifiedLightingZone.ResetChanges();
 			}
 		}
 		foreach (var zone in LightingZones)
 		{
 			if (zone.IsChanged)
 			{
-				zone.Reset();
+				zone.ResetChanges();
 			}
 		}
 	}
@@ -519,7 +519,7 @@ internal sealed partial class LightingDeviceViewModel : ChangeableBindableObject
 			public ResetChangesCommand(LightingDeviceViewModel owner) => _owner = owner;
 
 			public bool CanExecute(object? parameter) => _owner.IsChanged;
-			public void Execute(object? parameter) => _owner.Reset();
+			public void Execute(object? parameter) => _owner.ResetChanges();
 
 			public event EventHandler? CanExecuteChanged;
 

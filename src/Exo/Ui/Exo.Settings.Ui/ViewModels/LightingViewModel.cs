@@ -28,19 +28,41 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelById;
 	private readonly Dictionary<Guid, LightingDeviceConfiguration> _pendingConfigurationUpdates;
 	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
+	private readonly LightingZoneViewModel _globalLightingZone;
 	private readonly ILogger<LightingDeviceViewModel> _lightingDeviceLogger;
 	private readonly INotificationSystem _notificationSystem;
 	private readonly IFileOpenDialog _fileOpenDialog;
 	private readonly IFileSaveDialog _fileSaveDialog;
+	private readonly Commands.ApplyChangesCommand _applyChangesCommand;
+	private readonly Commands.ResetChangesCommand _resetChangesCommand;
 	private readonly Commands.ExportConfigurationCommand _exportConfigurationCommand;
 	private readonly Commands.ImportConfigurationCommand _importConfigurationCommand;
+
+	private bool _isReady;
+	private bool _useGlobalLighting;
 
 	private readonly CancellationTokenSource _cancellationTokenSource;
 
 	public ObservableCollection<LightingDeviceViewModel> LightingDevices => _lightingDevices;
 	public ILightingService? LightingService => _lightingService;
+	public ICommand ApplyChangesCommand => _applyChangesCommand;
+	public ICommand ResetChangesCommand => _resetChangesCommand;
 	public ICommand ExportConfigurationCommand => _exportConfigurationCommand;
 	public ICommand ImportConfigurationCommand => _importConfigurationCommand;
+
+	public bool IsReady
+	{
+		get => _isReady;
+		private set => SetValue(ref _isReady, value, ChangedProperty.IsReady);
+	}
+
+	public bool UseGlobalLighting
+	{
+		get => _useGlobalLighting;
+		set => SetValue(ref _useGlobalLighting, value, ChangedProperty.UseGlobalLighting);
+	}
+
+	public LightingZoneViewModel GlobalLightingZone => _globalLightingZone;
 
 	public LightingViewModel(ITypedLoggerProvider loggerProvider, DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService, INotificationSystem notificationSystem, IFileOpenDialog fileOpenDialog, IFileSaveDialog fileSaveDialog)
 	{
@@ -53,8 +75,11 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		_lightingDevices = new();
 		_lightingDeviceById = new();
 		_effectViewModelById = new();
+		_globalLightingZone = new(this, null, new(default, []), "Global Lighting", 0, LightingZoneComponentType.Unknown, LightingZoneShape.Other);
 		_pendingConfigurationUpdates = new();
 		_pendingDeviceInformations = new();
+		_applyChangesCommand = new(this);
+		_resetChangesCommand = new(this);
 		_exportConfigurationCommand = new(this);
 		_importConfigurationCommand = new(this);
 		_cancellationTokenSource = new CancellationTokenSource();
@@ -81,6 +106,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		_lightingDevices.Clear();
 
 		_lightingService = null;
+		UseGlobalLighting = false;
 	}
 
 	public ValueTask DisposeAsync()
@@ -215,7 +241,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		return (displayName ?? $"Unknown {zoneId:B}", displayOrder, componentType, shape);
 	}
 
-	private async Task ExportConfigurationAsync()
+	private async Task ExportConfigurationAsync(CancellationToken cancellationToken)
 	{
 		if (await _fileSaveDialog.ChooseAsync([("Lighting Configuration", ".light")]) is { } file)
 		{
@@ -231,7 +257,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		}
 	}
 
-	private async Task ImportConfigurationAsync()
+	private async Task ImportConfigurationAsync(CancellationToken cancellationToken)
 	{
 		if (await _fileOpenDialog.OpenAsync([".light"]) is { } file)
 		{
@@ -247,8 +273,88 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		}
 	}
 
+	private async Task ApplyChangesAsync(CancellationToken cancellationToken)
+	{
+		if (_useGlobalLighting)
+		{
+		}
+		else
+		{
+			await Task.WhenAll(_lightingDevices.Select(device => device.ApplyChangesAsync(cancellationToken)));
+		}
+	}
+
+	private void ResetChanges()
+	{
+		if (_useGlobalLighting)
+		{
+			_globalLightingZone.ResetChanges();
+		}
+		else
+		{
+			foreach (var device in _lightingDevices)
+			{
+				device.ResetChanges();
+			}
+		}
+	}
+
 	private static partial class Commands
 	{
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ApplyChangesCommand(LightingViewModel owner) : ICommand
+		{
+			private readonly LightingViewModel _owner = owner;
+
+			bool ICommand.CanExecute(object? parameter) => true;
+
+			async void ICommand.Execute(object? parameter)
+			{
+				try
+				{
+					await _owner.ApplyChangesAsync(default);
+				}
+				catch
+				{
+				}
+			}
+
+			private event EventHandler? CanExecuteChanged;
+
+			event EventHandler? ICommand.CanExecuteChanged
+			{
+				add => CanExecuteChanged += value;
+				remove => CanExecuteChanged -= value;
+			}
+		}
+
+		[GeneratedBindableCustomProperty]
+		public sealed partial class ResetChangesCommand(LightingViewModel owner) : ICommand
+		{
+			private readonly LightingViewModel _owner = owner;
+
+			bool ICommand.CanExecute(object? parameter) => true;
+
+			void ICommand.Execute(object? parameter)
+			{
+				try
+				{
+					_owner.ResetChanges();
+				}
+				catch
+				{
+				}
+			}
+
+			private event EventHandler? CanExecuteChanged;
+
+			event EventHandler? ICommand.CanExecuteChanged
+			{
+				add => CanExecuteChanged += value;
+				remove => CanExecuteChanged -= value;
+			}
+		}
+
 		[GeneratedBindableCustomProperty]
 		public sealed partial class ExportConfigurationCommand(LightingViewModel owner) : ICommand
 		{
@@ -260,7 +366,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 			{
 				try
 				{
-					await _owner.ExportConfigurationAsync();
+					await _owner.ExportConfigurationAsync(default);
 				}
 				catch
 				{
@@ -285,7 +391,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 			{
 				try
 				{
-					await _owner.ImportConfigurationAsync();
+					await _owner.ImportConfigurationAsync(default);
 				}
 				catch
 				{
