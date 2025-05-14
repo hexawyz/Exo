@@ -264,9 +264,9 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	private ChangeBroadcaster<LightingDeviceConfiguration> _deviceConfigurationBroadcaster;
 
 	// Setting a global effect will involve fallbacks in order to cover all devices.
-	// The fallbacks can always be programmatically computed, but it is easier to just store all of them here.
-	private LightingEffect[] _globalEffects;
-	private bool _isGlobalLighting;
+	// The fallbacks can always be programmatically computed from the first effect, but it is easier to just store all of them here.
+	private LightingEffect[] _centralizedEffects;
+	private bool _useCentralizedLighting;
 
 	private readonly ColorSpaceConverter _colorSpaceConverter;
 
@@ -293,7 +293,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		_changeLock = new();
 		_restoreLock = new();
 		_colorSpaceConverter = new();
-		_globalEffects = [new(DisabledEffectId, [])];
+		_centralizedEffects = [new(DisabledEffectId, [])];
 		_restoreTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
@@ -301,7 +301,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		_powerNotificationsRegistration = powerNotificationService.Register(this, PowerSettings.None);
 
 		// Global lighting test:
-		//_ = Task.Run(async () => { await Task.Delay(10_000); await ApplyGlobalEffectAsync(EffectSerializer.Serialize(new SpectrumWaveEffect()), default); });
+		//_ = Task.Run(async () => { await Task.Delay(10_000); await ApplyGlobalEffectAsync(EffectSerializer.Serialize(new StaticColorEffect(new(64, 255, 128))), default); });
 	}
 
 	public async ValueTask DisposeAsync()
@@ -378,8 +378,8 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 				LightingEffect[]? globalEffects;
 				lock (_changeLock)
 				{
-					isGlobalLighting = _isGlobalLighting;
-					globalEffects = _globalEffects;
+					isGlobalLighting = _useCentralizedLighting;
+					globalEffects = _centralizedEffects;
 				}
 				await RestoreEffectsAsync(isGlobalLighting ? globalEffects : null, cancellationToken).ConfigureAwait(false);
 			}
@@ -498,7 +498,6 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	private static LightingZoneInformation CreateLightingZoneInformation(Guid zoneId, LightingZoneState zoneState)
 		=> new(zoneId, zoneState.SupportedEffectTypeIds);
 
-	// TODO: Apply global lighting on arrival.
 	private async ValueTask HandleArrivalAsync(DeviceWatchNotification notification, CancellationToken cancellationToken)
 	{
 		Dictionary<Guid, LightingZoneState> lightingZoneStates;
@@ -630,6 +629,23 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 				}
 			}
 
+			// For a new device, we generally don't push any explicit change (it will stay in it initial state, driver-dependent)
+			// However, when centralized lighting is enabled, we will always try to apply the effect on the device.
+			if (_useCentralizedLighting)
+			{
+				if (unifiedLightingFeature is not null)
+				{
+					shouldApplyChanges |= EffectSerializer.TrySetEffect(unifiedLightingFeature, _centralizedEffects);
+				}
+				else
+				{
+					foreach (var lightingZone in lightingZones)
+					{
+						shouldApplyChanges |= EffectSerializer.TrySetEffect(lightingZone, _centralizedEffects);
+					}
+				}
+			}
+
 			lock (_changeLock)
 			{
 				_lightingDeviceStates.TryAdd(notification.DeviceInformation.Id, deviceState);
@@ -639,6 +655,14 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 				if (!deviceInformationBroadcaster.IsEmpty) deviceInformationBroadcaster.Push(CreateDeviceInformation(notification.DeviceInformation.Id, deviceState));
 				var deviceConfigurationBroadcaster = _deviceConfigurationBroadcaster.GetSnapshot();
 				if (!deviceConfigurationBroadcaster.IsEmpty) deviceConfigurationBroadcaster.Push(deviceState.CreateConfiguration(notification.DeviceInformation.Id));
+
+				if (shouldApplyChanges)
+				{
+					if (lightingFeatures.GetFeature<ILightingDeferredChangesFeature>() is { } dcf)
+					{
+						applyChangesTask = ApplyRestoredChangesAsync(dcf, notification.DeviceInformation.Id);
+					}
+				}
 			}
 		}
 		else
@@ -717,10 +741,13 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 							{
 								if (isUnifiedLightingEnabled)
 								{
-									if (effect != currentEffect)
+									if (_useCentralizedLighting)
 									{
-										EffectSerializer.TrySetEffect(unifiedLightingFeature, effect);
-										shouldApplyChanges = true;
+										shouldApplyChanges |= EffectSerializer.TrySetEffect(unifiedLightingFeature, _centralizedEffects);
+									}
+									else if (effect != currentEffect)
+									{
+										shouldApplyChanges |= EffectSerializer.TrySetEffect(unifiedLightingFeature, effect);
 									}
 								}
 							}
@@ -728,6 +755,11 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 							{
 								lightingZoneState.SerializedCurrentEffect = currentEffect;
 								changedLightingZones.Add(unifiedLightingZoneId);
+
+								if (_useCentralizedLighting)
+								{
+									shouldApplyChanges |= EffectSerializer.TrySetEffect(unifiedLightingFeature, _centralizedEffects);
+								}
 							}
 						}
 						else
@@ -743,6 +775,11 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 								}
 							);
 							changedLightingZones.Add(unifiedLightingZoneId);
+
+							if (_useCentralizedLighting)
+							{
+								shouldApplyChanges |= EffectSerializer.TrySetEffect(unifiedLightingFeature, _centralizedEffects);
+							}
 						}
 					}
 
@@ -760,7 +797,11 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 							{
 								if (!isUnifiedLightingEnabled)
 								{
-									if (effect != currentEffect)
+									if (_useCentralizedLighting)
+									{
+										shouldApplyChanges |= EffectSerializer.TrySetEffect(lightingZone, _centralizedEffects);
+									}
+									else if (effect != currentEffect)
 									{
 										EffectSerializer.TrySetEffect(lightingZone, effect);
 										shouldApplyChanges = true;
@@ -771,6 +812,11 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 							{
 								lightingZoneState.SerializedCurrentEffect = EffectSerializer.GetEffect(lightingZone);
 								changedLightingZones.Add(lightingZoneId);
+
+								if (_useCentralizedLighting)
+								{
+									shouldApplyChanges |= EffectSerializer.TrySetEffect(lightingZone, _centralizedEffects);
+								}
 							}
 						}
 						else
@@ -786,6 +832,11 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 								}
 							);
 							changedLightingZones.Add(lightingZoneId);
+
+							if (_useCentralizedLighting)
+							{
+								shouldApplyChanges |= EffectSerializer.TrySetEffect(lightingZone, _centralizedEffects);
+							}
 						}
 					}
 
@@ -963,7 +1014,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			// Skip the actual update if the serialized data is already up-to-date.
 			if (!hasEffectChanged && !isUnifiedLightingUpdated) return;
 
-			if (zoneState.LightingZone is { } zone && !_isGlobalLighting)
+			if (zoneState.LightingZone is { } zone && !_useCentralizedLighting)
 			{
 				EffectSerializer.TrySetEffect(zone, effectId, data);
 			}
@@ -972,7 +1023,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			zoneState.SerializedCurrentEffect = effect;
 
 			// Skip the rest of the updates if global lighting is currently enabled.
-			if (_isGlobalLighting) return;
+			if (_useCentralizedLighting) return;
 
 			if (isUnifiedLightingUpdated)
 			{
@@ -1081,7 +1132,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		{
 			lock (_changeLock)
 			{
-				_isGlobalLighting = false;
+				_useCentralizedLighting = false;
 			}
 
 			await RestoreEffectsAsync(null, cancellationToken).ConfigureAwait(false);
@@ -1094,20 +1145,20 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		{
 			lock (_changeLock)
 			{
-				if (_globalEffects is { Length: > 0 } && _globalEffects[0] == effect)
+				if (_centralizedEffects is { Length: > 0 } && _centralizedEffects[0] == effect)
 				{
-					if (_isGlobalLighting) return;
+					if (_useCentralizedLighting) return;
 				}
 				else if (effect.EffectId == DisabledEffectId)
 				{
-					_globalEffects = [EffectSerializer.Serialize(new DisabledEffect())];
+					_centralizedEffects = [EffectSerializer.Serialize(new DisabledEffect())];
 				}
 				else if (effect.EffectId == StaticColorEffectId)
 				{
 					var staticColorEffect = EffectSerializer.UnsafeDeserialize<StaticColorEffect>(effect.EffectData);
 					var color = ColorSpaceConverter.ToLinearRgb(new ImageSharpRgb(staticColorEffect.Color.R, staticColorEffect.Color.G, staticColorEffect.Color.B));
 					float equivalentBrightness = 0.2126f * color.R + 0.7152f * color.G + 0.0722f * color.B;
-					_globalEffects =
+					_centralizedEffects =
 					[
 						EffectSerializer.Serialize(staticColorEffect),
 						// TODO: Solve the brightness problem. We should have a uniform way to represent brightness across devices but also allow device-specific representations.
@@ -1121,7 +1172,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 				}
 				else if (effect.EffectId == SpectrumCycleEffectId)
 				{
-					_globalEffects =
+					_centralizedEffects =
 					[
 						EffectSerializer.Serialize(new SpectrumCycleEffect()),
 						EffectSerializer.Serialize(new SpectrumWaveEffect()),
@@ -1132,7 +1183,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 				}
 				else if (effect.EffectId == SpectrumWaveEffectId)
 				{
-					_globalEffects =
+					_centralizedEffects =
 					[
 						EffectSerializer.Serialize(new SpectrumWaveEffect()),
 						EffectSerializer.Serialize(new SpectrumCycleEffect()),
@@ -1147,9 +1198,9 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 					throw new ArgumentException("Unsupported effect.");
 				}
 
-				_isGlobalLighting = true;
+				_useCentralizedLighting = true;
 			}
-			await RestoreEffectsAsync(_globalEffects, cancellationToken).ConfigureAwait(false);
+			await RestoreEffectsAsync(_centralizedEffects, cancellationToken).ConfigureAwait(false);
 		}
 	}
 
