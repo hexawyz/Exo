@@ -301,7 +301,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		_powerNotificationsRegistration = powerNotificationService.Register(this, PowerSettings.None);
 
 		// Global lighting test:
-		//_ = Task.Run(async () => { await Task.Delay(10_000); await ApplyGlobalEffectAsync(EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 0))), default); });
+		//_ = Task.Run(async () => { await Task.Delay(10_000); await ApplyGlobalEffectAsync(EffectSerializer.Serialize(new SpectrumWaveEffect()), default); });
 	}
 
 	public async ValueTask DisposeAsync()
@@ -1098,6 +1098,10 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 				{
 					if (_isGlobalLighting) return;
 				}
+				else if (effect.EffectId == DisabledEffectId)
+				{
+					_globalEffects = [EffectSerializer.Serialize(new DisabledEffect())];
+				}
 				else if (effect.EffectId == StaticColorEffectId)
 				{
 					var staticColorEffect = EffectSerializer.UnsafeDeserialize<StaticColorEffect>(effect.EffectData);
@@ -1121,6 +1125,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 					[
 						EffectSerializer.Serialize(new SpectrumCycleEffect()),
 						EffectSerializer.Serialize(new SpectrumWaveEffect()),
+						EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 255))),
 						EffectSerializer.Serialize(new EnabledEffect()),
 						EffectSerializer.Serialize(new DisabledEffect()),
 					];
@@ -1131,6 +1136,8 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 					[
 						EffectSerializer.Serialize(new SpectrumWaveEffect()),
 						EffectSerializer.Serialize(new SpectrumCycleEffect()),
+						EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 255))),
+						EffectSerializer.Serialize(new StaticBrightnessEffect(255)),
 						EffectSerializer.Serialize(new EnabledEffect()),
 						EffectSerializer.Serialize(new DisabledEffect()),
 					];
