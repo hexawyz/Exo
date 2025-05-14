@@ -61,6 +61,9 @@ public abstract partial class RazerDeviceDriver
 				byte brightness = await ReadBrightnessAsync(profileId, cancellationToken).ConfigureAwait(false);
 				_currentEffect = _appliedEffect = effect ?? DisabledEffect.SharedInstance;
 				_currentBrightness = _appliedBrightness = brightness;
+				// Force reset the current effect to the saved effect.
+				// Probably need to be careful there if we someday add support for some devices that only support persisted effects.
+				await ApplyAsync(profileId, cancellationToken).ConfigureAwait(false);
 			}
 
 			protected abstract ValueTask<ILightingEffect?> ReadEffectAsync(byte profileId, CancellationToken cancellationToken);
