@@ -1,10 +1,8 @@
 using System.Collections.Immutable;
-using System.Runtime.Serialization;
 using DeviceTools;
 
 namespace Exo.Service;
 
-[DataContract]
 [TypeId(0xF9477332, 0x3B69, 0x4CF9, 0xBA, 0x73, 0xFA, 0xA4, 0xA1, 0xD8, 0xBE, 0x21)]
 public sealed class DeviceInformation : IEquatable<DeviceInformation?>
 {
@@ -19,18 +17,12 @@ public sealed class DeviceInformation : IEquatable<DeviceInformation?>
 		SerialNumber = serialNumber;
 	}
 
-	[DataMember]
 	public string FriendlyName { get; }
-	[DataMember]
 	public DeviceCategory Category { get; }
 	// NB: This would ideally be readonly. It should be treated as such.
-	[DataMember]
 	public HashSet<Guid> SupportedFeatureIds { get; }
-	[DataMember]
 	public ImmutableArray<DeviceId> DeviceIds { get; }
-	[DataMember]
 	public int? MainDeviceIdIndex { get; }
-	[DataMember]
 	public string? SerialNumber { get; }
 
 	public override bool Equals(object? obj) => Equals(obj as DeviceInformation);

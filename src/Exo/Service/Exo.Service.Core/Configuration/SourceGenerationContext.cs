@@ -10,6 +10,9 @@ namespace Exo.Service.Configuration;
 	DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
 	PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
 	DictionaryKeyPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(DeviceInformation))]
+[JsonSerializable(typeof(IndexedConfigurationKey))]
+[JsonSerializable(typeof(DeviceUserConfiguration))]
 [JsonSerializable(typeof(PersistedLightingDeviceInformation))]
 [JsonSerializable(typeof(PersistedLightingZoneInformation))]
 [JsonSerializable(typeof(PersistedLightingConfiguration))]

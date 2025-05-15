@@ -10,6 +10,7 @@ using System.Threading.Channels;
 using DeviceTools;
 using Exo.Configuration;
 using Exo.Features;
+using Exo.Service.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
@@ -24,35 +25,6 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		ConnectedDevice = 3,
 		DisconnectedDevice = 4,
 		UpdatedSupportedFeatures = 5,
-	}
-
-	[TypeId(0x91731318, 0x06F0, 0x402E, 0x8F, 0x6F, 0x23, 0x3D, 0x8C, 0x4D, 0x8F, 0xE5)]
-	private record class IndexedConfigurationKey
-	{
-		public IndexedConfigurationKey(DeviceConfigurationKey key, int instanceIndex)
-			: this(key.DriverKey, key.DeviceMainId, key.CompatibleHardwareId, key.UniqueId, instanceIndex) { }
-
-		public IndexedConfigurationKey(IndexedConfigurationKey key, int instanceIndex)
-			: this(key.DriverKey, key.DeviceMainId, key.CompatibleHardwareId, key.UniqueId, instanceIndex) { }
-
-		[JsonConstructor]
-		public IndexedConfigurationKey(string driverKey, string deviceMainId, string compatibleHardwareId, string? uniqueId, int instanceIndex)
-		{
-			DriverKey = driverKey;
-			DeviceMainId = deviceMainId;
-			CompatibleHardwareId = compatibleHardwareId;
-			UniqueId = uniqueId;
-			InstanceIndex = instanceIndex;
-		}
-
-		public string DriverKey { get; }
-		public string DeviceMainId { get; }
-		public string CompatibleHardwareId { get; }
-		public string? UniqueId { get; }
-		public int InstanceIndex { get; }
-
-		public static explicit operator DeviceConfigurationKey(IndexedConfigurationKey key)
-			=> new(key.DriverKey, key.DeviceMainId, key.CompatibleHardwareId, key.UniqueId);
 	}
 
 	private sealed class DeviceState
@@ -139,9 +111,9 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 
 		foreach (var deviceId in await deviceConfigurationService.GetKeysAsync(cancellationToken).ConfigureAwait(false))
 		{
-			var indexedKeyResult = await deviceConfigurationService.ReadValueAsync<IndexedConfigurationKey>(deviceId, cancellationToken).ConfigureAwait(false);
-			var configResult = await deviceConfigurationService.ReadValueAsync<DeviceUserConfiguration>(deviceId, cancellationToken).ConfigureAwait(false);
-			var infoResult = await deviceConfigurationService.ReadValueAsync<DeviceInformation>(deviceId, cancellationToken).ConfigureAwait(false);
+			var indexedKeyResult = await deviceConfigurationService.ReadValueAsync(deviceId, SourceGenerationContext.Default.IndexedConfigurationKey, cancellationToken).ConfigureAwait(false);
+			var configResult = await deviceConfigurationService.ReadValueAsync(deviceId, SourceGenerationContext.Default.DeviceUserConfiguration, cancellationToken).ConfigureAwait(false);
+			var infoResult = await deviceConfigurationService.ReadValueAsync(deviceId, SourceGenerationContext.Default.DeviceInformation, cancellationToken).ConfigureAwait(false);
 
 			if (!indexedKeyResult.Found || !infoResult.Found)
 			{
@@ -344,7 +316,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				if (device.ConfigurationKey.InstanceIndex != i)
 				{
 					device.ConfigurationKey = new(device.ConfigurationKey, i);
-					await deviceConfigurationService.WriteValueAsync(device.DeviceId, device.ConfigurationKey, default).ConfigureAwait(false);
+					await deviceConfigurationService.WriteValueAsync(device.DeviceId, device.ConfigurationKey, SourceGenerationContext.Default.IndexedConfigurationKey, default).ConfigureAwait(false);
 				}
 			}
 		}
@@ -392,7 +364,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 		if (hasChanged)
 		{
 			device.ConfigurationKey = new(newKey, instanceIndex);
-			await deviceConfigurationService.WriteValueAsync(device.DeviceId, device.ConfigurationKey, default).ConfigureAwait(false);
+			await deviceConfigurationService.WriteValueAsync(device.DeviceId, device.ConfigurationKey, SourceGenerationContext.Default.IndexedConfigurationKey, default).ConfigureAwait(false);
 
 			if (shouldUpdateCompatibleDevices)
 			{
@@ -410,7 +382,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 							var otherDevice = devicesWithSameHardwareId[i];
 							otherDevice.ConfigurationKey = new(otherDevice.ConfigurationKey, i);
 
-							await deviceConfigurationService.WriteValueAsync(otherDevice.DeviceId, otherDevice.ConfigurationKey, default).ConfigureAwait(false);
+							await deviceConfigurationService.WriteValueAsync(otherDevice.DeviceId, otherDevice.ConfigurationKey, SourceGenerationContext.Default.IndexedConfigurationKey, default).ConfigureAwait(false);
 						}
 					}
 				}
@@ -518,7 +490,7 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 				deviceState.DeviceInformation.SerialNumber != serialNumber)
 			{
 				deviceState.DeviceInformation = new(driver.FriendlyName, driver.DeviceCategory, featureIds, deviceIds, mainDeviceIdIndex, serialNumber);
-				await _deviceConfigurationService.WriteValueAsync(deviceState.DeviceId, deviceState.DeviceInformation, default).ConfigureAwait(false);
+				await _deviceConfigurationService.WriteValueAsync(deviceState.DeviceId, deviceState.DeviceInformation, SourceGenerationContext.Default.DeviceInformation, default).ConfigureAwait(false);
 			}
 		}
 		else
@@ -529,8 +501,8 @@ public sealed class DeviceRegistry : IDriverRegistry, IInternalDriverRegistry, I
 			{
 				throw new InvalidOperationException();
 			}
-			await _deviceConfigurationService.WriteValueAsync(deviceState.DeviceId, deviceState.ConfigurationKey, default).ConfigureAwait(false);
-			await _deviceConfigurationService.WriteValueAsync(deviceState.DeviceId, deviceState.DeviceInformation, default).ConfigureAwait(false);
+			await _deviceConfigurationService.WriteValueAsync(deviceState.DeviceId, deviceState.ConfigurationKey, SourceGenerationContext.Default.IndexedConfigurationKey, default).ConfigureAwait(false);
+			await _deviceConfigurationService.WriteValueAsync(deviceState.DeviceId, deviceState.DeviceInformation, SourceGenerationContext.Default.DeviceInformation, default).ConfigureAwait(false);
 			isNewDevice = true;
 		}
 
