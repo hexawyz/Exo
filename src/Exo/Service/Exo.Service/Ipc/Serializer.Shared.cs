@@ -1,10 +1,12 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Exo.ColorFormats;
 using Exo.Cooling;
 using Exo.Cooling.Configuration;
 using Exo.Images;
+using Exo.Lighting;
 
 namespace Exo.Service.Ipc;
 
@@ -76,6 +78,33 @@ internal static class Serializer
 
 	public static DotsPerInch ReadDotsPerInch(ref BufferReader reader)
 		=> new(reader.Read<ushort>(), reader.Read<ushort>());
+
+	public static void Write(ref BufferWriter writer, LightingEffect? effect)
+	{
+		if (effect is not null)
+		{
+			System.Diagnostics.Debug.Assert(effect.EffectId != default);
+			writer.Write(effect.EffectId);
+			writer.WriteVariable((uint)effect.EffectData.Length);
+			writer.Write(effect.EffectData);
+		}
+		else
+		{
+			writer.Write(Guid.Empty);
+		}
+	}
+
+	public static LightingEffect? ReadLightingEffect(ref BufferReader reader)
+	{
+		var effectId = reader.ReadGuid();
+		if (effectId == default) return null;
+
+		uint length = reader.ReadVariableUInt32();
+
+		var data = new byte[length];
+		reader.Read(data);
+		return new(effectId, data);
+	}
 
 	public static void Write(ref BufferWriter writer, CoolingControlCurveConfiguration controlCurve)
 	{

@@ -2,7 +2,7 @@
 	"Exo.Service": {
 		"LightingService": {
 			// hardcoded list of lighting effects.
-			"SupportedGlobalEffects": [
+			"SupportedCentralizedEffects": [
 				// Disabled
 				"6b972c66-0987-4a0f-a20f-cbfc1b0f3d4b",
 				// Static Color

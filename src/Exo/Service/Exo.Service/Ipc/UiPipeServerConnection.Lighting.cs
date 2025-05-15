@@ -205,17 +205,66 @@ partial class UiPipeServerConnection
 		static void WriteLightingZoneEffect(ref BufferWriter writer, in LightingZoneEffect lightingZoneEffect)
 		{
 			writer.Write(lightingZoneEffect.ZoneId);
-			if (lightingZoneEffect.Effect is { } effect)
+			Serializer.Write(ref writer, lightingZoneEffect.Effect);
+		}
+	}
+
+	private async Task WatchLightingConfigurationAsync(CancellationToken cancellationToken)
+	{
+		using (var watcher = await BroadcastedChangeWatcher<LightingConfiguration>.CreateAsync(_lightingService, cancellationToken).ConfigureAwait(false))
+		{
+			try
 			{
-				writer.Write(effect.EffectId);
-				writer.WriteVariable((uint)effect.EffectData.Length);
-				writer.Write(effect.EffectData);
+				await WriteInitialDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
 			}
-			else
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 			{
-				writer.Write(Guid.Empty);
-				writer.Write((byte)0);
 			}
+		}
+
+		async Task WriteInitialDataAsync(BroadcastedChangeWatcher<LightingConfiguration> watcher, CancellationToken cancellationToken)
+		{
+			var initialData = watcher.ConsumeInitialData();
+			if (initialData is { Length: > 0 })
+			{
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					foreach (var effectInformation in initialData)
+					{
+						int length = Write(buffer.Span, effectInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<LightingConfiguration> watcher, CancellationToken cancellationToken)
+		{
+			while (true)
+			{
+				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var effectInformation))
+					{
+						int length = Write(buffer.Span, effectInformation);
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		static int Write(Span<byte> buffer, in LightingConfiguration configuration)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.LightingConfiguration);
+			writer.Write(configuration.UseCentralizedLightingEnabled);
+			Serializer.Write(ref writer, configuration.CentralizedLightingEffect);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -560,6 +609,29 @@ partial class UiPipeServerConnection
 		}
 	}
 
+	private async ValueTask PublishLightingSupportedCentralizedEffectsAsync(CancellationToken cancellationToken)
+	{
+		using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			var buffer = WriteBuffer;
+			int length = Write(buffer.Span, _lightingService.GetSupportedCentralizedEffects());
+			await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+		}
+
+		static int Write(Span<byte> buffer, ReadOnlySpan<Guid> supportedEffects)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.LightingSupportedCentralizedEffects);
+			writer.WriteVariable((uint)supportedEffects.Length);
+			foreach (var effectId in supportedEffects)
+			{
+				writer.Write(effectId);
+			}
+
+			return (int)writer.Length;
+		}
+	}
+
 	private void ProcessLightingDeviceConfiguration(ReadOnlySpan<byte> data, CancellationToken cancellationToken)
 	{
 		var reader = new BufferReader(data);
@@ -633,6 +705,44 @@ partial class UiPipeServerConnection
 			if (hasChanged) _lightingService.NotifyDeviceConfiguration(deviceId);
 		}
 		ApplyLightingChanges(requestId, deviceId, (flags & LightingDeviceConfigurationFlags.Persist) != 0, cancellationToken);
+	}
+
+	private ValueTask<bool> ProcessLightingConfigurationAsync(ReadOnlySpan<byte> data, CancellationToken cancellationToken)
+	{
+		var reader = new BufferReader(data);
+		uint requestId = reader.ReadVariableUInt32();
+		bool useCentralizedLighting = reader.ReadBoolean();
+		var effect = Serializer.ReadLightingEffect(ref reader);
+		return ProcessLightingConfigurationAsync(requestId, useCentralizedLighting, effect, cancellationToken);
+	}
+
+	private async ValueTask<bool> ProcessLightingConfigurationAsync(uint requestId, bool useCentralizedLighting, LightingEffect? effect, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await _lightingService.SetLightingConfigurationAsync(useCentralizedLighting, effect, cancellationToken).ConfigureAwait(false);
+		}
+		catch (ArgumentException)
+		{
+			WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.InvalidArgument, cancellationToken);
+			return true;
+		}
+		catch (LightingZoneNotFoundException)
+		{
+			WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.ZoneNotFound, cancellationToken);
+			return true;
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		{
+			return true;
+		}
+		catch
+		{
+			WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Error, cancellationToken);
+			return true;
+		}
+		WriteLightingDeviceDeviceConfigurationStatus(requestId, LightingDeviceOperationStatus.Success, cancellationToken);
+		return true;
 	}
 
 	private async void ApplyLightingChanges(uint requestId, Guid deviceId, bool shouldPersist, CancellationToken cancellationToken)

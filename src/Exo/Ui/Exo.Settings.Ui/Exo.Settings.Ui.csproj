@@ -120,6 +120,7 @@
 		<Compile Include="..\..\Service\Exo.Service.Core\LightDeviceCapabilities.cs" Link="Definitions\LightDeviceCapabilities.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\LightDeviceInformation.cs" Link="Definitions\LightDeviceInformation.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\LightInformation.cs" Link="Definitions\LightInformation.cs" />
+		<Compile Include="..\..\Service\Exo.Service.Core\LightingConfiguration.cs" Link="Definitions\LightingConfiguration.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\LightingDeviceConfiguration.cs" Link="Definitions\LightingDeviceConfiguration.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\LightingDeviceInformation.cs" Link="Definitions\LightingDeviceInformation.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\LightingZoneEffect.cs" Link="Definitions\LightingZoneEffect.cs" />

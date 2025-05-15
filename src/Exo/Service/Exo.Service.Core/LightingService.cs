@@ -25,7 +25,7 @@ namespace Exo.Service;
 
 [Module("Lighting")]
 [TypeId(0x85F9E09E, 0xFD66, 0x4F0A, 0xA2, 0x82, 0x3E, 0x3B, 0xFD, 0xEB, 0x5B, 0xC2)]
-internal sealed partial class LightingService : IAsyncDisposable, IPowerNotificationSink, IChangeSource<LightingDeviceInformation>, IChangeSource<LightingDeviceConfiguration>
+internal sealed partial class LightingService : IAsyncDisposable, IPowerNotificationSink, IChangeSource<LightingDeviceInformation>, IChangeSource<LightingDeviceConfiguration>, IChangeSource<LightingConfiguration>
 {
 	private sealed class DeviceState
 	{
@@ -262,6 +262,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	private TaskCompletionSource _restoreTaskCompletionSource;
 	private ChangeBroadcaster<LightingDeviceInformation> _deviceInformationBroadcaster;
 	private ChangeBroadcaster<LightingDeviceConfiguration> _deviceConfigurationBroadcaster;
+	private ChangeBroadcaster<LightingConfiguration> _configurationBroadcaster;
 
 	// Setting a global effect will involve fallbacks in order to cover all devices.
 	// The fallbacks can always be programmatically computed from the first effect, but it is easier to just store all of them here.
@@ -989,6 +990,20 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	void IChangeSource<LightingDeviceConfiguration>.UnregisterWatcher(ChannelWriter<LightingDeviceConfiguration> writer)
 		=> _deviceConfigurationBroadcaster.Unregister(writer);
 
+	ValueTask<LightingConfiguration[]?> IChangeSource<LightingConfiguration>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightingConfiguration> writer, CancellationToken cancellationToken)
+	{
+		LightingConfiguration[] configuration;
+		lock (_changeLock)
+		{
+			configuration = [new(_useCentralizedLighting, _centralizedEffects[0])];
+			_configurationBroadcaster.Register(writer);
+		}
+		return new(configuration);
+	}
+
+	void IChangeSource<LightingConfiguration>.UnregisterWatcher(ChannelWriter<LightingConfiguration> writer)
+		=> _configurationBroadcaster.Unregister(writer);
+
 	public void SetEffect(Guid deviceId, Guid zoneId, Guid effectId, ReadOnlySpan<byte> data)
 	{
 		var cancellationToken = GetCancellationToken();
@@ -1124,83 +1139,88 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		return applyChangesTask;
 	}
 
-	public ReadOnlySpan<Guid> GetSupportedGlobalEffects() => SupportedGlobalEffects;
+	public ReadOnlySpan<Guid> GetSupportedCentralizedEffects() => SupportedCentralizedEffects;
 
-	public async Task DisableGlobalLightingAsync(CancellationToken cancellationToken)
+	public async Task SetLightingConfigurationAsync(bool useCentralizedLighting, LightingEffect? effect, CancellationToken cancellationToken)
 	{
 		using (await _restoreLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
+			bool isChanged = false;
+			bool isEffectChanged = false;
 			lock (_changeLock)
 			{
-				_useCentralizedLighting = false;
+				if (effect is not null)
+				{
+					if (_centralizedEffects is not { Length: > 0 } || _centralizedEffects[0] != effect)
+					{
+						if (effect.EffectId == DisabledEffectId)
+						{
+							_centralizedEffects = [EffectSerializer.Serialize(new DisabledEffect())];
+						}
+						else if (effect.EffectId == StaticColorEffectId)
+						{
+							var staticColorEffect = EffectSerializer.UnsafeDeserialize<StaticColorEffect>(effect.EffectData);
+							var color = ColorSpaceConverter.ToLinearRgb(new ImageSharpRgb(staticColorEffect.Color.R, staticColorEffect.Color.G, staticColorEffect.Color.B));
+							float equivalentBrightness = 0.2126f * color.R + 0.7152f * color.G + 0.0722f * color.B;
+							_centralizedEffects =
+							[
+								EffectSerializer.Serialize(staticColorEffect),
+								// TODO: Solve the brightness problem. We should have a uniform way to represent brightness across devices but also allow device-specific representations.
+								// The main problem is that the discrete brightness values supported by a device can vary across devices.
+								// For now, the code below assumes that brightness ranges from 0 to 100, which is wrong.
+								// Maybe splitting brightness in two flavors would be enough, but in some cases, being able to read back the actual brightness from the device might be necessary.
+								EffectSerializer.Serialize(new StaticBrightnessEffect((byte)(RgbWorkingSpaces.SRgb.Compress(equivalentBrightness) * 100))),
+								equivalentBrightness >= 0.5f ? EffectSerializer.Serialize(new EnabledEffect()) : EffectSerializer.Serialize(new DisabledEffect()),
+								EffectSerializer.Serialize(new DisabledEffect()),
+							];
+						}
+						else if (effect.EffectId == SpectrumCycleEffectId)
+						{
+							_centralizedEffects =
+							[
+								EffectSerializer.Serialize(new SpectrumCycleEffect()),
+								EffectSerializer.Serialize(new SpectrumWaveEffect()),
+								EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 255))),
+								EffectSerializer.Serialize(new EnabledEffect()),
+								EffectSerializer.Serialize(new DisabledEffect()),
+							];
+						}
+						else if (effect.EffectId == SpectrumWaveEffectId)
+						{
+							_centralizedEffects =
+							[
+								EffectSerializer.Serialize(new SpectrumWaveEffect()),
+								EffectSerializer.Serialize(new SpectrumCycleEffect()),
+								EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 255))),
+								EffectSerializer.Serialize(new StaticBrightnessEffect(255)),
+								EffectSerializer.Serialize(new EnabledEffect()),
+								EffectSerializer.Serialize(new DisabledEffect()),
+							];
+						}
+						else
+						{
+							throw new ArgumentException("Unsupported effect.");
+						}
+						isChanged = isEffectChanged = true;
+					}
+				}
+
+				if (useCentralizedLighting != _useCentralizedLighting)
+				{
+					_useCentralizedLighting = useCentralizedLighting;
+					isChanged = true;
+				}
+
+				if (isChanged)
+				{
+					_configurationBroadcaster.Push(new(true, isEffectChanged ? _centralizedEffects[0] : null));
+				}
 			}
 
-			await RestoreEffectsAsync(null, cancellationToken).ConfigureAwait(false);
-		}
-	}
-
-	public async Task ApplyGlobalEffectAsync(LightingEffect effect, CancellationToken cancellationToken)
-	{
-		using (await _restoreLock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			lock (_changeLock)
+			if (isChanged)
 			{
-				if (_centralizedEffects is { Length: > 0 } && _centralizedEffects[0] == effect)
-				{
-					if (_useCentralizedLighting) return;
-				}
-				else if (effect.EffectId == DisabledEffectId)
-				{
-					_centralizedEffects = [EffectSerializer.Serialize(new DisabledEffect())];
-				}
-				else if (effect.EffectId == StaticColorEffectId)
-				{
-					var staticColorEffect = EffectSerializer.UnsafeDeserialize<StaticColorEffect>(effect.EffectData);
-					var color = ColorSpaceConverter.ToLinearRgb(new ImageSharpRgb(staticColorEffect.Color.R, staticColorEffect.Color.G, staticColorEffect.Color.B));
-					float equivalentBrightness = 0.2126f * color.R + 0.7152f * color.G + 0.0722f * color.B;
-					_centralizedEffects =
-					[
-						EffectSerializer.Serialize(staticColorEffect),
-						// TODO: Solve the brightness problem. We should have a uniform way to represent brightness across devices but also allow device-specific representations.
-						// The main problem is that the discrete brightness values supported by a device can vary across devices.
-						// For now, the code below assumes that brightness ranges from 0 to 100, which is wrong.
-						// Maybe splitting brightness in two flavors would be enough, but in some cases, being able to read back the actual brightness from the device might be necessary.
-						EffectSerializer.Serialize(new StaticBrightnessEffect((byte)(RgbWorkingSpaces.SRgb.Compress(equivalentBrightness) * 100))),
-						equivalentBrightness >= 0.5f ? EffectSerializer.Serialize(new EnabledEffect()) : EffectSerializer.Serialize(new DisabledEffect()),
-						EffectSerializer.Serialize(new DisabledEffect()),
-					];
-				}
-				else if (effect.EffectId == SpectrumCycleEffectId)
-				{
-					_centralizedEffects =
-					[
-						EffectSerializer.Serialize(new SpectrumCycleEffect()),
-						EffectSerializer.Serialize(new SpectrumWaveEffect()),
-						EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 255))),
-						EffectSerializer.Serialize(new EnabledEffect()),
-						EffectSerializer.Serialize(new DisabledEffect()),
-					];
-				}
-				else if (effect.EffectId == SpectrumWaveEffectId)
-				{
-					_centralizedEffects =
-					[
-						EffectSerializer.Serialize(new SpectrumWaveEffect()),
-						EffectSerializer.Serialize(new SpectrumCycleEffect()),
-						EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 255))),
-						EffectSerializer.Serialize(new StaticBrightnessEffect(255)),
-						EffectSerializer.Serialize(new EnabledEffect()),
-						EffectSerializer.Serialize(new DisabledEffect()),
-					];
-				}
-				else
-				{
-					throw new ArgumentException("Unsupported effect.");
-				}
-
-				_useCentralizedLighting = true;
+				await RestoreEffectsAsync(_useCentralizedLighting ? _centralizedEffects : null, cancellationToken).ConfigureAwait(false);
 			}
-			await RestoreEffectsAsync(_centralizedEffects, cancellationToken).ConfigureAwait(false);
 		}
 	}
 

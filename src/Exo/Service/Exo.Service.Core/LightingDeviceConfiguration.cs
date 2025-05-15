@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using Exo.ColorFormats;
+using Exo.Lighting;
 
 namespace Exo.Service;
 

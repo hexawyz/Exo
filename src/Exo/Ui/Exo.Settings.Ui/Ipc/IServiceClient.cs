@@ -32,6 +32,8 @@ internal interface IServiceClient
 	void OnMouseDpiPresetsUpdate(Guid deviceId, byte? activeDpiPresetIndex, ImmutableArray<DotsPerInch> dpiPresets);
 	void OnMousePollingFrequencyUpdate(Guid deviceId, ushort pollingFrequency);
 
+	void OnLightingSupportedCentralizedEffectsUpdate(ImmutableArray<Guid> effectIds);
+	void OnLightingConfigurationUpdate(LightingConfiguration configuration);
 	void OnLightingDeviceUpdate(LightingDeviceInformation lightingDevice);
 	void OnLightingDeviceConfigurationUpdate(LightingDeviceConfiguration configuration);
 

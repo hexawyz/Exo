@@ -304,6 +304,12 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case ExoUiProtocolServerMessage.LightingDevice:
 			ProcessLightingDevice(data);
 			goto Success;
+		case ExoUiProtocolServerMessage.LightingSupportedCentralizedEffects:
+			ProcessLightingSupportedCentralizedEffects(data);
+			goto Success;
+		case ExoUiProtocolServerMessage.LightingConfiguration:
+			ProcessLightingConfiguration(data);
+			goto Success;
 		case ExoUiProtocolServerMessage.LightingDeviceConfiguration:
 			ProcessLightingDeviceConfiguration(data);
 			goto Success;
@@ -530,7 +536,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 					minElementCount = maxElementCount = 1;
 				}
 				object? defaultValue = (flags & LightingEffectFlags.DefaultValue) != 0 ?
-					(flags & (LightingEffectFlags.Array | LightingEffectFlags.ArrayDefaultValue)) == (LightingEffectFlags.Array | LightingEffectFlags.ArrayDefaultValue) ? 
+					(flags & (LightingEffectFlags.Array | LightingEffectFlags.ArrayDefaultValue)) == (LightingEffectFlags.Array | LightingEffectFlags.ArrayDefaultValue) ?
 						ReadValues(ref reader, dataType) :
 						ReadValue(ref reader, dataType) :
 					null;
@@ -1015,6 +1021,37 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		}
 	}
 
+	private void ProcessLightingSupportedCentralizedEffects(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		uint count = reader.ReadVariableUInt32();
+		Guid[] effectIds;
+		if (count == 0)
+		{
+			effectIds = [];
+		}
+		else
+		{
+			effectIds = new Guid[count];
+			for (uint i = 0; i < count; i++)
+			{
+				effectIds[i] = reader.ReadGuid();
+			}
+		}
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightingSupportedCentralizedEffectsUpdate(ImmutableCollectionsMarshal.AsImmutableArray(effectIds)));
+	}
+
+	private void ProcessLightingConfiguration(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var configuration = new LightingConfiguration(reader.ReadBoolean(), Serializer.ReadLightingEffect(ref reader));
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightingConfigurationUpdate(configuration));
+	}
+
 	private void ProcessLightingDeviceConfiguration(ReadOnlySpan<byte> data)
 	{
 		var reader = new BufferReader(data);
@@ -1065,15 +1102,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		static LightingZoneEffect ReadLightingZoneEffect(ref BufferReader reader)
 		{
 			var zoneId = reader.ReadGuid();
-			var effectId = reader.ReadGuid();
-			if (effectId == default)
-			{
-				return new(zoneId, null);
-			}
-			else
-			{
-				return new(zoneId, new(effectId, reader.ReadBytes(reader.ReadVariableUInt32())));
-			}
+			return new(zoneId, Serializer.ReadLightingEffect(ref reader));
 		}
 	}
 
@@ -1521,18 +1550,20 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _customMenuOperations.Allocate();
 			var buffer = WriteBuffer;
-			WriteUpdate(buffer.Span, requestId, menuItems);
+			int length = WriteUpdate(buffer.Span, requestId, menuItems);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void WriteUpdate(Span<byte> buffer, uint requestId, ImmutableArray<MenuItem> menuItems)
+		static int WriteUpdate(Span<byte> buffer, uint requestId, ImmutableArray<MenuItem> menuItems)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.CustomMenuUpdate);
 			writer.WriteVariable(requestId);
 			Write(ref writer, menuItems);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1564,8 +1595,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			operation = new();
 			_imageAddTaskCompletionSource = operation;
 			var buffer = WriteBuffer;
-			Write(buffer.Span, imageName, length);
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			int writeLength = Write(buffer.Span, imageName, length);
+			await WriteAsync(buffer[..writeLength], writeCancellationToken).ConfigureAwait(false);
 		}
 		var (status, sharedMemoryName) = await operation.Task.ConfigureAwait(false);
 		if (status is not ImageStorageOperationStatus.Success) _imageAddTaskCompletionSource = null;
@@ -1573,12 +1604,14 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		HandleStatus(status);
 		return sharedMemoryName ?? throw new InvalidOperationException();
 
-		static void Write(Span<byte> buffer, string imageName, uint length)
+		static int Write(Span<byte> buffer, string imageName, uint length)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.ImageAddBegin);
 			writer.WriteVariableString(imageName);
 			writer.Write(length);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1606,20 +1639,22 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			operation = new();
 			_imageAddTaskCompletionSource = operation;
 			var buffer = WriteBuffer;
-			Write(buffer.Span, message, sharedMemoryName);
+			int length = Write(buffer.Span, message, sharedMemoryName);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		var (status, sharedMemoryName2) = await operation.Task.ConfigureAwait(false);
 		if (!ReferenceEquals(operation, Interlocked.CompareExchange(ref _imageAddTaskCompletionSource, null, operation))) throw new InvalidOperationException("The internal state is not valid.");
 		if (sharedMemoryName2 != sharedMemoryName) throw new InvalidOperationException("The returned name does not match.");
 		HandleStatus(status);
 
-		static void Write(Span<byte> buffer, ExoUiProtocolClientMessage message, string sharedMemoryName)
+		static int Write(Span<byte> buffer, ExoUiProtocolClientMessage message, string sharedMemoryName)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)message);
 			writer.WriteVariableString(sharedMemoryName);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1638,16 +1673,18 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			operation = new();
 			if (imageOperations.TryAdd(imageId, operation)) throw new InvalidOperationException("An operation is already pending for this image.");
 			var buffer = WriteBuffer;
-			Write(buffer.Span, imageId);
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			int length = Write(buffer.Span, imageId);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await operation.Task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, UInt128 imageId)
+		static int Write(Span<byte> buffer, UInt128 imageId)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.ImageRemove);
 			writer.Write(imageId);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1688,9 +1725,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _powerDeviceOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, message, requestId, deviceId, value);
+			int length = Write(buffer.Span, message, requestId, deviceId, value);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		var status = await task.ConfigureAwait(false);
 		switch (status)
@@ -1700,13 +1737,15 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		default: throw new InvalidOperationException();
 		}
 
-		static void Write(Span<byte> buffer, ExoUiProtocolClientMessage message, uint requestId, Guid deviceId, T value)
+		static int Write(Span<byte> buffer, ExoUiProtocolClientMessage message, uint requestId, Guid deviceId, T value)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)message);
 			writer.WriteVariable(requestId);
 			writer.Write(deviceId);
 			writer.Write(value);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1726,13 +1765,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _mouseDeviceOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId, activePresetIndex, presets);
+			int length = Write(buffer.Span, requestId, deviceId, activePresetIndex, presets);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, byte activePresetIndex, ImmutableArray<DotsPerInch> presets)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId, byte activePresetIndex, ImmutableArray<DotsPerInch> presets)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.MouseDpiPresets);
@@ -1740,6 +1779,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(deviceId);
 			writer.Write(activePresetIndex);
 			ExoUiPipeClientConnection.Write(ref writer, presets);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1760,19 +1801,21 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _mouseDeviceOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, message, requestId, deviceId, value);
+			int length = Write(buffer.Span, message, requestId, deviceId, value);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, ExoUiProtocolClientMessage message, uint requestId, Guid deviceId, T value)
+		static int Write(Span<byte> buffer, ExoUiProtocolClientMessage message, uint requestId, Guid deviceId, T value)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)message);
 			writer.WriteVariable(requestId);
 			writer.Write(deviceId);
 			writer.Write(value);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1784,6 +1827,37 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		case MouseDeviceOperationStatus.Error: throw new InvalidOperationException();
 		case MouseDeviceOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
 		default: throw new InvalidOperationException();
+		}
+	}
+
+	async ValueTask ILightingService.SetLightingAsync(LightingConfiguration configuration, CancellationToken cancellationToken)
+	{
+		Task<LightingDeviceOperationStatus> task;
+		cancellationToken.ThrowIfCancellationRequested();
+		// Not sure if we can use the provided cancellation token to allow cancel writes at all, so for now, resort to the global write cancellation.
+		// This shouldn't change much anyway, as pipe write operations should not block for a long time.
+		var writeCancellationToken = GetDefaultWriteCancellationToken();
+		using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, writeCancellationToken))
+		using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
+		{
+			uint requestId;
+			(requestId, task) = _lightingDeviceOperations.Allocate();
+			var buffer = WriteBuffer;
+			int length = Write(buffer.Span, requestId, configuration);
+			// TODO: Find out if cancellation implies that bytes are not written.
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
+		}
+		HandleStatus(await task.ConfigureAwait(false));
+
+		static int Write(Span<byte> buffer, uint requestId, LightingConfiguration configuration)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolClientMessage.LightingConfiguration);
+			writer.WriteVariable(requestId);
+			writer.Write(configuration.UseCentralizedLightingEnabled);
+			Serializer.Write(ref writer, configuration.CentralizedLightingEffect);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1800,20 +1874,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _lightingDeviceOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, update);
+			int length = Write(buffer.Span, requestId, update);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
-		var status = await task.ConfigureAwait(false);
-		switch (status)
-		{
-		case LightingDeviceOperationStatus.Success: return;
-		case LightingDeviceOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
-		case LightingDeviceOperationStatus.ZoneNotFound: throw new LightingZoneNotFoundException();
-		default: throw new InvalidOperationException();
-		}
+		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, LightingDeviceConfigurationUpdate update)
+		static int Write(Span<byte> buffer, uint requestId, LightingDeviceConfigurationUpdate update)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.LightingDeviceConfiguration);
@@ -1840,6 +1907,19 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 					writer.Write(zoneEffect.Effect.EffectData);
 				}
 			}
+			return (int)writer.Length;
+		}
+	}
+
+	private static void HandleStatus(LightingDeviceOperationStatus status)
+	{
+		switch (status)
+		{
+		case LightingDeviceOperationStatus.Success: return;
+		case LightingDeviceOperationStatus.InvalidArgument: throw new ArgumentException();
+		case LightingDeviceOperationStatus.DeviceNotFound: throw new DeviceNotFoundException();
+		case LightingDeviceOperationStatus.ZoneNotFound: throw new LightingZoneNotFoundException();
+		default: throw new InvalidOperationException();
 		}
 	}
 
@@ -1854,13 +1934,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _embeddedMonitorOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId, monitorId, graphicsId);
+			int length = Write(buffer.Span, requestId, deviceId, monitorId, graphicsId);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid monitorId, Guid graphicsId)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid monitorId, Guid graphicsId)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.EmbeddedMonitorBuiltInGraphics);
@@ -1868,6 +1948,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(deviceId);
 			writer.Write(monitorId);
 			writer.Write(graphicsId);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1882,13 +1964,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _embeddedMonitorOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId, monitorId, imageId, cropRegion);
+			int length = Write(buffer.Span, requestId, deviceId, monitorId, imageId, cropRegion);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid monitorId, UInt128 imageId, Rectangle cropRegion)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid monitorId, UInt128 imageId, Rectangle cropRegion)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.EmbeddedMonitorImage);
@@ -1897,6 +1979,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(monitorId);
 			writer.Write(imageId);
 			Serializer.Write(ref writer, cropRegion);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1923,13 +2007,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _lightOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId, lightId, isOn);
+			int length = Write(buffer.Span, requestId, deviceId, lightId, isOn);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid lightId, bool isOn)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid lightId, bool isOn)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.LightSwitch);
@@ -1937,6 +2021,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(deviceId);
 			writer.Write(lightId);
 			writer.Write(isOn);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1951,13 +2037,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _lightOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId, lightId, brightness);
+			int length = Write(buffer.Span, requestId, deviceId, lightId, brightness);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid lightId, byte brightness)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid lightId, byte brightness)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.LightBrightness);
@@ -1965,6 +2051,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(deviceId);
 			writer.Write(lightId);
 			writer.Write(brightness);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -1979,13 +2067,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _lightOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId, lightId, temperature);
+			int length = Write(buffer.Span, requestId, deviceId, lightId, temperature);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid lightId, uint temperature)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid lightId, uint temperature)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.LightTemperature);
@@ -1993,6 +2081,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(deviceId);
 			writer.Write(lightId);
 			writer.Write(temperature);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -2021,9 +2111,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _monitorOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId, setting, value);
+			int length = Write(buffer.Span, requestId, deviceId, setting, value);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		var status = await task.ConfigureAwait(false);
 		switch (status)
@@ -2034,7 +2124,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		default: throw new InvalidOperationException();
 		}
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, MonitorSetting setting, ushort value)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId, MonitorSetting setting, ushort value)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.MonitorSettingSet);
@@ -2042,6 +2132,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(deviceId);
 			writer.WriteVariable((uint)setting);
 			writer.Write(value);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -2058,9 +2150,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _monitorOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId);
+			int length = Write(buffer.Span, requestId, deviceId);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		var status = await task.ConfigureAwait(false);
 		switch (status)
@@ -2070,12 +2162,14 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 		default: throw new InvalidOperationException();
 		}
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.MonitorSettingRefresh);
 			writer.WriteVariable(requestId);
 			writer.Write(deviceId);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -2111,19 +2205,21 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 				cancellationToken.ThrowIfCancellationRequested();
 			}
 			var buffer = WriteBuffer;
-			WriteSensorStart(buffer.Span, streamId, deviceId, sensorId);
+			int length = WriteSensorStart(buffer.Span, streamId, deviceId, sensorId);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		return await startTask.ConfigureAwait(false);
 
-		static void WriteSensorStart(Span<byte> buffer, uint streamId, Guid deviceId, Guid sensorId)
+		static int WriteSensorStart(Span<byte> buffer, uint streamId, Guid deviceId, Guid sensorId)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.SensorStart);
 			writer.WriteVariable(streamId);
 			writer.Write(deviceId);
 			writer.Write(sensorId);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -2135,8 +2231,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 			{
 				var buffer = WriteBuffer;
-				WriteSensorStop(buffer.Span, streamId);
-				await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				int length = WriteSensorStop(buffer.Span, streamId);
+				await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 			}
 		}
 		catch (OperationCanceledException)
@@ -2144,11 +2240,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			throw new PipeClosedException();
 		}
 
-		static void WriteSensorStop(Span<byte> buffer, uint streamId)
+		static int WriteSensorStop(Span<byte> buffer, uint streamId)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.SensorStop);
 			writer.WriteVariable(streamId);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -2161,8 +2259,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			using (await WriteLock.WaitAsync(cts.Token).ConfigureAwait(false))
 			{
 				var buffer = WriteBuffer;
-				WriteSensorFavorite(buffer.Span, deviceId, sensorId, isFavorite);
-				await WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
+				int length = WriteSensorFavorite(buffer.Span, deviceId, sensorId, isFavorite);
+				await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 			}
 		}
 		catch (OperationCanceledException)
@@ -2170,13 +2268,15 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			throw new PipeClosedException();
 		}
 
-		static void WriteSensorFavorite(Span<byte> buffer, Guid deviceId, Guid sensorId, bool isFavorite)
+		static int WriteSensorFavorite(Span<byte> buffer, Guid deviceId, Guid sensorId, bool isFavorite)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.SensorFavorite);
 			writer.Write(deviceId);
 			writer.Write(sensorId);
 			writer.Write(isFavorite);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -2211,19 +2311,21 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _coolingOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId, coolerId);
+			int length = Write(buffer.Span, requestId, deviceId, coolerId);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid coolerId)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid coolerId)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.CoolerSetAutomatic);
 			writer.WriteVariable(requestId);
 			writer.Write(deviceId);
 			writer.Write(coolerId);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -2238,13 +2340,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _coolingOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId, coolerId, power);
+			int length = Write(buffer.Span, requestId, deviceId, coolerId, power);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid coolerId, byte power)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid coolerId, byte power)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.CoolerSetFixed);
@@ -2252,6 +2354,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(deviceId);
 			writer.Write(coolerId);
 			writer.Write(power);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -2266,13 +2370,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _coolingOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, coolingDeviceId, coolerId, sensorDeviceId, sensorId, defaultPower, controlCurve);
+			int length = Write(buffer.Span, requestId, coolingDeviceId, coolerId, sensorDeviceId, sensorId, defaultPower, controlCurve);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, Guid coolingDeviceId, Guid coolerId, Guid sensorDeviceId, Guid sensorId, byte defaultPower, CoolingControlCurveConfiguration controlCurve)
+		static int Write(Span<byte> buffer, uint requestId, Guid coolingDeviceId, Guid coolerId, Guid sensorDeviceId, Guid sensorId, byte defaultPower, CoolingControlCurveConfiguration controlCurve)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.CoolerSetSoftwareCurve);
@@ -2283,6 +2387,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(sensorId);
 			writer.Write(defaultPower);
 			Serializer.Write(ref writer, controlCurve);
+
+			return (int)writer.Length;
 		}
 	}
 
@@ -2297,13 +2403,13 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			uint requestId;
 			(requestId, task) = _coolingOperations.Allocate();
 			var buffer = WriteBuffer;
-			Write(buffer.Span, requestId, deviceId, coolerId, sensorId, controlCurve);
+			int length = Write(buffer.Span, requestId, deviceId, coolerId, sensorId, controlCurve);
 			// TODO: Find out if cancellation implies that bytes are not written.
-			await WriteAsync(buffer, writeCancellationToken).ConfigureAwait(false);
+			await WriteAsync(buffer[..length], writeCancellationToken).ConfigureAwait(false);
 		}
 		HandleStatus(await task.ConfigureAwait(false));
 
-		static void Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid coolerId, Guid sensorId, CoolingControlCurveConfiguration controlCurve)
+		static int Write(Span<byte> buffer, uint requestId, Guid deviceId, Guid coolerId, Guid sensorId, CoolingControlCurveConfiguration controlCurve)
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.CoolerSetHardwareCurve);
@@ -2312,6 +2418,8 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			writer.Write(coolerId);
 			writer.Write(sensorId);
 			Serializer.Write(ref writer, controlCurve);
+
+			return (int)writer.Length;
 		}
 	}
 

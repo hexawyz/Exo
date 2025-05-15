@@ -420,7 +420,7 @@
   <data name="LightingExportConfigurationButton.Label" xml:space="preserve">
     <value>Export</value>
   </data>
-  <data name="GlobalLightingEnableButton.Label" xml:space="preserve">
+  <data name="CentralizedLightingToggleButton.Label" xml:space="preserve">
     <value>Centralized lighting</value>
   </data>
 </root>

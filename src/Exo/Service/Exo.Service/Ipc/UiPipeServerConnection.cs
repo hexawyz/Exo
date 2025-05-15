@@ -133,6 +133,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var imageWatchTask = WatchImagesAsync(cancellationToken);
 		var lightingEffectsWatchTask = WatchLightingEffectsAsync(cancellationToken);
 
+		await PublishLightingSupportedCentralizedEffectsAsync(cancellationToken);
+
 		var deviceWatchTask = WatchDevicesAsync(cancellationToken);
 		var powerDeviceWatchTask = WatchPowerDevicesAsync(cancellationToken);
 		var mouseDeviceWatchTask = WatchMouseDevicesAsync(cancellationToken);
@@ -153,6 +155,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		var mousePollingFrequencyWatchTask = WatchMousePollingFrequencyAsync(cancellationToken);
 
 		var lightingDeviceConfigurationWatchTask = WatchLightingDeviceConfigurationAsync(cancellationToken);
+		var lightingConfigurationWatchTask = WatchLightingConfigurationAsync(cancellationToken);
 
 		var embeddedMonitorConfigurationWatchTask = WatchEmbeddedMonitorConfigurationChangesAsync(cancellationToken);
 
@@ -185,6 +188,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 			mousePollingFrequencyWatchTask,
 			lightingDeviceWatchTask,
 			lightingDeviceConfigurationWatchTask,
+			lightingConfigurationWatchTask,
 			embeddedMonitorDeviceWatchTask,
 			embeddedMonitorConfigurationWatchTask,
 			monitorDeviceWatchTask,
@@ -316,6 +320,8 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 		case ExoUiProtocolClientMessage.MousePollingFrequency:
 			ProcessMousePollingFrequency(data, cancellationToken);
 			goto Success;
+		case ExoUiProtocolClientMessage.LightingConfiguration:
+			return ProcessLightingConfigurationAsync(data, cancellationToken);
 		case ExoUiProtocolClientMessage.LightingDeviceConfiguration:
 			ProcessLightingDeviceConfiguration(data, cancellationToken);
 			goto Success;

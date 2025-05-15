@@ -17,12 +17,12 @@
 			<RowDefinition Height="*" />
 		</Grid.RowDefinitions>
 		<CommandBar OverflowButtonVisibility="Collapsed" IsOpen="False" DefaultLabelPosition="Right" Margin="0,0,0,6">
-			<AppBarToggleButton x:Uid="GlobalLightingEnableButton" IsChecked="{x:Bind Lighting.UseGlobalLighting, Mode=TwoWay}">
+			<AppBarToggleButton x:Uid="CentralizedLightingToggleButton" IsChecked="{x:Bind Lighting.UseCentralizedLighting, Mode=TwoWay}">
 				<AppBarToggleButton.Icon>
 					<FontIcon Glyph="&#xF0B9;" />
 				</AppBarToggleButton.Icon>
 			</AppBarToggleButton>
-			<AppBarButton x:Uid="CurrentColorButton">
+			<AppBarButton x:Uid="CurrentColorButton" AllowFocusOnInteraction="True">
 				<AppBarButton.Resources>
 					<Visibility x:Key="AppBarButtonHasFlyoutChevronVisibility">Visible</Visibility>
 					<CornerRadius x:Key="ColorPickerButtonPreviewCornerRadius">2</CornerRadius>
@@ -38,6 +38,8 @@
 								<Setter Property="CornerRadius" Value="{ThemeResource OverlayCornerRadius}" />
 								<Setter Property="Background" Value="Transparent" />
 								<Setter Property="MinHeight" Value="420" />
+								<Setter Property="IsTabStop" Value="False" />
+								<Setter Property="TabNavigation" Value="Cycle" />
 							</Style>
 						</Flyout.FlyoutPresenterStyle>
 						<Flyout.SystemBackdrop>
@@ -88,13 +90,13 @@
 			VerticalScrollMode="Auto">
 			<StackPanel Margin="{StaticResource NavigationContentScrollViewerPadding}" Orientation="Vertical" HorizontalAlignment="Stretch">
 				<ContentControl
-					Control.IsEnabled="{x:Bind Lighting.IsReady, Mode=OneWay}"
-					Visibility="{x:Bind Lighting.UseGlobalLighting, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}"
+					IsEnabled="{x:Bind Lighting.IsReady, Mode=OneWay}"
+					Visibility="{x:Bind Lighting.UseCentralizedLighting, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}"
 					HorizontalContentAlignment="Stretch">
 					<local:LightingZoneControl LightingZone="{x:Bind Lighting.GlobalLightingZone}" />
 				</ContentControl>
 				<ItemsControl
-					Visibility="{x:Bind Lighting.UseGlobalLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True, Mode=OneWay}"
+					Visibility="{x:Bind Lighting.UseCentralizedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True, Mode=OneWay}"
 					ItemsSource="{x:Bind Lighting.LightingDevices, Mode=OneWay}"
 					HorizontalAlignment="Stretch"
 					HorizontalContentAlignment="Stretch">
