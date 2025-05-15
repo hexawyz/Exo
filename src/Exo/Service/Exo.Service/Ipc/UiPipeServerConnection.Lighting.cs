@@ -261,7 +261,7 @@ partial class UiPipeServerConnection
 		{
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolServerMessage.LightingConfiguration);
-			writer.Write(configuration.UseCentralizedLightingEnabled);
+			writer.Write(configuration.UseCentralizedLighting);
 			Serializer.Write(ref writer, configuration.CentralizedLightingEffect);
 
 			return (int)writer.Length;

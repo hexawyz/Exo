@@ -1213,7 +1213,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 
 				if (isChanged)
 				{
-					_configurationBroadcaster.Push(new(true, isEffectChanged ? _centralizedEffects[0] : null));
+					_configurationBroadcaster.Push(new(_useCentralizedLighting, isEffectChanged ? _centralizedEffects[0] : null));
 				}
 			}
 

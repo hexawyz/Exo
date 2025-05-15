@@ -1854,7 +1854,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolClientMessage.LightingConfiguration);
 			writer.WriteVariable(requestId);
-			writer.Write(configuration.UseCentralizedLightingEnabled);
+			writer.Write(configuration.UseCentralizedLighting);
 			Serializer.Write(ref writer, configuration.CentralizedLightingEffect);
 
 			return (int)writer.Length;

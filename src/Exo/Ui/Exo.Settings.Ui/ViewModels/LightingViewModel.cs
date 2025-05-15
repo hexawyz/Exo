@@ -220,7 +220,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 
 	internal void OnLightingConfigurationUpdate(in Service.LightingConfiguration configuration)
 	{
-		InitialUseCentralizedLighting = configuration.UseCentralizedLightingEnabled;
+		InitialUseCentralizedLighting = configuration.UseCentralizedLighting;
 		// NB: We MUST ignore the effect property when it is null. It is only sent when the effect has actually changed.
 		if (configuration.CentralizedLightingEffect is not null)
 		{
