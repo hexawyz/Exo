@@ -8,12 +8,12 @@ using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Images;
 using Exo.Memory;
 using Exo.Primitives;
+using Exo.Service.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32.SafeHandles;
 using SixLabors.ImageSharp.Advanced;
@@ -24,17 +24,6 @@ namespace Exo.Service;
 
 internal sealed class ImageStorageService : IChangeSource<ImageChangeNotification>, IAsyncDisposable
 {
-	[TypeId(0x1D185C1A, 0x4903, 0x4D4A, 0x91, 0x20, 0x69, 0x4A, 0xE5, 0x2C, 0x07, 0x7A)]
-	[method: JsonConstructor]
-	private readonly struct ImageMetadata(UInt128 id, ushort width, ushort height, ImageFormat format, bool isAnimated)
-	{
-		public UInt128 Id { get; } = id;
-		public ushort Width { get; } = width;
-		public ushort Height { get; } = height;
-		public ImageFormat Format { get; } = format;
-		public bool IsAnimated { get; } = isAnimated;
-	}
-
 	private sealed class LiveImageMetadata(UInt128 id, string imageName, ushort width, ushort height, ImageFormat format, bool isAnimated)
 	{
 		public UInt128 Id { get; } = id;
@@ -205,7 +194,7 @@ internal sealed class ImageStorageService : IChangeSource<ImageChangeNotificatio
 
 		foreach (var imageName in imageNames)
 		{
-			var result = await imagesConfigurationContainer.ReadValueAsync<ImageMetadata>(imageName, cancellationToken).ConfigureAwait(false);
+			var result = await imagesConfigurationContainer.ReadValueAsync(imageName, SourceGenerationContext.Default.ImageMetadata, cancellationToken).ConfigureAwait(false);
 			if (result.Found)
 			{
 				if (!File.Exists(GetFileName(imageCacheDirectory, result.Value.Id)))
@@ -237,7 +226,7 @@ internal sealed class ImageStorageService : IChangeSource<ImageChangeNotificatio
 				}
 			);
 
-			await foreach (var kvp in JsonSerializer.DeserializeAsyncEnumerable<KeyValuePair<UInt128, ImageMetadata>>(logicalImageMetadataReadStream, true, ConfigurationService.JsonSerializerOptions, cancellationToken))
+			await foreach (var kvp in JsonSerializer.DeserializeAsyncEnumerable(logicalImageMetadataReadStream, SourceGenerationContext.Default.KeyValuePairUInt128ImageMetadata, true, cancellationToken))
 			{
 				if (!File.Exists(GetFileName(imageCacheDirectory, kvp.Value.Id)))
 				{
@@ -270,7 +259,7 @@ internal sealed class ImageStorageService : IChangeSource<ImageChangeNotificatio
 			{
 				// We should not allow this call to be cancelled, as it would wipe out the entire cache.
 				// Simultaneously, it might also be acceptable to wipe the cache. To revisit later.
-				await JsonSerializer.SerializeAsync(logicalImageMetadataRewriteStream, kvp, ConfigurationService.JsonSerializerOptions, default).ConfigureAwait(false);
+				await JsonSerializer.SerializeAsync(logicalImageMetadataRewriteStream, kvp, SourceGenerationContext.Default.KeyValuePairUInt128ImageMetadata, default).ConfigureAwait(false);
 				await logicalImageMetadataRewriteStream.FlushAsync().ConfigureAwait(false);
 			}
 		}
@@ -859,6 +848,7 @@ internal sealed class ImageStorageService : IChangeSource<ImageChangeNotificatio
 			(
 				imageName,
 				metadata.ToMetadata(),
+				SourceGenerationContext.Default.ImageMetadata,
 				cancellationToken
 			).ConfigureAwait(false);
 

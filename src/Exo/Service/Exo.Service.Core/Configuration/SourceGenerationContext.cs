@@ -13,6 +13,7 @@ namespace Exo.Service.Configuration;
 [JsonSerializable(typeof(DeviceInformation))]
 [JsonSerializable(typeof(IndexedConfigurationKey))]
 [JsonSerializable(typeof(DeviceUserConfiguration))]
+[JsonSerializable(typeof(KeyValuePair<UInt128, ImageMetadata>))]
 [JsonSerializable(typeof(PersistedLightingDeviceInformation))]
 [JsonSerializable(typeof(PersistedLightingZoneInformation))]
 [JsonSerializable(typeof(PersistedLightingConfiguration))]
