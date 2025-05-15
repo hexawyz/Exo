@@ -3,7 +3,7 @@ namespace Exo.Discovery;
 public static class DiscoveryOrchestratorExtensions
 {
 	public static ValueTask<IDiscoverySink<TKey, TDiscoveryContext, TCreationContext>> RegisterDiscoveryServiceAsync<TDiscoveryService, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>(this IDiscoveryOrchestrator orchestrator, TDiscoveryService discoveryService)
-		where TDiscoveryService : class, IDiscoveryService<TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>
+		where TDiscoveryService : class, IDiscoveryService<TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>, IJsonTypeInfoProvider<TParsedFactoryDetails>
 		where TKey : notnull, IEquatable<TKey>
 		where TParsedFactoryDetails : notnull
 		where TDiscoveryContext : class, IComponentDiscoveryContext<TKey, TCreationContext>

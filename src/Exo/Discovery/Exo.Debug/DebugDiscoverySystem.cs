@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text.Json.Serialization.Metadata;
 using Exo.Discovery;
 using Microsoft.Extensions.Logging;
 
@@ -11,8 +12,10 @@ namespace Exo.Debug;
 /// This tool will provide useful services to debug service features by allowing to freely trigger device arrivals and removals, as well as watch the fake device states.
 /// </remarks>
 [TypeId(0xF2402C50, 0x26BE, 0x45C2, 0xBC, 0x08, 0x1B, 0xE1, 0xB7, 0x2E, 0x94, 0x96)]
-public class DebugDiscoverySystem : DiscoveryService<DebugDiscoverySystem, DebugDeviceKey, DebugFactoryDetails, DebugDiscoveryContext, DebugDriverCreationContext, Driver, DriverCreationResult<DebugDeviceKey>>
+public class DebugDiscoverySystem : DiscoveryService<DebugDiscoverySystem, DebugDeviceKey, DebugFactoryDetails, DebugDiscoveryContext, DebugDriverCreationContext, Driver, DriverCreationResult<DebugDeviceKey>>, IJsonTypeInfoProvider<DebugFactoryDetails>
 {
+	static JsonTypeInfo<DebugFactoryDetails> IJsonTypeInfoProvider<DebugFactoryDetails>.JsonTypeInfo => SourceGenerationContext.Default.DebugFactoryDetails;
+
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	private readonly Lock _lock;

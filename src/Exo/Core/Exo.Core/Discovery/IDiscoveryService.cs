@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Exo.Discovery;
 
@@ -79,4 +80,10 @@ public interface IDiscoveryService<TKey, TParsedFactoryDetails, TDiscoveryContex
 		ComponentCreationParameters<TKey, TCreationContext> creationParameters,
 		CancellationToken cancellationToken
 	) => factory(creationParameters.CreationContext!, cancellationToken);
+}
+
+public interface IJsonTypeInfoProvider<T>
+	where T : notnull
+{
+	static abstract JsonTypeInfo<T> JsonTypeInfo { get; }
 }

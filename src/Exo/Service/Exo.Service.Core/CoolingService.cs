@@ -10,41 +10,13 @@ using Exo.Cooling.Configuration;
 using Exo.Features;
 using Exo.Features.Cooling;
 using Exo.Primitives;
+using Exo.Service.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
 internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, IChangeSource<CoolingUpdate>
 {
-	[TypeId(0x74E0B7D0, 0x3CD7, 0x4B85, 0xA5, 0xD4, 0x5E, 0x5B, 0x38, 0xE8, 0xC6, 0xFC)]
-	private readonly struct PersistedCoolerInformation
-	{
-		public PersistedCoolerInformation(CoolerInformation info)
-		{
-			SensorId = info.SpeedSensorId;
-			Type = info.Type;
-			SupportedCoolingModes = info.SupportedCoolingModes;
-			PowerLimits = info.PowerLimits;
-			HardwareCurveInputSensorIds = info.HardwareCurveInputSensorIds;
-		}
-
-		[JsonConstructor]
-		public PersistedCoolerInformation(Guid? sensorId, CoolerType type, CoolingModes supportedCoolingModes, CoolerPowerLimits? powerLimits, ImmutableArray<Guid> hardwareCurveInputSensorIds)
-		{
-			SensorId = sensorId;
-			Type = type;
-			SupportedCoolingModes = supportedCoolingModes;
-			PowerLimits = powerLimits;
-			HardwareCurveInputSensorIds = hardwareCurveInputSensorIds;
-		}
-
-		public Guid? SensorId { get; }
-		public CoolerType Type { get; }
-		public CoolingModes SupportedCoolingModes { get; }
-		public CoolerPowerLimits? PowerLimits { get; }
-		public ImmutableArray<Guid> HardwareCurveInputSensorIds { get; }
-	}
-
 	private static readonly BoundedChannelOptions CoolingChangeChannelOptions = new(20)
 	{
 		AllowSynchronousContinuations = false,
@@ -88,10 +60,10 @@ internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, 
 
 			foreach (var coolerId in coolerIds)
 			{
-				var infoResult = await coolersConfigurationConfigurationContainer.ReadValueAsync<PersistedCoolerInformation>(coolerId, cancellationToken).ConfigureAwait(false);
+				var infoResult = await coolersConfigurationConfigurationContainer.ReadValueAsync(coolerId, SourceGenerationContext.Default.PersistedCoolerInformation, cancellationToken).ConfigureAwait(false);
 				if (!infoResult.Found) continue;
 				var info = infoResult.Value;
-				var configResult = await coolersConfigurationConfigurationContainer.ReadValueAsync<CoolerConfiguration>(coolerId, cancellationToken).ConfigureAwait(false);
+				var configResult = await coolersConfigurationConfigurationContainer.ReadValueAsync(coolerId, SourceGenerationContext.Default.CoolerConfiguration, cancellationToken).ConfigureAwait(false);
 				coolerStates.Add
 				(
 					coolerId,
@@ -284,7 +256,7 @@ internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, 
 					{
 						var coolerState = new CoolerState(_sensorService, info, null);
 						coolerStates.TryAdd(cooler.CoolerId, coolerState);
-						await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), cancellationToken);
+						await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), SourceGenerationContext.Default.PersistedCoolerInformation, cancellationToken);
 
 						await coolerState.SetOnlineAsync(cooler, info, changeChannel!, cancellationToken).ConfigureAwait(false);
 					}
@@ -338,14 +310,14 @@ internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, 
 							// Only update the information if it has changed since the last time. (Do not wear the disk with useless writes)
 							if (info != coolerState.Information)
 							{
-							 	await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), cancellationToken).ConfigureAwait(false);
+							 	await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), SourceGenerationContext.Default.PersistedCoolerInformation, cancellationToken).ConfigureAwait(false);
 							}
 						}
 						else
 						{
 							coolerState = new CoolerState(_sensorService, info, null);
 							coolerStates.TryAdd(cooler.CoolerId, coolerState);
-							await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), cancellationToken);
+							await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), SourceGenerationContext.Default.PersistedCoolerInformation, cancellationToken);
 						}
 						await coolerState.SetOnlineAsync(cooler, info, changeChannel!, cancellationToken).ConfigureAwait(false);
 					}
@@ -532,5 +504,5 @@ internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, 
 	}
 
 	private ValueTask PersistCoolingConfigurationAsync(IConfigurationContainer<Guid> coolersConfigurationContainer, Guid coolerId, CoolerConfiguration configuration, CancellationToken cancellationToken)
-		=> coolersConfigurationContainer.WriteValueAsync(coolerId, configuration, cancellationToken);
+		=> coolersConfigurationContainer.WriteValueAsync(coolerId, configuration, SourceGenerationContext.Default.CoolerConfiguration, cancellationToken);
 }

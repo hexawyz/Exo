@@ -3,23 +3,17 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Channels;
 using Exo.Configuration;
+using Exo.Service.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
 internal sealed class CustomMenuService
 {
-	[TypeId(0xA1D958FA, 0x6B89, 0x45BF, 0xB2, 0xDD, 0xA2, 0x36, 0x8A, 0xCF, 0x2F, 0x26)]
-	private readonly struct MenuConfiguration
-	{
-		public required ImmutableArray<MenuItem> MenuItems { get; init; } = [];
-
-		public MenuConfiguration() { }
-	}
 
 	public static async ValueTask<CustomMenuService> CreateAsync(ILogger<CustomMenuService> logger, IConfigurationContainer configurationContainer, CancellationToken cancellationToken)
 	{
-		var result = await configurationContainer.ReadValueAsync<MenuConfiguration>(cancellationToken).ConfigureAwait(false);
+		var result = await configurationContainer.ReadValueAsync(SourceGenerationContext.Default.MenuConfiguration, cancellationToken).ConfigureAwait(false);
 
 		MenuConfiguration configuration;
 		if (result.Found && !result.Value.MenuItems.IsDefault)
@@ -46,7 +40,7 @@ internal sealed class CustomMenuService
 				],
 			};
 
-			await configurationContainer.WriteValueAsync(configuration, cancellationToken).ConfigureAwait(false);
+			await configurationContainer.WriteValueAsync(configuration, SourceGenerationContext.Default.MenuConfiguration, cancellationToken).ConfigureAwait(false);
 		}
 
 		return new CustomMenuService(logger, configurationContainer, configuration);
@@ -183,7 +177,7 @@ internal sealed class CustomMenuService
 			}
 		}
 
-		await _configurationContainer.WriteValueAsync(new MenuConfiguration { MenuItems = ImmutableCollectionsMarshal.AsImmutableArray(menuItems) }, cancellationToken).ConfigureAwait(false);
+		await _configurationContainer.WriteValueAsync(new MenuConfiguration { MenuItems = ImmutableCollectionsMarshal.AsImmutableArray(menuItems) }, SourceGenerationContext.Default.MenuConfiguration, cancellationToken).ConfigureAwait(false);
 
 		static MenuItem[] GetSubMenuItems(MenuItem menuItem) => (menuItem is SubMenuMenuItem smmi ? ImmutableCollectionsMarshal.AsArray(smmi.MenuItems) : null) ?? [];
 	}

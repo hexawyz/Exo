@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading.Channels;
 using Exo.Configuration;
 
@@ -7,14 +8,14 @@ namespace Exo.Service;
 
 public static class PersistedAssemblyParsedDataCache
 {
-	public static async Task<PersistedAssemblyParsedDataCache<T>> CreateAsync<T>(IAssemblyLoader assemblyLoader, IConfigurationContainer<AssemblyName> assemblyConfigurationService, CancellationToken cancellationToken)
+	public static async Task<PersistedAssemblyParsedDataCache<T>> CreateAsync<T>(IAssemblyLoader assemblyLoader, IConfigurationContainer<AssemblyName> assemblyConfigurationService, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken)
 		where T : notnull
 	{
 		var cache = new ConcurrentDictionary<string, T>();
 
 		foreach (var assembly in assemblyLoader.AvailableAssemblies)
 		{
-			var result = await assemblyConfigurationService.ReadValueAsync<T>(assembly, cancellationToken).ConfigureAwait(false);
+			var result = await assemblyConfigurationService.ReadValueAsync<T>(assembly, jsonTypeInfo, cancellationToken).ConfigureAwait(false);
 
 			if (result.Found)
 			{
@@ -22,7 +23,7 @@ public static class PersistedAssemblyParsedDataCache
 			}
 		}
 
-		return new PersistedAssemblyParsedDataCache<T>(cache, assemblyLoader, assemblyConfigurationService);
+		return new PersistedAssemblyParsedDataCache<T>(cache, assemblyLoader, assemblyConfigurationService, jsonTypeInfo);
 	}
 }
 
@@ -32,19 +33,21 @@ public sealed class PersistedAssemblyParsedDataCache<T> : IAssemblyParsedDataCac
 	private readonly ConcurrentDictionary<string, T> _cache;
 	private readonly IAssemblyLoader _assemblyLoader;
 	private readonly IConfigurationContainer<AssemblyName> _assemblyConfigurationService;
+	private readonly JsonTypeInfo<T> _jsonTypeInfo;
 	private readonly ChannelWriter<KeyValuePair<AssemblyName, T>> _changeWriter;
 	private CancellationTokenSource? _cancellationTokenSource;
-	private readonly Task _persistanceTask;
+	private readonly Task _persistenceTask;
 
-	internal PersistedAssemblyParsedDataCache(ConcurrentDictionary<string, T> cache, IAssemblyLoader assemblyLoader, IConfigurationContainer<AssemblyName> assemblyConfigurationService)
+	internal PersistedAssemblyParsedDataCache(ConcurrentDictionary<string, T> cache, IAssemblyLoader assemblyLoader, IConfigurationContainer<AssemblyName> assemblyConfigurationService, JsonTypeInfo<T> jsonTypeInfo)
 	{
 		_cache = cache;
 		_assemblyLoader = assemblyLoader;
 		_assemblyConfigurationService = assemblyConfigurationService;
+		_jsonTypeInfo = jsonTypeInfo;
 		var channel = Channel.CreateUnbounded<KeyValuePair<AssemblyName, T>>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false });
 		_changeWriter = channel;
 		_cancellationTokenSource = new();
-		_persistanceTask = PersistAsync(channel, _cancellationTokenSource.Token);
+		_persistenceTask = PersistAsync(channel, _cancellationTokenSource.Token);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -54,7 +57,7 @@ public sealed class PersistedAssemblyParsedDataCache<T> : IAssemblyParsedDataCac
 		_changeWriter.TryComplete();
 		// Allow some time for pending writes to complete.
 		cts.CancelAfter(10_000);
-		await _persistanceTask.ConfigureAwait(false);
+		await _persistenceTask.ConfigureAwait(false);
 		cts.Dispose();
 	}
 
@@ -66,7 +69,7 @@ public sealed class PersistedAssemblyParsedDataCache<T> : IAssemblyParsedDataCac
 			{
 				try
 				{
-					await _assemblyConfigurationService.WriteValueAsync<T>(kvp.Key, kvp.Value, cancellationToken).ConfigureAwait(false);
+					await _assemblyConfigurationService.WriteValueAsync<T>(kvp.Key, kvp.Value, _jsonTypeInfo, cancellationToken).ConfigureAwait(false);
 				}
 				catch (Exception ex)
 				{

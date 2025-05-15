@@ -8,6 +8,7 @@ using Exo.Features;
 using Exo.Features.Lights;
 using Exo.Primitives;
 using Exo.Programming.Annotations;
+using Exo.Service.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
@@ -350,22 +351,6 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 			);
 	}
 
-	[TypeId(0xFA1692D2, 0x3E25, 0x4DEC, 0x95, 0x36, 0x56, 0xA6, 0x37, 0xCA, 0x45, 0x76)]
-	private readonly struct PersistedLightDeviceInformation
-	{
-		public required LightDeviceCapabilities Capabilities { get; init; }
-	}
-
-	[TypeId(0x1DA2BCD6, 0xE0F8, 0x49D8, 0xA1, 0x3D, 0xB4, 0x66, 0x81, 0x80, 0x72, 0x19)]
-	private readonly struct PersistedLightInformation
-	{
-		public required LightCapabilities Capabilities { get; init; }
-		public required byte MinimumBrightness { get; init; }
-		public required byte MaximumBrightness { get; init; }
-		public required uint MinimumTemperature { get; init; }
-		public required uint MaximumTemperature { get; init; }
-	}
-
 	private const string LampsConfigurationContainerName = "lmp";
 
 	public static async ValueTask<LightService> CreateAsync
@@ -391,7 +376,7 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 
 			LightDeviceCapabilities capabilities = LightDeviceCapabilities.None;
 			{
-				var result = await deviceConfigurationContainer.ReadValueAsync<PersistedLightDeviceInformation>(cancellationToken).ConfigureAwait(false);
+				var result = await deviceConfigurationContainer.ReadValueAsync(SourceGenerationContext.Default.PersistedLightDeviceInformation, cancellationToken).ConfigureAwait(false);
 				if (result.Found)
 				{
 					capabilities = result.Value.Capabilities;
@@ -422,7 +407,7 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 			{
 				PersistedLightInformation info;
 				{
-					var result = await lightConfigurationContainer.ReadValueAsync<PersistedLightInformation>(lightId, cancellationToken).ConfigureAwait(false);
+					var result = await lightConfigurationContainer.ReadValueAsync(lightId, SourceGenerationContext.Default.PersistedLightInformation, cancellationToken).ConfigureAwait(false);
 					if (!result.Found) continue;
 					info = result.Value;
 				}
@@ -617,7 +602,7 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 			{
 				try
 				{
-					await _devicesConfigurationContainer.WriteValueAsync(notification.DeviceInformation.Id, deviceState.CreatePersistedInformation(), cancellationToken).ConfigureAwait(false);
+					await _devicesConfigurationContainer.WriteValueAsync(notification.DeviceInformation.Id, deviceState.CreatePersistedInformation(), SourceGenerationContext.Default.PersistedLightDeviceInformation, cancellationToken).ConfigureAwait(false);
 				}
 				catch
 				{
@@ -639,7 +624,7 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 			{
 				if (deviceState.Lights.TryGetValue(changedLightId, out var lightState))
 				{
-					await deviceState.LampsConfigurationContainer.WriteValueAsync(changedLightId, lightState.CreatePersistedInformation(), cancellationToken).ConfigureAwait(false);
+					await deviceState.LampsConfigurationContainer.WriteValueAsync(changedLightId, lightState.CreatePersistedInformation(), SourceGenerationContext.Default.PersistedLightInformation, cancellationToken).ConfigureAwait(false);
 				}
 			}
 

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text.Json.Serialization.Metadata;
 using DeviceTools;
 using Microsoft.Extensions.Logging;
 
@@ -11,8 +12,11 @@ public delegate ValueTask<DriverCreationResult<DnsSdInstanceId>?> DnsSdDriverFac
 // TODO: This does need some code to reprocess device arrivals when new factories are registered.
 // For now, if the service is started before all factories are registered, some devices will be missed, which is less than ideal.
 public sealed class DnsSdDiscoverySubsystem :
-	DiscoveryService<DnsSdDiscoverySubsystem, DnsSdDriverFactory, DnsSdInstanceId, DnsSdFactoryDetails, DnsSdDiscoveryContext, DnsSdDriverCreationContext, Driver, DriverCreationResult<DnsSdInstanceId>>
+	DiscoveryService<DnsSdDiscoverySubsystem, DnsSdDriverFactory, DnsSdInstanceId, DnsSdFactoryDetails, DnsSdDiscoveryContext, DnsSdDriverCreationContext, Driver, DriverCreationResult<DnsSdInstanceId>>,
+	IJsonTypeInfoProvider<DnsSdFactoryDetails>
 {
+	static JsonTypeInfo<DnsSdFactoryDetails> IJsonTypeInfoProvider<DnsSdFactoryDetails>.JsonTypeInfo => SourceGenerationContext.Default.DnsSdFactoryDetails;
+
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
 	[RootComponent(typeof(DnsSdDiscoverySubsystem))]
 	public static async ValueTask<RootComponentCreationResult> CreateAsync

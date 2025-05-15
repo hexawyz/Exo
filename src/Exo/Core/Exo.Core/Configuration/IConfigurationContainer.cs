@@ -4,9 +4,7 @@ namespace Exo.Configuration;
 
 public interface IConfigurationContainer : IConfigurationNode
 {
-	ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(CancellationToken cancellationToken);
 	ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken);
-	ValueTask WriteValueAsync<TValue>(TValue value, CancellationToken cancellationToken) where TValue : notnull;
 	ValueTask WriteValueAsync<TValue>(TValue value, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken) where TValue : notnull;
 	ValueTask DeleteValueAsync<TValue>();
 	ValueTask DeleteAllValuesAsync();
@@ -15,9 +13,7 @@ public interface IConfigurationContainer : IConfigurationNode
 public interface IConfigurationContainer<TKey>
 {
 	ValueTask<TKey[]> GetKeysAsync(CancellationToken cancellationToken);
-	ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(TKey key, CancellationToken cancellationToken);
 	ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(TKey key, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken);
-	ValueTask WriteValueAsync<TValue>(TKey key, TValue value, CancellationToken cancellationToken) where TValue : notnull;
 	ValueTask WriteValueAsync<TValue>(TKey key, TValue value, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken) where TValue : notnull;
 	ValueTask DeleteValueAsync<TValue>(TKey key);
 	ValueTask DeleteValuesAsync(TKey key);

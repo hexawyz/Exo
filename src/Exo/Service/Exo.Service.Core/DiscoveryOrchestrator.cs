@@ -30,7 +30,7 @@ internal class DiscoveryOrchestrator : IDiscoveryOrchestrator
 	}
 
 	private sealed class DiscoverySource<TDiscoveryService, TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult> : DiscoverySource, IDiscoverySink<TKey, TDiscoveryContext, TCreationContext>
-		where TDiscoveryService : class, IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>
+		where TDiscoveryService : class, IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>, IJsonTypeInfoProvider<TParsedFactoryDetails>
 		where TFactory : class, Delegate
 		where TKey : IEquatable<TKey>
 		where TParsedFactoryDetails : notnull
@@ -67,7 +67,7 @@ internal class DiscoveryOrchestrator : IDiscoveryOrchestrator
 
 			try
 			{
-				var readResult = await Orchestrator._factoryConfigurationContainer.ReadValueAsync<TParsedFactoryDetails>(factoryId, cancellationToken).ConfigureAwait(false);
+				var readResult = await Orchestrator._factoryConfigurationContainer.ReadValueAsync(factoryId, TDiscoveryService.JsonTypeInfo, cancellationToken).ConfigureAwait(false);
 				if (!readResult.Found)
 				{
 					return false;
@@ -127,7 +127,7 @@ internal class DiscoveryOrchestrator : IDiscoveryOrchestrator
 				try
 				{
 					// NB: Should not need the ! here but for some reason it does not makes the link with the value of success ?
-					await Orchestrator._factoryConfigurationContainer.WriteValueAsync(factoryId, parsedDetails!, cancellationToken).ConfigureAwait(false);
+					await Orchestrator._factoryConfigurationContainer.WriteValueAsync(factoryId, parsedDetails!, TDiscoveryService.JsonTypeInfo, cancellationToken).ConfigureAwait(false);
 				}
 				catch (Exception ex)
 				{
@@ -799,7 +799,7 @@ internal class DiscoveryOrchestrator : IDiscoveryOrchestrator
 	}
 
 	public async ValueTask<IDiscoverySink<TKey, TDiscoveryContext, TCreationContext>> RegisterDiscoveryServiceAsync<TDiscoveryService, TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>(TDiscoveryService service)
-		where TDiscoveryService : class, IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>
+		where TDiscoveryService : class, IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>, IJsonTypeInfoProvider<TParsedFactoryDetails>
 		where TFactory : class, Delegate
 		where TDiscoveryContext : class, IComponentDiscoveryContext<TKey, TCreationContext>
 		where TKey : IEquatable<TKey>
@@ -821,7 +821,12 @@ internal class DiscoveryOrchestrator : IDiscoveryOrchestrator
 		{
 			if (state.Source is not null) throw new InvalidOperationException("A discovery service of the same type has already been registered.");
 
-			state.Source = source = new DiscoverySource<TDiscoveryService, TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>(this, state.KnownFactoryMethods, service);
+			state.Source = source = new DiscoverySource<TDiscoveryService, TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>
+			(
+				this,
+				state.KnownFactoryMethods,
+				service
+			);
 
 			if (!state.KnownFactoryMethods.IsEmpty)
 			{

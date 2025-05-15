@@ -6,6 +6,7 @@ using Exo.Features.PowerManagement;
 using Exo.Primitives;
 using Exo.Programming;
 using Exo.Programming.Annotations;
+using Exo.Service.Configuration;
 using Exo.Service.Events;
 using Microsoft.Extensions.Logging;
 
@@ -28,15 +29,6 @@ internal sealed class PowerService :
 	IChangeSource<PowerDeviceWirelessBrightnessNotification>,
 	IAsyncDisposable
 {
-	[TypeId(0xF118B54F, 0xDA42, 0x4768, 0x98, 0x50, 0x80, 0x7C, 0xB7, 0x71, 0x36, 0x24)]
-	private readonly struct PersistedPowerDeviceInformation
-	{
-		public PowerDeviceFlags Capabilities { get; init; }
-		public TimeSpan MinimumIdleTime { get; init; }
-		public TimeSpan MaximumIdleTime { get; init; }
-		public byte MinimumBrightness { get; init; }
-		public byte MaximumBrightness { get; init; }
-	}
 
 	private sealed class DeviceState
 	{
@@ -179,6 +171,7 @@ internal sealed class PowerService :
 					MinimumIdleTime = _minimumIdleTime,
 					MaximumIdleTime = _maximumIdleTime
 				},
+				SourceGenerationContext.Default.PersistedPowerDeviceInformation,
 				cancellationToken
 			).ConfigureAwait(false);
 
@@ -321,7 +314,7 @@ internal sealed class PowerService :
 		{
 			var deviceConfigurationContainer = devicesConfigurationContainer.GetContainer(deviceId);
 
-			var result = await deviceConfigurationContainer.ReadValueAsync<PersistedPowerDeviceInformation>(cancellationToken).ConfigureAwait(false);
+			var result = await deviceConfigurationContainer.ReadValueAsync(SourceGenerationContext.Default.PersistedPowerDeviceInformation, cancellationToken).ConfigureAwait(false);
 
 			if (!result.Found) continue;
 

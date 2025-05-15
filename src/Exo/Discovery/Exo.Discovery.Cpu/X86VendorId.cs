@@ -10,7 +10,7 @@ namespace Exo.Discovery;
 [JsonConverter(typeof(JsonConverter))]
 public readonly struct X86VendorId : IEquatable<X86VendorId>
 {
-	private sealed class JsonConverter : JsonConverter<X86VendorId>
+	internal sealed class JsonConverter : JsonConverter<X86VendorId>
 	{
 		public override X86VendorId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 			=> new(reader.GetString()!);

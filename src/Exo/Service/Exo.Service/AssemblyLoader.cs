@@ -6,22 +6,13 @@ using System.Runtime.Loader;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Primitives;
+using Exo.Service.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
 internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 {
-	// Used to persist the name of assemblies that were loaded at least once.
-	// Normally, the component discovery and loading system should strictly avoid unnecessarily loading assemblies,
-	// so all assemblies listed here will have been loaded once for a valid reason.
-	// This information will be used to feed the UI with a list of metadata that should be loaded for proper function.
-	[TypeId(0x4DD1E437, 0x1394, 0x45A4, 0xAA, 0x33, 0x3F, 0x1C, 0x45, 0xD2, 0x39, 0xC1)]
-	private readonly struct UsedAssemblyDetails
-	{
-		public readonly ImmutableArray<string> UsedAssemblyNames { get; init; }
-	}
-
 	private sealed class AssemblyCacheEntry
 	{
 		public AssemblyCacheEntry(AssemblyName assemblyName, string path, MetadataArchiveCategories availableMetadataArchives)
@@ -84,7 +75,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 		CancellationToken cancellationToken
 	)
 	{
-		var result = await configurationContainer.ReadValueAsync<UsedAssemblyDetails>(cancellationToken).ConfigureAwait(false);
+		var result = await configurationContainer.ReadValueAsync(SourceGenerationContext.Default.UsedAssemblyDetails, cancellationToken).ConfigureAwait(false);
 		var assembliesUsedAtLeastOnce = result.Found && !result.Value.UsedAssemblyNames.IsDefaultOrEmpty ?
 			result.Value.UsedAssemblyNames :
 			[];
@@ -163,7 +154,7 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 	}
 
 	private ValueTask PersistUsedAssembliesAsync(UsedAssemblyDetails details, CancellationToken cancellationToken)
-		=> _configurationContainer.WriteValueAsync(details, cancellationToken);
+		=> _configurationContainer.WriteValueAsync(details, SourceGenerationContext.Default.UsedAssemblyDetails, cancellationToken);
 
 	private void OnAvailableAssembliesChanged(object? sender, EventArgs e)
 	{

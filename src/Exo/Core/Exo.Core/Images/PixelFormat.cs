@@ -5,9 +5,43 @@ using System.Text.Json.Serialization;
 
 namespace Exo.Images;
 
-[JsonConverter(typeof(PixelFormatJsonConverter))]
+[JsonConverter(typeof(JsonConverter))]
 public readonly struct PixelFormat : IEquatable<PixelFormat>
 {
+	public sealed class JsonConverter : JsonConverter<PixelFormat>
+	{
+		public override PixelFormat Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+			=> reader.GetString() switch
+			{
+				nameof(PixelFormat.R8G8B8) => PixelFormat.R8G8B8,
+				nameof(PixelFormat.B8G8R8) => PixelFormat.B8G8R8,
+				nameof(PixelFormat.X8R8G8B8) => PixelFormat.X8R8G8B8,
+				nameof(PixelFormat.X8B8G8R8) => PixelFormat.X8B8G8R8,
+				nameof(PixelFormat.R8G8B8X8) => PixelFormat.R8G8B8X8,
+				nameof(PixelFormat.B8G8R8X8) => PixelFormat.B8G8R8X8,
+				nameof(PixelFormat.A8R8G8B8) => PixelFormat.A8R8G8B8,
+				nameof(PixelFormat.A8B8G8R8) => PixelFormat.A8B8G8R8,
+				nameof(PixelFormat.R8G8B8A8) => PixelFormat.R8G8B8A8,
+				nameof(PixelFormat.B8G8R8A8) => PixelFormat.B8G8R8A8,
+				_ => throw new InvalidOperationException(),
+			};
+
+		public override void Write(Utf8JsonWriter writer, PixelFormat value, JsonSerializerOptions options)
+		{
+			if (value == PixelFormat.R8G8B8) writer.WriteStringValue(nameof(PixelFormat.R8G8B8));
+			else if (value == PixelFormat.B8G8R8) writer.WriteStringValue(nameof(PixelFormat.B8G8R8));
+			else if (value == PixelFormat.X8R8G8B8) writer.WriteStringValue(nameof(PixelFormat.X8R8G8B8));
+			else if (value == PixelFormat.X8B8G8R8) writer.WriteStringValue(nameof(PixelFormat.X8B8G8R8));
+			else if (value == PixelFormat.R8G8B8X8) writer.WriteStringValue(nameof(PixelFormat.R8G8B8X8));
+			else if (value == PixelFormat.B8G8R8X8) writer.WriteStringValue(nameof(PixelFormat.B8G8R8X8));
+			else if (value == PixelFormat.A8R8G8B8) writer.WriteStringValue(nameof(PixelFormat.A8R8G8B8));
+			else if (value == PixelFormat.A8B8G8R8) writer.WriteStringValue(nameof(PixelFormat.A8B8G8R8));
+			else if (value == PixelFormat.R8G8B8A8) writer.WriteStringValue(nameof(PixelFormat.R8G8B8A8));
+			else if (value == PixelFormat.B8G8R8A8) writer.WriteStringValue(nameof(PixelFormat.B8G8R8A8));
+			else throw new InvalidOperationException();
+		}
+	}
+
 	// As enumerating all possible color formats is a lost fight, we will instead use a compact system to describe pixel formats.
 	// This representation is internal and as such, can evolve to fit more needs.
 
@@ -84,39 +118,4 @@ public readonly struct PixelFormat : IEquatable<PixelFormat>
 
 	public static bool operator ==(PixelFormat left, PixelFormat right) => left.Equals(right);
 	public static bool operator !=(PixelFormat left, PixelFormat right) => !(left == right);
-}
-
-// TODO: Build a generator for this?
-public sealed class PixelFormatJsonConverter : JsonConverter<PixelFormat>
-{
-	public override PixelFormat Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-		=> reader.GetString() switch
-		{
-			nameof(PixelFormat.R8G8B8) => PixelFormat.R8G8B8,
-			nameof(PixelFormat.B8G8R8) => PixelFormat.B8G8R8,
-			nameof(PixelFormat.X8R8G8B8) => PixelFormat.X8R8G8B8,
-			nameof(PixelFormat.X8B8G8R8) => PixelFormat.X8B8G8R8,
-			nameof(PixelFormat.R8G8B8X8) => PixelFormat.R8G8B8X8,
-			nameof(PixelFormat.B8G8R8X8) => PixelFormat.B8G8R8X8,
-			nameof(PixelFormat.A8R8G8B8) => PixelFormat.A8R8G8B8,
-			nameof(PixelFormat.A8B8G8R8) => PixelFormat.A8B8G8R8,
-			nameof(PixelFormat.R8G8B8A8) => PixelFormat.R8G8B8A8,
-			nameof(PixelFormat.B8G8R8A8) => PixelFormat.B8G8R8A8,
-			_ => throw new InvalidOperationException(),
-		};
-
-	public override void Write(Utf8JsonWriter writer, PixelFormat value, JsonSerializerOptions options)
-	{
-		if (value == PixelFormat.R8G8B8) writer.WriteStringValue(nameof(PixelFormat.R8G8B8));
-		else if (value == PixelFormat.B8G8R8) writer.WriteStringValue(nameof(PixelFormat.B8G8R8));
-		else if (value == PixelFormat.X8R8G8B8) writer.WriteStringValue(nameof(PixelFormat.X8R8G8B8));
-		else if (value == PixelFormat.X8B8G8R8) writer.WriteStringValue(nameof(PixelFormat.X8B8G8R8));
-		else if (value == PixelFormat.R8G8B8X8) writer.WriteStringValue(nameof(PixelFormat.R8G8B8X8));
-		else if (value == PixelFormat.B8G8R8X8) writer.WriteStringValue(nameof(PixelFormat.B8G8R8X8));
-		else if (value == PixelFormat.A8R8G8B8) writer.WriteStringValue(nameof(PixelFormat.A8R8G8B8));
-		else if (value == PixelFormat.A8B8G8R8) writer.WriteStringValue(nameof(PixelFormat.A8B8G8R8));
-		else if (value == PixelFormat.R8G8B8A8) writer.WriteStringValue(nameof(PixelFormat.R8G8B8A8));
-		else if (value == PixelFormat.B8G8R8A8) writer.WriteStringValue(nameof(PixelFormat.B8G8R8A8));
-		else throw new InvalidOperationException();
-	}
 }

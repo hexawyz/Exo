@@ -1,6 +1,7 @@
 using System.ServiceProcess;
 using Exo.Configuration;
 using Exo.Discovery;
+using Exo.Service.Configuration;
 using Exo.Service.Ipc;
 using Exo.Services;
 using Microsoft.Extensions.Hosting.WindowsServices;
@@ -259,6 +260,7 @@ public class ExoService : ServiceBase
 			(
 				assemblyLoader,
 				assemblyConfigurationContainer,
+				SourceGenerationContext.Default.DiscoveredAssemblyDetails,
 				cancellationToken
 			).ConfigureAwait(false);
 			// TODO: See if we want to keep this as a hosted service or not.

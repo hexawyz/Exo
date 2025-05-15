@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Exo.Configuration;
 using Exo.Features;
@@ -8,6 +7,7 @@ using Exo.Features.Mouses;
 using Exo.Primitives;
 using Exo.Programming;
 using Exo.Programming.Annotations;
+using Exo.Service.Configuration;
 using Exo.Service.Events;
 using Microsoft.Extensions.Logging;
 
@@ -23,36 +23,6 @@ internal sealed class MouseService :
 	IChangeSource<MouseDpiPresetsInformation>,
 	IChangeSource<MousePollingFrequencyNotification>
 {
-	[TypeId(0xBB4A71CB, 0x2894, 0x4388, 0xAE, 0x06, 0x40, 0x06, 0x03, 0x0F, 0x23, 0xBF)]
-	private readonly struct PersistedMouseInformation
-	{
-		[JsonConstructor]
-		public PersistedMouseInformation
-		(
-			DotsPerInch maximumDpi,
-			MouseCapabilities capabilities,
-			byte profileCount,
-			byte minimumDpiPresetCount,
-			byte maximumDpiPresetCount,
-			ImmutableArray<ushort> supportedPollingFrequencies
-		)
-		{
-			MaximumDpi = maximumDpi;
-			Capabilities = capabilities;
-			ProfileCount = profileCount;
-			MinimumDpiPresetCount = minimumDpiPresetCount;
-			MaximumDpiPresetCount = maximumDpiPresetCount;
-			SupportedPollingFrequencies = supportedPollingFrequencies.IsDefaultOrEmpty ? [] : supportedPollingFrequencies;
-		}
-
-		public DotsPerInch MaximumDpi { get; }
-		public MouseCapabilities Capabilities { get; }
-		public byte ProfileCount { get; }
-		public byte MinimumDpiPresetCount { get; }
-		public byte MaximumDpiPresetCount { get; }
-		public ImmutableArray<ushort> SupportedPollingFrequencies { get; }
-	}
-
 	private sealed class DeviceState
 	{
 		private readonly MouseService _mouseService;
@@ -338,7 +308,7 @@ internal sealed class MouseService :
 		{
 			var deviceConfigurationContainer = devicesConfigurationContainer.GetContainer(deviceId);
 
-			var result = await deviceConfigurationContainer.ReadValueAsync<PersistedMouseInformation>(cancellationToken).ConfigureAwait(false);
+			var result = await deviceConfigurationContainer.ReadValueAsync(SourceGenerationContext.Default.PersistedMouseInformation, cancellationToken).ConfigureAwait(false);
 
 			if (!result.Found) continue;
 
@@ -565,7 +535,7 @@ internal sealed class MouseService :
 
 		if (shouldPersistInformation)
 		{
-			await deviceState.ConfigurationContainer.WriteValueAsync(newInformation, cancellationToken).ConfigureAwait(false);
+			await deviceState.ConfigurationContainer.WriteValueAsync(newInformation, SourceGenerationContext.Default.PersistedMouseInformation, cancellationToken).ConfigureAwait(false);
 		}
 
 		// This will update the live state of the mouse, setup change handlers, and send out initial notifications.

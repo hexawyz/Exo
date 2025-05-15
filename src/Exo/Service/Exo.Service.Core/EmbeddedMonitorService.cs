@@ -10,6 +10,7 @@ using Exo.Images;
 using Exo.Monitors;
 using Exo.Primitives;
 using Exo.Programming.Annotations;
+using Exo.Service.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
@@ -380,27 +381,6 @@ internal sealed partial class EmbeddedMonitorService : IChangeSource<EmbeddedMon
 	//{
 	//}
 
-	[TypeId(0xA497F88F, 0xB13F, 0x429D, 0xA3, 0x5D, 0xA3, 0x67, 0x07, 0x7B, 0x05, 0x93)]
-	private readonly struct PersistedEmbeddedMonitorInformation
-	{
-		public required MonitorShape Shape { get; init; }
-		public required ImageRotation DefaultRotation { get; init; }
-		public required ushort Width { get; init; }
-		public required ushort Height { get; init; }
-		public required PixelFormat PixelFormat { get; init; }
-		public required ImageFormats ImageFormats { get; init; }
-		public required EmbeddedMonitorCapabilities Capabilities { get; init; }
-		public ImmutableArray<EmbeddedMonitorGraphicsDescription> SupportedGraphics { get; init; }
-	}
-
-	[TypeId(0x5A84D766, 0x721A, 0x478A, 0xA8, 0xF7, 0x51, 0x99, 0xED, 0x9A, 0xE0, 0x54)]
-	private readonly struct PersistedMonitorConfiguration
-	{
-		public Guid GraphicsId { get; init; }
-		public UInt128 ImageId { get; init; }
-		public Rectangle ImageRegion { get; init; }
-	}
-
 	private const string EmbeddedMonitorConfigurationContainerName = "scr";
 
 	public static async ValueTask<EmbeddedMonitorService> CreateAsync
@@ -438,13 +418,13 @@ internal sealed partial class EmbeddedMonitorService : IChangeSource<EmbeddedMon
 			{
 				PersistedEmbeddedMonitorInformation info;
 				{
-					var result = await embeddedMonitorConfigurationContainer.ReadValueAsync<PersistedEmbeddedMonitorInformation>(embeddedMonitorId, cancellationToken).ConfigureAwait(false);
+					var result = await embeddedMonitorConfigurationContainer.ReadValueAsync(embeddedMonitorId, SourceGenerationContext.Default.PersistedEmbeddedMonitorInformation, cancellationToken).ConfigureAwait(false);
 					if (!result.Found) continue;
 					info = result.Value;
 				}
 				PersistedMonitorConfiguration configuration;
 				{
-					var result = await embeddedMonitorConfigurationContainer.ReadValueAsync<PersistedMonitorConfiguration>(embeddedMonitorId, cancellationToken).ConfigureAwait(false);
+					var result = await embeddedMonitorConfigurationContainer.ReadValueAsync(embeddedMonitorId, SourceGenerationContext.Default.PersistedMonitorConfiguration, cancellationToken).ConfigureAwait(false);
 					if (!result.Found) configuration = default;
 					else configuration = result.Value;
 				}
@@ -654,7 +634,7 @@ internal sealed partial class EmbeddedMonitorService : IChangeSource<EmbeddedMon
 			{
 				if (deviceState.EmbeddedMonitors.TryGetValue(changedMonitorId, out var monitorState))
 				{
-					await deviceState.EmbeddedMonitorConfigurationContainer.WriteValueAsync(changedMonitorId, monitorState.CreatePersistedInformation(), cancellationToken).ConfigureAwait(false);
+					await deviceState.EmbeddedMonitorConfigurationContainer.WriteValueAsync(changedMonitorId, monitorState.CreatePersistedInformation(), SourceGenerationContext.Default.PersistedEmbeddedMonitorInformation, cancellationToken).ConfigureAwait(false);
 				}
 			}
 
@@ -790,5 +770,5 @@ internal sealed partial class EmbeddedMonitorService : IChangeSource<EmbeddedMon
 		PersistedMonitorConfiguration configuration,
 		CancellationToken cancellationToken
 	)
-		=> embeddedMonitorConfigurationContainer.WriteValueAsync(embeddedMonitorId, configuration, cancellationToken);
+		=> embeddedMonitorConfigurationContainer.WriteValueAsync(embeddedMonitorId, configuration, SourceGenerationContext.Default.PersistedMonitorConfiguration, cancellationToken);
 }

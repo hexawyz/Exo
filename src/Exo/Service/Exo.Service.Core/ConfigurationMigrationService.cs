@@ -1,23 +1,17 @@
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using Exo.Configuration;
+using Exo.Service.Configuration;
 
 namespace Exo.Service;
 
 internal static class ConfigurationMigrationService
 {
-	[TypeId(0x09EA0A89, 0x677C, 0x4CEA, 0xA0, 0x53, 0x21, 0x64, 0x69, 0x90, 0x70, 0x5D)]
-	private readonly struct ConfigurationVersionDetails
-	{
-		public uint ConfigurationVersion { get; init; }
-		public string? GitCommitId { get; init; }
-	}
-
 	public static async Task InitializeAsync(ConfigurationService configurationService, ImmutableArray<byte> gitCommitId, CancellationToken cancellationToken)
 	{
 		var rootContainer = configurationService.GetRootContainer();
 
-		var result = await rootContainer.ReadValueAsync<ConfigurationVersionDetails>(cancellationToken).ConfigureAwait(false);
+		var result = await rootContainer.ReadValueAsync(SourceGenerationContext.Default.ConfigurationVersionDetails, cancellationToken).ConfigureAwait(false);
 
 		string? commitIdString = !gitCommitId.IsDefaultOrEmpty ? Convert.ToHexString(ImmutableCollectionsMarshal.AsArray(gitCommitId)!) : null;
 
@@ -35,7 +29,12 @@ internal static class ConfigurationMigrationService
 		bool hasConfigurationChanged = !result.Found || result.Value.ConfigurationVersion != ConfigurationVersion || result.Value.GitCommitId != commitIdString;
 		if (hasConfigurationChanged)
 		{
-			await rootContainer.WriteValueAsync(new ConfigurationVersionDetails { ConfigurationVersion = ConfigurationVersion, GitCommitId = commitIdString }, cancellationToken).ConfigureAwait(false);
+			await rootContainer.WriteValueAsync
+			(
+				new ConfigurationVersionDetails { ConfigurationVersion = ConfigurationVersion, GitCommitId = commitIdString },
+				SourceGenerationContext.Default.ConfigurationVersionDetails,
+				cancellationToken
+			).ConfigureAwait(false);
 		}
 	}
 

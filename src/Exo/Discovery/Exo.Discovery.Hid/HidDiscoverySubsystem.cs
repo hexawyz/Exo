@@ -1,8 +1,7 @@
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Text.Json.Serialization.Metadata;
 using DeviceTools;
-using Exo.Configuration;
-using Exo.I2C;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
 
@@ -13,8 +12,11 @@ namespace Exo.Discovery;
 [TypeId(0xEC7784B8, 0x4CB6, 0x48B5, 0x9E, 0xD5, 0x6C, 0x0F, 0xD7, 0xD8, 0x7B, 0x27)]
 public sealed class HidDiscoverySubsystem :
 	DiscoveryService<HidDiscoverySubsystem, SystemDevicePath, HidFactoryDetails, HidDiscoveryContext, HidDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>,
-	IDeviceNotificationSink
+	IDeviceNotificationSink,
+	IJsonTypeInfoProvider<HidFactoryDetails>
 {
+	static JsonTypeInfo<HidFactoryDetails> IJsonTypeInfoProvider<HidFactoryDetails>.JsonTypeInfo => SourceGenerationContext.Default.HidFactoryDetails;
+
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
 	[RootComponent(typeof(HidDiscoverySubsystem))]
 	public static async ValueTask<RootComponentCreationResult> CreateAsync

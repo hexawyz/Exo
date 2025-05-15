@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Text.Json.Serialization.Metadata;
 using Exo.Features;
 using Exo.I2C;
 using Exo.Services;
@@ -12,8 +13,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
 
-public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, RootComponentKey, RootFactoryDetails, RootComponentDiscoveryContext, RootComponentCreationContext, Component, RootComponentCreationResult>
+public class RootDiscoverySubsystem : DiscoveryService<RootDiscoverySubsystem, RootComponentKey, RootFactoryDetails, RootComponentDiscoveryContext, RootComponentCreationContext, Component, RootComponentCreationResult>, IJsonTypeInfoProvider<RootFactoryDetails>
 {
+	static JsonTypeInfo<RootFactoryDetails> IJsonTypeInfoProvider<RootFactoryDetails>.JsonTypeInfo => SourceGenerationContext.Default.RootFactoryDetails;
+
 	internal ILoggerFactory LoggerFactory { get; }
 	internal INestedDriverRegistryProvider DriverRegistry { get; }
 	internal IDiscoveryOrchestrator DiscoveryOrchestrator { get; }

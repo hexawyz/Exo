@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
+using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 
 namespace Exo.Discovery;
@@ -25,7 +26,7 @@ public abstract class DiscoveryService<TSelf, TKey, TParsedFactoryDetails, TDisc
 	DiscoveryService<TSelf, SimpleComponentFactory<TCreationContext, TResult>, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>,
 	IDiscoveryService<TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>,
 	IAsyncDisposable
-	where TSelf : class, IDiscoveryService<TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>
+	where TSelf : class, IDiscoveryService<TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>, IJsonTypeInfoProvider<TParsedFactoryDetails>
 	where TKey : notnull, IEquatable<TKey>
 	where TParsedFactoryDetails : notnull
 	where TDiscoveryContext : class, IComponentDiscoveryContext<TKey, TCreationContext>
@@ -62,7 +63,7 @@ public abstract class DiscoveryService<TSelf, TFactory, TKey, TParsedFactoryDeta
 	Component,
 	IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>,
 	IAsyncDisposable
-	where TSelf : class, IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>
+	where TSelf : class, IDiscoveryService<TFactory, TKey, TParsedFactoryDetails, TDiscoveryContext, TCreationContext, TComponent, TResult>, IJsonTypeInfoProvider<TParsedFactoryDetails>
 	where TFactory : Delegate
 	where TKey : notnull, IEquatable<TKey>
 	where TParsedFactoryDetails : notnull

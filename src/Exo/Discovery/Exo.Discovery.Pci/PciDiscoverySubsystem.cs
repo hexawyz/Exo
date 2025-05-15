@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text.Json.Serialization.Metadata;
 using DeviceTools;
 using Exo.Features;
-using Exo.I2C;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
 
@@ -13,8 +13,11 @@ namespace Exo.Discovery;
 // For now, if the service is started before all factories are registered, some devices will be missed, which is less than ideal.
 public sealed class PciDiscoverySubsystem :
 	DiscoveryService<PciDiscoverySubsystem, SystemDevicePath, PciFactoryDetails, PciDiscoveryContext, PciDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>,
-	IDeviceNotificationSink
+	IDeviceNotificationSink,
+	IJsonTypeInfoProvider<PciFactoryDetails>
 {
+	static JsonTypeInfo<PciFactoryDetails> IJsonTypeInfoProvider<PciFactoryDetails>.JsonTypeInfo => SourceGenerationContext.Default.PciFactoryDetails;
+
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
 	[RootComponent(typeof(PciDiscoverySubsystem))]
 	public static async ValueTask<RootComponentCreationResult> CreateAsync

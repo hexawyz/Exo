@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text.Json.Serialization.Metadata;
 using DeviceTools;
 using DeviceTools.DisplayDevices.Configuration;
 using Exo.I2C;
@@ -12,8 +13,12 @@ namespace Exo.Discovery;
 // TODO: This does need some code to reprocess device arrivals when new factories are registered.
 // For now, if the service is started before all factories are registered, some devices will be missed, which is less than ideal.
 public sealed class MonitorDiscoverySubsystem :
-	DiscoveryService<MonitorDiscoverySubsystem, SystemDevicePath, MonitorFactoryDetails, MonitorDiscoveryContext, MonitorDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>, IDeviceNotificationSink
+	DiscoveryService<MonitorDiscoverySubsystem, SystemDevicePath, MonitorFactoryDetails, MonitorDiscoveryContext, MonitorDriverCreationContext, Driver, DriverCreationResult<SystemDevicePath>>,
+	IDeviceNotificationSink,
+	IJsonTypeInfoProvider<MonitorFactoryDetails>
 {
+	static JsonTypeInfo<MonitorFactoryDetails> IJsonTypeInfoProvider<MonitorFactoryDetails>.JsonTypeInfo => SourceGenerationContext.Default.MonitorFactoryDetails;
+
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
 	[RootComponent(typeof(MonitorDiscoverySubsystem))]
 	public static async ValueTask<RootComponentCreationResult> CreateAsync

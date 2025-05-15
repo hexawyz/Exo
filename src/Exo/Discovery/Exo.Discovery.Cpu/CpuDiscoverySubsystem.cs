@@ -2,14 +2,17 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.Intrinsics.X86;
+using System.Text.Json.Serialization.Metadata;
 using DeviceTools.Processors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Discovery;
 
 public sealed class CpuDiscoverySubsystem :
-	DiscoveryService<CpuDiscoverySubsystem, SystemCpuDeviceKey, CpuDriverFactoryDetails, CpuDiscoveryContext, CpuDriverCreationContext, Driver, DriverCreationResult<SystemCpuDeviceKey>>
+	DiscoveryService<CpuDiscoverySubsystem, SystemCpuDeviceKey, CpuDriverFactoryDetails, CpuDiscoveryContext, CpuDriverCreationContext, Driver, DriverCreationResult<SystemCpuDeviceKey>>, IJsonTypeInfoProvider<CpuDriverFactoryDetails>
 {
+	static JsonTypeInfo<CpuDriverFactoryDetails> IJsonTypeInfoProvider<CpuDriverFactoryDetails>.JsonTypeInfo => SourceGenerationContext.Default.CpuDriverFactoryDetails;
+
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
 	[RootComponent(typeof(CpuDiscoverySubsystem))]
 	public static async ValueTask<RootComponentCreationResult?> CreateAsync

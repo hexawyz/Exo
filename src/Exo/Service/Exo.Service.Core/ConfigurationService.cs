@@ -69,15 +69,8 @@ public sealed class ConfigurationService : IConfigurationNode
 			_directory = directoryName;
 		}
 
-		public ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(CancellationToken cancellationToken)
-			=> _configurationService.ReadValueAsync<TValue>(_directory, null, cancellationToken);
-
 		public ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken)
 			=> _configurationService.ReadValueAsync<TValue>(_directory, null, jsonTypeInfo, cancellationToken);
-
-		public ValueTask WriteValueAsync<TValue>(TValue value, CancellationToken cancellationToken)
-			where TValue : notnull
-			=> _configurationService.WriteValueAsync(_directory, null, value, cancellationToken);
 
 		public ValueTask WriteValueAsync<TValue>(TValue value, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken)
 			where TValue : notnull
@@ -148,15 +141,8 @@ public sealed class ConfigurationService : IConfigurationNode
 			return count == keys.Length ? keys : keys[..count];
 		}
 
-		public ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(TKey key, CancellationToken cancellationToken)
-			=> _configurationService.ReadValueAsync<TValue>(_directory, _nameSerializer.ToString(key), cancellationToken);
-
 		public ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(TKey key, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken)
 			=> _configurationService.ReadValueAsync<TValue>(_directory, _nameSerializer.ToString(key), jsonTypeInfo, cancellationToken);
-
-		public ValueTask WriteValueAsync<TValue>(TKey key, TValue value, CancellationToken cancellationToken)
-			where TValue : notnull
-			=> _configurationService.WriteValueAsync(_directory, _nameSerializer.ToString(key), value, cancellationToken);
 
 		public ValueTask WriteValueAsync<TValue>(TKey key, TValue value, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken)
 			where TValue : notnull

@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Text.Json.Serialization.Metadata;
 using DeviceTools.Firmware;
 using Exo.SystemManagementBus;
 using Microsoft.Extensions.Logging;
@@ -8,8 +9,11 @@ using Microsoft.Extensions.Logging;
 namespace Exo.Discovery;
 
 public sealed class SystemManagementBiosRamDiscoverySubsystem :
-	DiscoveryService<SystemManagementBiosRamDiscoverySubsystem, SystemMemoryDeviceKey, RamModuleDriverFactoryDetails, RamModuleDiscoveryContext, RamModuleDriverCreationContext, Driver, DriverCreationResult<SystemMemoryDeviceKey>>
+	DiscoveryService<SystemManagementBiosRamDiscoverySubsystem, SystemMemoryDeviceKey, RamModuleDriverFactoryDetails, RamModuleDiscoveryContext, RamModuleDriverCreationContext, Driver, DriverCreationResult<SystemMemoryDeviceKey>>,
+	IJsonTypeInfoProvider<RamModuleDriverFactoryDetails>
 {
+	static JsonTypeInfo<RamModuleDriverFactoryDetails> IJsonTypeInfoProvider<RamModuleDriverFactoryDetails>.JsonTypeInfo => SourceGenerationContext.Default.RamModuleDriverFactoryDetails;
+
 	[DiscoverySubsystem<RootDiscoverySubsystem>]
 	[RootComponent(typeof(SystemManagementBiosRamDiscoverySubsystem))]
 	public static async ValueTask<RootComponentCreationResult?> CreateAsync
