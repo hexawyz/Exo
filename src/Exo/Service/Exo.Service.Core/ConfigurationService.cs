@@ -72,9 +72,16 @@ public sealed class ConfigurationService : IConfigurationNode
 		public ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(CancellationToken cancellationToken)
 			=> _configurationService.ReadValueAsync<TValue>(_directory, null, cancellationToken);
 
+		public ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken)
+			=> _configurationService.ReadValueAsync<TValue>(_directory, null, jsonTypeInfo, cancellationToken);
+
 		public ValueTask WriteValueAsync<TValue>(TValue value, CancellationToken cancellationToken)
 			where TValue : notnull
 			=> _configurationService.WriteValueAsync(_directory, null, value, cancellationToken);
+
+		public ValueTask WriteValueAsync<TValue>(TValue value, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken)
+			where TValue : notnull
+			=> _configurationService.WriteValueAsync(_directory, null, value, jsonTypeInfo, cancellationToken);
 
 		public ValueTask DeleteValueAsync<TValue>()
 			=> _configurationService.DeleteValueAsync<TValue>(_directory);
@@ -144,9 +151,16 @@ public sealed class ConfigurationService : IConfigurationNode
 		public ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(TKey key, CancellationToken cancellationToken)
 			=> _configurationService.ReadValueAsync<TValue>(_directory, _nameSerializer.ToString(key), cancellationToken);
 
+		public ValueTask<ConfigurationResult<TValue>> ReadValueAsync<TValue>(TKey key, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken)
+			=> _configurationService.ReadValueAsync<TValue>(_directory, _nameSerializer.ToString(key), jsonTypeInfo, cancellationToken);
+
 		public ValueTask WriteValueAsync<TValue>(TKey key, TValue value, CancellationToken cancellationToken)
 			where TValue : notnull
 			=> _configurationService.WriteValueAsync(_directory, _nameSerializer.ToString(key), value, cancellationToken);
+
+		public ValueTask WriteValueAsync<TValue>(TKey key, TValue value, JsonTypeInfo<TValue> jsonTypeInfo, CancellationToken cancellationToken)
+			where TValue : notnull
+			=> _configurationService.WriteValueAsync(_directory, _nameSerializer.ToString(key), value, jsonTypeInfo, cancellationToken);
 
 		public ValueTask DeleteValueAsync<TValue>(TKey key)
 			=> _configurationService.DeleteValueAsync<TValue>(_directory, _nameSerializer.ToString(key));
@@ -253,6 +267,44 @@ public sealed class ConfigurationService : IConfigurationNode
 		}
 	}
 
+	private async ValueTask<ConfigurationResult<T>> ReadValueAsync<T>(string directory, string? key, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken)
+	{
+		string typeId = TypeId.GetString<T>();
+
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			string configurationDirectory = directory;
+
+			if (key is not null)
+			{
+				configurationDirectory = Path.Combine(directory, key);
+
+				if (!Directory.Exists(configurationDirectory))
+				{
+					return new(ConfigurationStatus.MissingContainer);
+				}
+			}
+
+			string fileName = Path.Combine(configurationDirectory, typeId) + ".json";
+
+			if (File.Exists(fileName))
+			{
+				using var file = File.OpenRead(fileName);
+				try
+				{
+					var result = await JsonSerializer.DeserializeAsync<T>(file, jsonTypeInfo, cancellationToken).ConfigureAwait(false);
+
+					return result is null ? new(ConfigurationStatus.InvalidValue) : new(result);
+				}
+				catch
+				{
+					return new(ConfigurationStatus.MalformedData);
+				}
+			}
+			return new(ConfigurationStatus.MissingValue);
+		}
+	}
+
 	private async ValueTask WriteValueAsync<T>(string directory, string? key, T value, CancellationToken cancellationToken)
 	{
 		string typeId = TypeId.GetString<T>();
@@ -272,6 +324,28 @@ public sealed class ConfigurationService : IConfigurationNode
 
 			using var file = File.Create(fileName);
 			await JsonSerializer.SerializeAsync(file, value, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
+		}
+	}
+
+	private async ValueTask WriteValueAsync<T>(string directory, string? key, T value, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken)
+	{
+		string typeId = TypeId.GetString<T>();
+		if (value is null) throw new ArgumentOutOfRangeException(nameof(value));
+
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
+		{
+			string configurationDirectory = directory;
+
+			if (key is not null)
+			{
+				configurationDirectory = Path.Combine(directory, key);
+				Directory.CreateDirectory(configurationDirectory);
+			}
+
+			string fileName = Path.Combine(configurationDirectory, typeId) + ".json";
+
+			using var file = File.Create(fileName);
+			await JsonSerializer.SerializeAsync(file, value, jsonTypeInfo, cancellationToken).ConfigureAwait(false);
 		}
 	}
 

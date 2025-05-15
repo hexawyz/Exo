@@ -12,14 +12,14 @@ using Exo.Lighting.Effects;
 using Exo.PowerManagement;
 using Exo.Primitives;
 using Exo.Programming.Annotations;
+using Exo.Service.Configuration;
 using Exo.Services;
 using Microsoft.Extensions.Logging;
 
 // I ideally would not rely on an external library to do the color conversions, but we already depend on ImageSharp for image stuff and that is unlikely to change. Might as well use it.
 using ColorSpaceConverter = SixLabors.ImageSharp.ColorSpaces.Conversion.ColorSpaceConverter;
-using RgbWorkingSpaces = SixLabors.ImageSharp.ColorSpaces.RgbWorkingSpaces;
 using ImageSharpRgb = SixLabors.ImageSharp.ColorSpaces.Rgb;
-using ImageSharpLinearRgb = SixLabors.ImageSharp.ColorSpaces.LinearRgb;
+using RgbWorkingSpaces = SixLabors.ImageSharp.ColorSpaces.RgbWorkingSpaces;
 
 namespace Exo.Service;
 
@@ -93,32 +93,6 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		public LightingEffect? SerializedCurrentEffect;
 	}
 
-	[TypeId(0x8EF5FD05, 0x960B, 0x449C, 0xA2, 0x01, 0xC6, 0x58, 0x99, 0x00, 0x20, 0x8E)]
-	private readonly struct PersistedLightingDeviceInformation
-	{
-		public BrightnessCapabilities? BrightnessCapabilities { get; init; }
-		public Guid? UnifiedLightingZoneId { get; init; }
-		public LightingPersistenceMode PersistenceMode { get; init; }
-	}
-
-	[TypeId(0xB6677089, 0x77FE, 0x467A, 0x8C, 0x23, 0x87, 0x8C, 0x80, 0x71, 0x03, 0x19)]
-	private readonly struct PersistedLightingZoneInformation
-	{
-		public PersistedLightingZoneInformation(LightingZoneInformation info)
-		{
-			SupportedEffectTypeIds = info.SupportedEffectTypeIds;
-		}
-
-		public ImmutableArray<Guid> SupportedEffectTypeIds { get; init; }
-	}
-
-	[TypeId(0x70F0F081, 0x39F1, 0x4C4C, 0xB5, 0x10, 0x03, 0x7B, 0xDB, 0x14, 0xCB, 0x72)]
-	private readonly struct PersistedLightingDeviceConfiguration
-	{
-		public bool IsUnifiedLightingEnabled { get; init; }
-		public byte? Brightness { get; init; }
-	}
-
 	private static readonly ConditionalWeakTable<Type, Tuple<Type[], Guid[]>> SupportedEffectCache = new();
 
 	private static Tuple<Type[], Guid[]> GetSupportedEffects(Type lightingZoneType)
@@ -171,7 +145,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			LightingPersistenceMode persistenceMode = LightingPersistenceMode.NeverPersisted;
 
 			{
-				var result = await deviceConfigurationContainer.ReadValueAsync<PersistedLightingDeviceInformation>(cancellationToken).ConfigureAwait(false);
+				var result = await deviceConfigurationContainer.ReadValueAsync(SourceGenerationContext.Default.PersistedLightingDeviceInformation, cancellationToken).ConfigureAwait(false);
 				if (result.Found)
 				{
 					var info = result.Value;
@@ -182,7 +156,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			}
 
 			{
-				var result = await deviceConfigurationContainer.ReadValueAsync<PersistedLightingDeviceConfiguration>(cancellationToken).ConfigureAwait(false);
+				var result = await deviceConfigurationContainer.ReadValueAsync(SourceGenerationContext.Default.PersistedLightingDeviceConfiguration, cancellationToken).ConfigureAwait(false);
 				if (result.Found)
 				{
 					var config = result.Value;
@@ -209,7 +183,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			{
 				var state = new LightingZoneState();
 				{
-					var result = await lightingZoneConfigurationConfigurationContainer.ReadValueAsync<PersistedLightingZoneInformation>(lightingZoneId, cancellationToken).ConfigureAwait(false);
+					var result = await lightingZoneConfigurationConfigurationContainer.ReadValueAsync(lightingZoneId, SourceGenerationContext.Default.PersistedLightingZoneInformation, cancellationToken).ConfigureAwait(false);
 					if (result.Found)
 					{
 						var info = result.Value;
@@ -217,7 +191,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 					}
 				}
 				{
-					var result = await lightingZoneConfigurationConfigurationContainer.ReadValueAsync<LightingEffect>(lightingZoneId, cancellationToken).ConfigureAwait(false);
+					var result = await lightingZoneConfigurationConfigurationContainer.ReadValueAsync(lightingZoneId, SourceGenerationContext.Default.LightingEffect, cancellationToken).ConfigureAwait(false);
 					if (result.Found)
 					{
 						state.SerializedCurrentEffect = result.Value;
@@ -605,6 +579,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 					BrightnessCapabilities = brightnessCapabilities,
 					PersistenceMode = persistenceMode
 				},
+				SourceGenerationContext.Default.PersistedLightingDeviceInformation,
 				cancellationToken
 			).ConfigureAwait(false);
 
@@ -621,12 +596,19 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 				(
 					kvp.Key,
 					new PersistedLightingZoneInformation { SupportedEffectTypeIds = kvp.Value.SupportedEffectTypeIds },
+					SourceGenerationContext.Default.PersistedLightingZoneInformation,
 					cancellationToken
 				).ConfigureAwait(false);
 
 				if (kvp.Value.SerializedCurrentEffect is { } effect)
 				{
-					await deviceState.LightingZonesConfigurationContainer.WriteValueAsync(kvp.Key, effect, cancellationToken).ConfigureAwait(false);
+					await deviceState.LightingZonesConfigurationContainer.WriteValueAsync
+					(
+						kvp.Key,
+						effect,
+						SourceGenerationContext.Default.LightingEffect,
+						cancellationToken
+					).ConfigureAwait(false);
 				}
 			}
 
@@ -881,6 +863,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 						UnifiedLightingZoneId = unifiedLightingFeature is not null ? unifiedLightingZoneId : null,
 						BrightnessCapabilities = brightnessCapabilities
 					},
+					SourceGenerationContext.Default.PersistedLightingDeviceInformation,
 					cancellationToken
 				).ConfigureAwait(false);
 			}
@@ -897,12 +880,19 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 					(
 						changedLightingZoneKey,
 						new PersistedLightingZoneInformation { SupportedEffectTypeIds = changedLightingZone.SupportedEffectTypeIds },
+						SourceGenerationContext.Default.PersistedLightingZoneInformation,
 						cancellationToken
 					).ConfigureAwait(false);
 
 					if (changedLightingZone.SerializedCurrentEffect is { } effect)
 					{
-						await deviceState.LightingZonesConfigurationContainer.WriteValueAsync(changedLightingZoneKey, effect, cancellationToken).ConfigureAwait(false);
+						await deviceState.LightingZonesConfigurationContainer.WriteValueAsync
+						(
+							changedLightingZoneKey,
+							effect,
+							SourceGenerationContext.Default.LightingEffect,
+							cancellationToken
+						).ConfigureAwait(false);
 					}
 				}
 			}
@@ -1250,7 +1240,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	}
 
 	private ValueTask PersistActiveEffectAsync(IConfigurationContainer<Guid> lightingZonesConfigurationContainer, Guid zoneId, LightingEffect effect, CancellationToken cancellationToken)
-		=> lightingZonesConfigurationContainer.WriteValueAsync(zoneId, effect, cancellationToken);
+		=> lightingZonesConfigurationContainer.WriteValueAsync(zoneId, effect, SourceGenerationContext.Default.LightingEffect, cancellationToken);
 
 	private async void PersistDeviceConfiguration(IConfigurationContainer deviceConfigurationContainer, PersistedLightingDeviceConfiguration configuration, CancellationToken cancellationToken)
 	{
@@ -1265,7 +1255,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	}
 
 	private ValueTask PersistDeviceConfigurationAsync(IConfigurationContainer deviceConfigurationContainer, PersistedLightingDeviceConfiguration configuration, CancellationToken cancellationToken)
-		=> deviceConfigurationContainer.WriteValueAsync(configuration, cancellationToken);
+		=> deviceConfigurationContainer.WriteValueAsync(configuration, SourceGenerationContext.Default.PersistedLightingDeviceConfiguration, cancellationToken);
 
 	void IPowerNotificationSink.OnResumeAutomatic() => _restoreTaskCompletionSource.TrySetResult();
 }
