@@ -99,7 +99,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 			// NB: We *could* handle the case where the buffer is not large enough, but we likely will never need it at all.
 			Marshal.ThrowExceptionForHR(Marshal.GetHRForLastWin32Error());
 		}
-		return MemoryMarshal.CreateSpan<char>(ref *(char*)fileNameBuffer, (int)length).ToString();
+		return MemoryMarshal.CreateSpan(ref *(char*)fileNameBuffer, (int)length).ToString();
 	}
 
 	private static readonly ImmutableArray<byte> GitCommitId = GetModuleFileName() is string fileName ? GitCommitHelper.GetCommitId(fileName) : [];

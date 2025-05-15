@@ -20,7 +20,7 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 	// Binary will have both a perf and memory advantage, which I assume would be significant, at the downside of making the configuration unreadable by a human.
 	// (Binary would require, but also allow, directly versioning the individual data elements themselves, which might make migrations easier actually)
 #if !EXO_UI
-	private sealed class JsonConverter : JsonConverter<ConfigurablePropertyInformation>
+	internal sealed class JsonConverter : JsonConverter<ConfigurablePropertyInformation>
 	{
 		public override ConfigurablePropertyInformation? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
 		{
