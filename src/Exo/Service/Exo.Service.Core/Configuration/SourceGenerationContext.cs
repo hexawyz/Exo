@@ -12,6 +12,7 @@ namespace Exo.Service.Configuration;
 	DictionaryKeyPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(PersistedLightingDeviceInformation))]
 [JsonSerializable(typeof(PersistedLightingZoneInformation))]
+[JsonSerializable(typeof(PersistedLightingConfiguration))]
 [JsonSerializable(typeof(PersistedLightingDeviceConfiguration))]
 [JsonSerializable(typeof(LightingEffect))]
 internal partial class SourceGenerationContext : JsonSerializerContext

@@ -183,6 +183,7 @@ public class ExoService : ServiceBase
 			await using var lightingService = await LightingService.CreateAsync
 			(
 				_loggerFactory.CreateLogger<LightingService>(),
+				lightingConfigurationContainer,
 				devicesConfigurationContainer,
 				deviceRegistry,
 				powerNotificationService,

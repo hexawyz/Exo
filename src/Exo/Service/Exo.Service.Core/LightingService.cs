@@ -124,12 +124,34 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	public static async ValueTask<LightingService> CreateAsync
 	(
 		ILogger<LightingService> logger,
+		IConfigurationContainer lightingConfigurationContainer,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
 		IPowerNotificationService powerNotificationService,
 		CancellationToken cancellationToken
 	)
 	{
+		bool useCentralizedLighting = false;
+		LightingEffect[] centralizedLightingEffects;
+		{
+			var result = await lightingConfigurationContainer.ReadValueAsync(SourceGenerationContext.Default.PersistedLightingConfiguration, cancellationToken).ConfigureAwait(false);
+			if (result.Found)
+			{
+				useCentralizedLighting = result.Value.IsCentralizedLightingEnabled;
+				try
+				{
+					centralizedLightingEffects = BuildEffectFallbacks(result.Value.CentralizedLightingEffect);
+					goto LightingEffectsAreValid;
+				}
+				catch
+				{
+					// TODO: Log
+				}
+			}
+			centralizedLightingEffects = [new(DisabledEffectId, [])];
+		LightingEffectsAreValid:;
+		}
+
 		var deviceIds = await devicesConfigurationContainer.GetKeysAsync(cancellationToken).ConfigureAwait(false);
 
 		var deviceStates = new ConcurrentDictionary<Guid, DeviceState>();
@@ -225,11 +247,22 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			}
 		}
 
-		return new LightingService(logger, devicesConfigurationContainer, deviceWatcher, powerNotificationService, deviceStates);
+		return new LightingService
+		(
+			logger,
+			lightingConfigurationContainer,
+			devicesConfigurationContainer,
+			deviceWatcher,
+			powerNotificationService,
+			useCentralizedLighting,
+			centralizedLightingEffects,
+			deviceStates
+		);
 	}
 
 	private readonly IDeviceWatcher _deviceWatcher;
 	private readonly ConcurrentDictionary<Guid, DeviceState> _lightingDeviceStates;
+	private readonly IConfigurationContainer _lightingConfigurationContainer;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
 	private readonly Lock _changeLock;
 	private readonly AsyncLock _restoreLock;
@@ -243,8 +276,6 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	private LightingEffect[] _centralizedEffects;
 	private bool _useCentralizedLighting;
 
-	private readonly ColorSpaceConverter _colorSpaceConverter;
-
 	private readonly ILogger<LightingService> _logger;
 
 	private CancellationTokenSource? _cancellationTokenSource;
@@ -255,28 +286,29 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	private LightingService
 	(
 		ILogger<LightingService> logger,
+		IConfigurationContainer lightingConfigurationContainer,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
 		IDeviceWatcher deviceWatcher,
 		IPowerNotificationService powerNotificationService,
+		bool useCentralizedLighting,
+		LightingEffect[] centralizedEffects,
 		ConcurrentDictionary<Guid, DeviceState> lightingDeviceStates
 	)
 	{
 		_logger = logger;
+		_lightingConfigurationContainer = lightingConfigurationContainer;
 		_devicesConfigurationContainer = devicesConfigurationContainer;
 		_deviceWatcher = deviceWatcher;
 		_lightingDeviceStates = lightingDeviceStates;
 		_changeLock = new();
 		_restoreLock = new();
-		_colorSpaceConverter = new();
-		_centralizedEffects = [new(DisabledEffectId, [])];
+		_useCentralizedLighting = useCentralizedLighting;
+		_centralizedEffects = centralizedEffects;
 		_restoreTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		_cancellationTokenSource = new();
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
 		_watchSuspendResumeTask = WatchSuspendResumeAsync(_cancellationTokenSource.Token);
 		_powerNotificationsRegistration = powerNotificationService.Register(this, PowerSettings.None);
-
-		// Global lighting test:
-		//_ = Task.Run(async () => { await Task.Delay(10_000); await ApplyGlobalEffectAsync(EffectSerializer.Serialize(new StaticColorEffect(new(64, 255, 128))), default); });
 	}
 
 	public async ValueTask DisposeAsync()
@@ -939,7 +971,6 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 					Volatile.Write(ref lightingZoneState.LightingZone, null);
 				}
 			}
-
 		}
 	}
 
@@ -1143,54 +1174,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 				{
 					if (_centralizedEffects is not { Length: > 0 } || _centralizedEffects[0] != effect)
 					{
-						if (effect.EffectId == DisabledEffectId)
-						{
-							_centralizedEffects = [EffectSerializer.Serialize(new DisabledEffect())];
-						}
-						else if (effect.EffectId == StaticColorEffectId)
-						{
-							var staticColorEffect = EffectSerializer.UnsafeDeserialize<StaticColorEffect>(effect.EffectData);
-							var color = ColorSpaceConverter.ToLinearRgb(new ImageSharpRgb(staticColorEffect.Color.R, staticColorEffect.Color.G, staticColorEffect.Color.B));
-							float equivalentBrightness = 0.2126f * color.R + 0.7152f * color.G + 0.0722f * color.B;
-							_centralizedEffects =
-							[
-								EffectSerializer.Serialize(staticColorEffect),
-								// TODO: Solve the brightness problem. We should have a uniform way to represent brightness across devices but also allow device-specific representations.
-								// The main problem is that the discrete brightness values supported by a device can vary across devices.
-								// For now, the code below assumes that brightness ranges from 0 to 100, which is wrong.
-								// Maybe splitting brightness in two flavors would be enough, but in some cases, being able to read back the actual brightness from the device might be necessary.
-								EffectSerializer.Serialize(new StaticBrightnessEffect((byte)(RgbWorkingSpaces.SRgb.Compress(equivalentBrightness) * 100))),
-								equivalentBrightness >= 0.5f ? EffectSerializer.Serialize(new EnabledEffect()) : EffectSerializer.Serialize(new DisabledEffect()),
-								EffectSerializer.Serialize(new DisabledEffect()),
-							];
-						}
-						else if (effect.EffectId == SpectrumCycleEffectId)
-						{
-							_centralizedEffects =
-							[
-								EffectSerializer.Serialize(new SpectrumCycleEffect()),
-								EffectSerializer.Serialize(new SpectrumWaveEffect()),
-								EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 255))),
-								EffectSerializer.Serialize(new EnabledEffect()),
-								EffectSerializer.Serialize(new DisabledEffect()),
-							];
-						}
-						else if (effect.EffectId == SpectrumWaveEffectId)
-						{
-							_centralizedEffects =
-							[
-								EffectSerializer.Serialize(new SpectrumWaveEffect()),
-								EffectSerializer.Serialize(new SpectrumCycleEffect()),
-								EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 255))),
-								EffectSerializer.Serialize(new StaticBrightnessEffect(255)),
-								EffectSerializer.Serialize(new EnabledEffect()),
-								EffectSerializer.Serialize(new DisabledEffect()),
-							];
-						}
-						else
-						{
-							throw new ArgumentException("Unsupported effect.");
-						}
+						_centralizedEffects = BuildEffectFallbacks(effect);
 						isChanged = isEffectChanged = true;
 					}
 				}
@@ -1209,8 +1193,84 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 
 			if (isChanged)
 			{
-				await RestoreEffectsAsync(_useCentralizedLighting ? _centralizedEffects : null, cancellationToken).ConfigureAwait(false);
+				var configurationPersistenceTask = PersistConfigurationAsync
+				(
+					_lightingConfigurationContainer,
+					new()
+					{
+						IsCentralizedLightingEnabled = _useCentralizedLighting,
+						CentralizedLightingEffect = _centralizedEffects[0]
+					},
+					cancellationToken
+				);
+				try
+				{
+					await RestoreEffectsAsync(_useCentralizedLighting ? _centralizedEffects : null, cancellationToken).ConfigureAwait(false);
+				}
+				finally
+				{
+					try
+					{
+						await configurationPersistenceTask.ConfigureAwait(false);
+					}
+					catch
+					{
+						// TODO: Log
+					}
+				}
 			}
+		}
+	}
+
+	private static LightingEffect[] BuildEffectFallbacks(LightingEffect effect)
+	{
+		if (effect.EffectId == DisabledEffectId)
+		{
+			return [EffectSerializer.Serialize(new DisabledEffect())];
+		}
+		else if (effect.EffectId == StaticColorEffectId)
+		{
+			var staticColorEffect = EffectSerializer.UnsafeDeserialize<StaticColorEffect>(effect.EffectData);
+			var color = ColorSpaceConverter.ToLinearRgb(new ImageSharpRgb(staticColorEffect.Color.R, staticColorEffect.Color.G, staticColorEffect.Color.B));
+			float equivalentBrightness = 0.2126f * color.R + 0.7152f * color.G + 0.0722f * color.B;
+			return
+			[
+				EffectSerializer.Serialize(staticColorEffect),
+				// TODO: Solve the brightness problem. We should have a uniform way to represent brightness across devices but also allow device-specific representations.
+				// The main problem is that the discrete brightness values supported by a device can vary across devices.
+				// For now, the code below assumes that brightness ranges from 0 to 100, which is wrong.
+				// Maybe splitting brightness in two flavors would be enough, but in some cases, being able to read back the actual brightness from the device might be necessary.
+				EffectSerializer.Serialize(new StaticBrightnessEffect((byte)(RgbWorkingSpaces.SRgb.Compress(equivalentBrightness) * 100))),
+				equivalentBrightness >= 0.5f ? EffectSerializer.Serialize(new EnabledEffect()) : EffectSerializer.Serialize(new DisabledEffect()),
+				EffectSerializer.Serialize(new DisabledEffect()),
+			];
+		}
+		else if (effect.EffectId == SpectrumCycleEffectId)
+		{
+			return
+			[
+				EffectSerializer.Serialize(new SpectrumCycleEffect()),
+				EffectSerializer.Serialize(new SpectrumWaveEffect()),
+				EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 255))),
+				EffectSerializer.Serialize(new EnabledEffect()),
+				EffectSerializer.Serialize(new DisabledEffect()),
+			];
+		}
+		else if (effect.EffectId == SpectrumWaveEffectId)
+		{
+			return
+			[
+				EffectSerializer.Serialize(new SpectrumWaveEffect()),
+				EffectSerializer.Serialize(new SpectrumCycleEffect()),
+				EffectSerializer.Serialize(new StaticColorEffect(new(255, 255, 255))),
+				EffectSerializer.Serialize(new StaticBrightnessEffect(255)),
+				EffectSerializer.Serialize(new EnabledEffect()),
+				EffectSerializer.Serialize(new DisabledEffect()),
+			];
+		}
+		else
+		{
+			throw new ArgumentException("Unsupported effect.");
 		}
 	}
 
@@ -1226,6 +1286,9 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 	// (Important to note, though, configuration writes themselves are already serialized using a lock. The worst that can happen is a later configuration being overwritten by an earlier one)
 	// I don't think it matters too much as these configuration changes should not occur concurrently and they are supposed to be the result of manual actions of the user (so, in slow sequence).
 	// The code should still be improved probably, as we don't prevent it, but it can be done later. (Especially considering we want to have a more complex programming model somewhat replacing this)
+
+	private ValueTask PersistConfigurationAsync(IConfigurationContainer lightingConfigurationContainer, PersistedLightingConfiguration configuration, CancellationToken cancellationToken)
+		=> lightingConfigurationContainer.WriteValueAsync(configuration, SourceGenerationContext.Default.PersistedLightingConfiguration, cancellationToken);
 
 	private async void PersistActiveEffect(IConfigurationContainer<Guid> lightingZonesConfigurationContainer, Guid zoneId, LightingEffect effect, CancellationToken cancellationToken)
 	{
