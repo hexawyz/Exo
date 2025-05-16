@@ -65,7 +65,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		}
 
 		public PersistedLightingDeviceConfiguration CreatePersistedConfiguration()
-			=> new() { IsUnifiedLightingEnabled = IsUnifiedLightingEnabled, Brightness = Brightness };
+			=> new(IsUnifiedLightingEnabled, Brightness);
 
 		public LightingDeviceConfiguration CreateConfiguration(Guid deviceId)
 			=> new(deviceId, IsUnifiedLightingEnabled, Brightness, [], CreateEffectConfiguration());
@@ -605,12 +605,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 
 			await deviceState.DeviceConfigurationContainer.WriteValueAsync
 			(
-				new PersistedLightingDeviceInformation
-				{
-					UnifiedLightingZoneId = unifiedLightingFeature is not null ? unifiedLightingZoneId : null,
-					BrightnessCapabilities = brightnessCapabilities,
-					PersistenceMode = persistenceMode
-				},
+				new PersistedLightingDeviceInformation(brightnessCapabilities, unifiedLightingFeature is not null ? unifiedLightingZoneId : null, persistenceMode),
 				SourceGenerationContext.Default.PersistedLightingDeviceInformation,
 				cancellationToken
 			).ConfigureAwait(false);
@@ -890,11 +885,7 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 			{
 				await deviceState.DeviceConfigurationContainer.WriteValueAsync
 				(
-					new PersistedLightingDeviceInformation
-					{
-						UnifiedLightingZoneId = unifiedLightingFeature is not null ? unifiedLightingZoneId : null,
-						BrightnessCapabilities = brightnessCapabilities
-					},
+					new PersistedLightingDeviceInformation(brightnessCapabilities, unifiedLightingFeature is not null ? unifiedLightingZoneId : null, persistenceMode),
 					SourceGenerationContext.Default.PersistedLightingDeviceInformation,
 					cancellationToken
 				).ConfigureAwait(false);

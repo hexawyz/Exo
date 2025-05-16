@@ -69,7 +69,7 @@ public sealed class PersistedAssemblyParsedDataCache<T> : IAssemblyParsedDataCac
 			{
 				try
 				{
-					await _assemblyConfigurationService.WriteValueAsync<T>(kvp.Key, kvp.Value, _jsonTypeInfo, cancellationToken).ConfigureAwait(false);
+					await _assemblyConfigurationService.WriteValueAsync(kvp.Key, kvp.Value, _jsonTypeInfo, cancellationToken).ConfigureAwait(false);
 				}
 				catch (Exception ex)
 				{

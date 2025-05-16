@@ -215,44 +215,6 @@ public sealed class ConfigurationService : IConfigurationNode
 	public IConfigurationContainer GetRootContainer()
 		=> new ConfigurationContainer(this, _directory);
 
-	private async ValueTask<ConfigurationResult<T>> ReadValueAsync<T>(string directory, string? key, CancellationToken cancellationToken)
-	{
-		string typeId = TypeId.GetString<T>();
-
-		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			string configurationDirectory = directory;
-
-			if (key is not null)
-			{
-				configurationDirectory = Path.Combine(directory, key);
-
-				if (!Directory.Exists(configurationDirectory))
-				{
-					return new(ConfigurationStatus.MissingContainer);
-				}
-			}
-
-			string fileName = Path.Combine(configurationDirectory, typeId) + ".json";
-
-			if (File.Exists(fileName))
-			{
-				using var file = File.OpenRead(fileName);
-				try
-				{
-					var result = await JsonSerializer.DeserializeAsync<T>(file, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
-
-					return result is null ? new(ConfigurationStatus.InvalidValue) : new(result);
-				}
-				catch
-				{
-					return new(ConfigurationStatus.MalformedData);
-				}
-			}
-			return new(ConfigurationStatus.MissingValue);
-		}
-	}
-
 	private async ValueTask<ConfigurationResult<T>> ReadValueAsync<T>(string directory, string? key, JsonTypeInfo<T> jsonTypeInfo, CancellationToken cancellationToken)
 	{
 		string typeId = TypeId.GetString<T>();
@@ -288,28 +250,6 @@ public sealed class ConfigurationService : IConfigurationNode
 				}
 			}
 			return new(ConfigurationStatus.MissingValue);
-		}
-	}
-
-	private async ValueTask WriteValueAsync<T>(string directory, string? key, T value, CancellationToken cancellationToken)
-	{
-		string typeId = TypeId.GetString<T>();
-		if (value is null) throw new ArgumentOutOfRangeException(nameof(value));
-
-		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
-		{
-			string configurationDirectory = directory;
-
-			if (key is not null)
-			{
-				configurationDirectory = Path.Combine(directory, key);
-				Directory.CreateDirectory(configurationDirectory);
-			}
-
-			string fileName = Path.Combine(configurationDirectory, typeId) + ".json";
-
-			using var file = File.Create(fileName);
-			await JsonSerializer.SerializeAsync(file, value, JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
 		}
 	}
 

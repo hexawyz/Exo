@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Exo.ColorFormats;
@@ -569,9 +570,9 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 			Name == other.Name &&
 			DisplayName == other.DisplayName &&
 			DataType == other.DataType &&
-			Equals(DefaultValue, other.DefaultValue) &&
-			Equals(MinimumValue, other.MinimumValue) &&
-			Equals(MaximumValue, other.MaximumValue) &&
+			ValuesEquals(DataType, DefaultValue, other.DefaultValue) &&
+			ValuesEquals(DataType, MinimumValue, other.MinimumValue) &&
+			ValuesEquals(DataType, MaximumValue, other.MaximumValue) &&
 			Unit == other.Unit &&
 			EnumerationValues.SequenceEqual(other.EnumerationValues) &&
 			MinimumElementCount == other.MinimumElementCount &&
@@ -591,6 +592,39 @@ public sealed class ConfigurablePropertyInformation : IEquatable<ConfigurablePro
 		hash.Add(MinimumElementCount);
 		hash.Add(MaximumElementCount);
 		return hash.ToHashCode();
+	}
+
+	private static bool ValuesEquals(LightingDataType dataType, object? a, object? b)
+	{
+		if (Equals(a, b)) return true;
+		else if (a is Array && b is Array && a.GetType() == b.GetType())
+		{
+			return dataType switch
+			{
+				LightingDataType.UInt8 => a is byte[] data && data.SequenceEqual(Unsafe.As<byte[]>(b)),
+				LightingDataType.SInt8 => a is sbyte[] data && data.SequenceEqual(Unsafe.As<sbyte[]>(b)),
+				LightingDataType.UInt16 => a is ushort[] data && data.SequenceEqual(Unsafe.As<ushort[]>(b)),
+				LightingDataType.SInt16 => a is short[] data && data.SequenceEqual(Unsafe.As<short[]>(b)),
+				LightingDataType.UInt32 => a is uint[] data && data.SequenceEqual(Unsafe.As<uint[]>(b)),
+				LightingDataType.SInt32 => a is int[] data && data.SequenceEqual(Unsafe.As<int[]>(b)),
+				LightingDataType.UInt64 => a is ulong[] data && data.SequenceEqual(Unsafe.As<ulong[]>(b)),
+				LightingDataType.SInt64 => a is long[] data && data.SequenceEqual(Unsafe.As<long[]>(b)),
+				LightingDataType.UInt128 => a is UInt128[] data && data.SequenceEqual(Unsafe.As<UInt128[]>(b)),
+				LightingDataType.SInt128 => a is Int128[] data && data.SequenceEqual(Unsafe.As<Int128[]>(b)),
+				LightingDataType.Float16 => a is Half[] data && data.SequenceEqual(Unsafe.As<Half[]>(b)),
+				LightingDataType.Float32 => a is float[] data && data.SequenceEqual(Unsafe.As<float[]>(b)),
+				LightingDataType.Float64 => a is double[] data && data.SequenceEqual(Unsafe.As<double[]>(b)),
+				LightingDataType.Boolean => a is bool[] data && data.SequenceEqual(Unsafe.As<bool[]>(b)),
+				LightingDataType.Guid => a is Guid[] data && data.SequenceEqual(Unsafe.As<Guid[]>(b)),
+				LightingDataType.TimeSpan => a is TimeSpan[] data && data.SequenceEqual(Unsafe.As<TimeSpan[]>(b)),
+				LightingDataType.DateTime => a is DateTime[] data && data.SequenceEqual(Unsafe.As<DateTime[]>(b)),
+				LightingDataType.String => a is string[] data && data.SequenceEqual(Unsafe.As<string[]>(b)),
+				LightingDataType.EffectDirection1D => a is EffectDirection1D[] data && data.SequenceEqual(Unsafe.As<EffectDirection1D[]>(b)),
+				LightingDataType.ColorRgb24 => a is RgbColor[] data && data.SequenceEqual(Unsafe.As<RgbColor[]>(b)),
+				_ => false,
+			};
+		}
+		return false;
 	}
 
 	public static bool operator ==(ConfigurablePropertyInformation? left, ConfigurablePropertyInformation? right) => EqualityComparer<ConfigurablePropertyInformation>.Default.Equals(left, right);

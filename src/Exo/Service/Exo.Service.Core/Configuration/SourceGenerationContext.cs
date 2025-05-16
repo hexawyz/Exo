@@ -12,32 +12,11 @@ namespace Exo.Service.Configuration;
 
 [JsonSourceGenerationOptions(
 	WriteIndented = false,
-	Converters =
-	[
-		typeof(JsonStringEnumConverter<DeviceIdSource>),
-		typeof(JsonStringEnumConverter<VendorIdSource>),
-		typeof(JsonStringEnumConverter<DeviceCategory>),
-		typeof(JsonStringEnumConverter<LightingPersistenceMode>),
-		typeof(JsonStringEnumConverter<LightingDataType>),
-		typeof(JsonStringEnumConverter<EffectDirection1D>),
-		typeof(JsonStringEnumConverter<ImageFormat>),
-		typeof(JsonStringEnumConverter<LightDeviceCapabilities>),
-		typeof(JsonStringEnumConverter<LightCapabilities>),
-		typeof(JsonStringEnumConverter<MouseCapabilities>),
-		typeof(JsonStringEnumConverter<PowerDeviceFlags>),
-		typeof(JsonStringEnumConverter<SensorDataType>),
-		typeof(JsonStringEnumConverter<SensorCapabilities>),
-		typeof(JsonStringEnumConverter<CoolerType>),
-		typeof(JsonStringEnumConverter<CoolingModes>),
-		typeof(JsonStringEnumConverter<MonitorShape>),
-		typeof(JsonStringEnumConverter<ImageRotation>),
-		typeof(JsonStringEnumConverter<ImageFormats>),
-		typeof(JsonStringEnumConverter<EmbeddedMonitorCapabilities>),
-	],
 	NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.AllowNamedFloatingPointLiterals,
 	DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 	PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-	DictionaryKeyPolicy = JsonKnownNamingPolicy.CamelCase)]
+	DictionaryKeyPolicy = JsonKnownNamingPolicy.CamelCase,
+	UseStringEnumConverter = true)]
 [JsonSerializable(typeof(ConfigurationVersionDetails))]
 [JsonSerializable(typeof(UsedAssemblyDetails))]
 [JsonSerializable(typeof(MenuConfiguration))]
