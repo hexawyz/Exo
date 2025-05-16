@@ -29,7 +29,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelById;
 	private readonly Dictionary<Guid, LightingDeviceConfiguration> _pendingConfigurationUpdates;
 	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
-	private readonly LightingZoneViewModel _globalLightingZone;
+	private readonly LightingZoneViewModel _centralizedLightingZone;
 	private readonly ILogger<LightingDeviceViewModel> _lightingDeviceLogger;
 	private readonly INotificationSystem _notificationSystem;
 	private readonly IFileOpenDialog _fileOpenDialog;
@@ -85,7 +85,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		set => SetValue(ref _useCentralizedLighting, value, ChangedProperty.UseCentralizedLighting);
 	}
 
-	public LightingZoneViewModel GlobalLightingZone => _globalLightingZone;
+	public LightingZoneViewModel CentralizedLightingZone => _centralizedLightingZone;
 
 	public LightingViewModel(ITypedLoggerProvider loggerProvider, DevicesViewModel devicesViewModel, ISettingsMetadataService metadataService, INotificationSystem notificationSystem, IFileOpenDialog fileOpenDialog, IFileSaveDialog fileSaveDialog)
 	{
@@ -98,7 +98,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		_lightingDevices = new();
 		_lightingDeviceById = new();
 		_effectViewModelById = new();
-		_globalLightingZone = new(this, null, new(default, []), "Global Lighting", 0, LightingZoneComponentType.Unknown, LightingZoneShape.Other);
+		_centralizedLightingZone = new(this, null, new(default, []), "Global Lighting", 0, LightingZoneComponentType.Unknown, LightingZoneShape.Other);
 		_pendingConfigurationUpdates = new();
 		_pendingDeviceInformations = new();
 		_applyChangesCommand = new(this);
@@ -215,7 +215,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 	// This method is only supposed to be called once shortly after the connection is established.
 	internal void OnLightingSupportedCentralizedEffectsUpdate(ImmutableArray<Guid> effectIds)
 	{
-		_globalLightingZone.UpdateInformation(new(default, effectIds));
+		_centralizedLightingZone.UpdateInformation(new(default, effectIds));
 	}
 
 	internal void OnLightingConfigurationUpdate(in Service.LightingConfiguration configuration)
@@ -224,7 +224,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		// NB: We MUST ignore the effect property when it is null. It is only sent when the effect has actually changed.
 		if (configuration.CentralizedLightingEffect is not null)
 		{
-			_globalLightingZone.OnEffectUpdated(configuration.CentralizedLightingEffect);
+			_centralizedLightingZone.OnEffectUpdated(configuration.CentralizedLightingEffect);
 		}
 	}
 
@@ -293,7 +293,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 				if (device.GetLightingConfiguration() is { } configuration) devices.Add(device.Id, configuration);
 			}
 
-			await JsonSerializer.SerializeAsync(stream, new Models.LightingConfiguration(false, devices), SourceGenerationContext.Default.LightingConfiguration);
+			await JsonSerializer.SerializeAsync(stream, new Models.LightingConfiguration(false, _centralizedLightingZone.BuildEffect()!, devices), SourceGenerationContext.Default.LightingConfiguration);
 		}
 	}
 
@@ -304,6 +304,8 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 			using (var stream = await file.OpenForReadAsync())
 			{
 				var configuration = await JsonSerializer.DeserializeAsync(stream, SourceGenerationContext.Default.LightingConfiguration);
+				UseCentralizedLighting = configuration.UseCentralizedLighting;
+				_centralizedLightingZone.TrySetCurrentEffect(configuration.CentralizedLightingEffect);
 				foreach (var (deviceId, deviceConfiguration) in configuration.Devices)
 				{
 					if (!_lightingDeviceById.TryGetValue(deviceId, out var device)) continue;
@@ -321,9 +323,9 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 			// Either we enable centralized lighting then update all the zones (hidden), or we update all the zones (maybe hidden) then disable centralized lighting.
 			if (_useCentralizedLighting)
 			{
-				if (!_initialUseCentralizedLighting || _globalLightingZone.IsChanged)
+				if (!_initialUseCentralizedLighting || _centralizedLightingZone.IsChanged)
 				{
-					await _lightingService!.SetLightingAsync(new Service.LightingConfiguration(true, _globalLightingZone.IsChanged ? _globalLightingZone.BuildEffect() : null), cancellationToken);
+					await _lightingService!.SetLightingAsync(new Service.LightingConfiguration(true, _centralizedLightingZone.IsChanged ? _centralizedLightingZone.BuildEffect() : null), cancellationToken);
 				}
 				await Task.WhenAll(_lightingDevices.Select(device => device.ApplyChangesAsync(cancellationToken)));
 			}
@@ -332,7 +334,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 				await Task.WhenAll(_lightingDevices.Select(device => device.ApplyChangesAsync(cancellationToken)));
 				if (_initialUseCentralizedLighting)
 				{
-					await _lightingService!.SetLightingAsync(new Service.LightingConfiguration(false, _globalLightingZone.IsChanged ? _globalLightingZone.BuildEffect() : null), cancellationToken);
+					await _lightingService!.SetLightingAsync(new Service.LightingConfiguration(false, _centralizedLightingZone.IsChanged ? _centralizedLightingZone.BuildEffect() : null), cancellationToken);
 				}
 			}
 		}
@@ -347,7 +349,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		IsReady = false;
 		try
 		{
-			_globalLightingZone.ResetChanges();
+			_centralizedLightingZone.ResetChanges();
 			foreach (var device in _lightingDevices)
 			{
 				device.ResetChanges();

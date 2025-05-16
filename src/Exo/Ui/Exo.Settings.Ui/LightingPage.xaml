@@ -93,7 +93,7 @@
 					IsEnabled="{x:Bind Lighting.IsReady, Mode=OneWay}"
 					Visibility="{x:Bind Lighting.UseCentralizedLighting, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}"
 					HorizontalContentAlignment="Stretch">
-					<local:LightingZoneControl LightingZone="{x:Bind Lighting.GlobalLightingZone}" />
+					<local:LightingZoneControl LightingZone="{x:Bind Lighting.CentralizedLightingZone}" />
 				</ContentControl>
 				<ItemsControl
 					Visibility="{x:Bind Lighting.UseCentralizedLighting, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=True, Mode=OneWay}"
