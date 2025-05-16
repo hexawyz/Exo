@@ -18,7 +18,6 @@ using ILightingService = Exo.Settings.Ui.Services.ILightingService;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposable
 {
 	private readonly DevicesViewModel _devicesViewModel;

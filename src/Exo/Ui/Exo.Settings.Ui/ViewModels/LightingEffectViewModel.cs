@@ -1,11 +1,9 @@
 using System.Collections.ObjectModel;
 using Exo.Lighting;
-using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
 // ⚠️ This class can be instantiated on any thread. Further accesses should come from the UI thread.
-[GeneratedBindableCustomProperty]
 internal sealed partial class LightingEffectViewModel : IOrderable
 {
 	private LightingEffectInformation _effectInformation;

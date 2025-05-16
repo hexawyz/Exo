@@ -11,7 +11,6 @@ using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class LightingDeviceViewModel : ChangeableBindableObject, IDisposable
 {
 	private readonly DeviceViewModel _deviceViewModel;
