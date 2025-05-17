@@ -88,6 +88,9 @@
 			<lconverters:SingleToDoubleConverter x:Key="SingleToDoubleConverter" />
 			<lconverters:UInt16ToDoubleConverter x:Key="UInt16ToDoubleConverter" />
 			<lconverters:UInt32ToDoubleConverter x:Key="UInt32ToDoubleConverter" />
+			<lconverters:UInt64ToDoubleConverter x:Key="UInt64ToDoubleConverter" />
+			<lconverters:Int64ToDoubleConverter x:Key="Int64ToDoubleConverter" />
+			<lconverters:HalfToDoubleConverter x:Key="HalfToDoubleConverter" />
 			<lconverters:StringResourceConverter x:Key="StringResourceConverter" />
 			<lconverters:RadiusToThicknessConverter x:Key="RadiusToThicknessConverter" />
 			<lconverters:NumberWithUnitConverter x:Key="PercentConverter" Unit="%" NumberFormat="N0" />
@@ -105,6 +108,7 @@
 			<lconverters:MonitorShapeToCropShapeConverter x:Key="MonitorShapeToCropShapeConverter" />
 			<lconverters:NotificationSeverityConverter x:Key="NotificationSeverityConverter" />
 			<lconverters:EffectDirectionToBooleanConverter x:Key="EffectDirectionToBooleanConverter" />
+			<lconverters:EffectDirectionToInverseBooleanConverter x:Key="EffectDirectionToInverseBooleanConverter" />
 			<lconverters:RgbColorConverter x:Key="RgbColorConverter" />
 			<lconverters:NullableConverter x:Key="NullableConverter" />
 			<lconverters:NullableColorConverter x:Key="NullableColorConverter" />

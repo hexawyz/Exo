@@ -1,11 +1,10 @@
 using System.Windows.Input;
+using Exo.ColorFormats;
 using Exo.Ui;
-using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-[GeneratedBindableCustomProperty]
-internal sealed partial class ArrayElementViewModel<T> : BindableObject
+internal abstract partial class ArrayElementViewModel<T> : BindableObject
 	where T : IEquatable<T>
 {
 	private readonly ArrayPropertyViewModel<T> _array;
@@ -38,4 +37,10 @@ internal sealed partial class ArrayElementViewModel<T> : BindableObject
 			}
 		}
 	}
+}
+
+internal sealed partial class RgbColorArrayElementViewModel : ArrayElementViewModel<RgbColor>
+{
+	public RgbColorArrayElementViewModel(ArrayPropertyViewModel<RgbColor> arrayPropertyViewModel, RgbColor initialValue)
+		: base(arrayPropertyViewModel, initialValue) { }
 }

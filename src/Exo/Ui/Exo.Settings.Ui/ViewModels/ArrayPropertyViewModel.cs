@@ -6,11 +6,27 @@ using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-[GeneratedBindableCustomProperty]
 internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 	where T : IEquatable<T>
 {
-	private static partial class Commands
+	protected ArrayPropertyViewModel(ConfigurablePropertyInformation propertyInformation, int paddingLength) : base(propertyInformation, paddingLength)
+	{
+	}
+
+	public sealed override bool IsArray => true;
+
+	public abstract ICommand AddCommand { get; }
+	public abstract ICommand RemoveCommand { get; }
+
+	protected abstract bool CanAddElement { get; }
+	protected abstract bool CanRemoveElement { get; }
+
+	protected abstract void AddElement();
+	protected abstract void RemoveElement(ArrayElementViewModel<T> element);
+
+	protected internal abstract void OnValueChanged(ArrayElementViewModel<T> element, T oldValue, T newValue);
+
+	protected static partial class Commands
 	{
 		[GeneratedBindableCustomProperty]
 		public sealed partial class AddCommand : ICommand
@@ -59,17 +75,23 @@ internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 			public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 		}
 	}
+}
+
+internal abstract partial class ArrayPropertyViewModel<T, TArrayElementViewModel> : ArrayPropertyViewModel<T>
+	where T : IEquatable<T>
+	where TArrayElementViewModel : ArrayElementViewModel<T>
+{
 
 	private readonly T[] _initialValues;
-	private readonly ObservableCollection<ArrayElementViewModel<T>> _elements;
-	private readonly ReadOnlyObservableCollection<ArrayElementViewModel<T>> _readOnlyElements;
+	private readonly ObservableCollection<TArrayElementViewModel> _elements;
+	private readonly ReadOnlyObservableCollection<TArrayElementViewModel> _readOnlyElements;
 	private readonly Commands.AddCommand _addCommand;
 	private readonly Commands.RemoveCommand _removeCommand;
 	private readonly T _defaultItemValue;
 	private uint _initialValueCount;
 	private uint _changedValueCount;
 
-	public ReadOnlyObservableCollection<ArrayElementViewModel<T>> Elements => _readOnlyElements;
+	public ReadOnlyObservableCollection<TArrayElementViewModel> Elements => _readOnlyElements;
 
 	public override bool IsChanged => _changedValueCount != 0;
 
@@ -78,7 +100,7 @@ internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 	public ArrayPropertyViewModel(ConfigurablePropertyInformation propertyInformation, int paddingLength, T[]? initialValues, T defaultItemValue)
 		: base(propertyInformation, paddingLength)
 	{
-		if (!propertyInformation.IsArray) throw new InvalidOperationException("");
+		if (!propertyInformation.IsArray) throw new InvalidOperationException("Property is not an array.");
 		_initialValues = new T[propertyInformation.MaximumElementCount];
 		_elements = new();
 		_defaultItemValue = defaultItemValue;
@@ -86,12 +108,12 @@ internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 		{
 			if (initialValues is not null && i < initialValues.Length)
 			{
-				_elements.Add(new(this, _initialValues[i] = initialValues[i]));
+				_elements.Add(CreateElement(_initialValues[i] = initialValues[i]));
 			}
 			else
 			{
 				_initialValues[i] = defaultItemValue;
-				if (i < propertyInformation.MinimumElementCount) _elements.Add(new(this, defaultItemValue));
+				if (i < propertyInformation.MinimumElementCount) _elements.Add(CreateElement(defaultItemValue));
 			}
 		}
 		_readOnlyElements = new(_elements);
@@ -116,7 +138,7 @@ internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 			}
 			else
 			{
-				_elements.Add(new(this, initialValue));
+				_elements.Add(CreateElement(initialValue));
 			}
 		}
 		for (uint i = (uint)_elements.Count; --i >= _initialValueCount;)
@@ -127,17 +149,17 @@ internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 		OnChangeStateChange(wasChanged);
 	}
 
-	public ICommand AddCommand => _addCommand;
-	public ICommand RemoveCommand => _removeCommand;
+	public override ICommand AddCommand => _addCommand;
+	public override ICommand RemoveCommand => _removeCommand;
 
-	private bool CanAddElement => _elements.Count < PropertyInformation.MaximumElementCount;
+	protected override bool CanAddElement => _elements.Count < PropertyInformation.MaximumElementCount;
 
-	private void AddElement()
+	protected override void AddElement()
 	{
 		if (_elements.Count < PropertyInformation.MaximumElementCount)
 		{
 			bool wasChanged = IsChanged;
-			_elements.Add(new(this, _defaultItemValue));
+			_elements.Add(CreateElement(_defaultItemValue));
 			// Either we added an element catching up with the set of initial values and that can be one less change,
 			// or we added an element past the set of initial values and that's always an additional change.
 			if (_elements.Count <= _initialValueCount)
@@ -154,12 +176,12 @@ internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 		}
 	}
 
-	private bool CanRemoveElement => _elements.Count > PropertyInformation.MinimumElementCount;
+	protected override bool CanRemoveElement => _elements.Count > PropertyInformation.MinimumElementCount;
 
-	private void RemoveElement(ArrayElementViewModel<T> element)
+	protected override void RemoveElement(ArrayElementViewModel<T> element)
 	{
 		bool wasChanged = IsChanged;
-		if (!CanRemoveElement || !_elements.Remove(element)) return;
+		if (!CanRemoveElement || !_elements.Remove((TArrayElementViewModel)element)) return;
 		uint changedValueCount = (uint)Math.Abs(_elements.Count - (int)_initialValueCount);
 		uint commonElementCount = Math.Min((uint)_elements.Count, _initialValueCount);
 		for (uint i = 0; i < commonElementCount; i++)
@@ -176,6 +198,8 @@ internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 	}
 
 	protected virtual int ItemSize => Unsafe.SizeOf<T>();
+
+	protected abstract TArrayElementViewModel CreateElement(T value);
 
 	internal override int ReadInitialValue(ReadOnlySpan<byte> data)
 	{
@@ -293,7 +317,7 @@ internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 			{
 				for (i = (uint)_elements.Count; i < elementCount; i++)
 				{
-					_elements.Add(new(this, _initialValues[i]));
+					_elements.Add(CreateElement(_initialValues[i]));
 					_changedValueCount--;
 				}
 			}
@@ -336,9 +360,9 @@ internal abstract partial class ArrayPropertyViewModel<T> : PropertyViewModel
 		}
 	}
 
-	internal void OnValueChanged(ArrayElementViewModel<T> element, T oldValue, T newValue)
+	protected internal override void OnValueChanged(ArrayElementViewModel<T> element, T oldValue, T newValue)
 	{
-		int index = _elements.IndexOf(element);
+		int index = _elements.IndexOf((TArrayElementViewModel)element);
 		if (index < 0 || index >= _initialValueCount) return;
 		bool wasChanged = IsChanged;
 		ref var initialValue = ref _initialValues[index];

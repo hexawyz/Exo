@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
+using Exo.ColorFormats;
 using Exo.Lighting;
 using Exo.Metadata;
 using Exo.Service;
@@ -32,7 +33,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 	private PropertyViewModel? _colorProperty;
 	private PropertyViewModel? _speedProperty;
 
-	public Color? Color => (_colorProperty as ScalarPropertyViewModel)?.Value as Color?;
+	public Color? Color => _colorProperty is RgbColorPropertyViewModel { Value: RgbColor color } ? Windows.UI.Color.FromArgb(255, color.R, color.G, color.B) : null;
 
 	private int _changedPropertyCount = 0;
 
@@ -208,7 +209,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 
 	private void OnPropertyChanged(object? sender, PropertyChangedEventArgs e)
 	{
-		if (sender == _colorProperty && e.PropertyName == nameof(ScalarPropertyViewModel.Value))
+		if (sender == _colorProperty && e.PropertyName == nameof(ScalarPropertyViewModel<byte>.Value))
 		{
 			NotifyPropertyChanged(ChangedProperty.Color);
 		}

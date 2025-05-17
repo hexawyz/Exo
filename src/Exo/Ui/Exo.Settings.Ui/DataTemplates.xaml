@@ -68,27 +68,140 @@
 		DefaultContinuousTemplate="{StaticResource MonitorDefaultLabelSettingTemplate}" />
 
 	<!-- Lighting property templates -->
-	<DataTemplate x:Key="NumericRangePropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
+	<DataTemplate x:Key="ByteNumericRangePropertyTemplate" x:DataType="vm:BytePropertyViewModel">
 		<Slider
 			HorizontalAlignment="Stretch"
 			HorizontalContentAlignment="Stretch"
-			Maximum="{x:Bind MaximumValue, Converter={StaticResource DoubleConverter}, Mode=OneWay}"
-			Minimum="{x:Bind MinimumValue, Converter={StaticResource DoubleConverter}, Mode=OneWay}"
-			Value="{x:Bind Value, Converter={StaticResource DoubleConverter}, Mode=TwoWay}" />
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}" />
 	</DataTemplate>
-	<DataTemplate x:Key="NumericPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
-		<NumberBox Value="{x:Bind Value, Converter={StaticResource DoubleConverter}, Mode=TwoWay}" />
+	<DataTemplate x:Key="SByteNumericRangePropertyTemplate" x:DataType="vm:SBytePropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}" />
 	</DataTemplate>
-	<DataTemplate x:Key="BooleanPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
-		<ToggleSwitch IsOn="{x:Bind Value, Converter={StaticResource NullableConverter}, Mode=TwoWay}" />
+	<DataTemplate x:Key="UInt16NumericRangePropertyTemplate" x:DataType="vm:UInt16PropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}" />
 	</DataTemplate>
-	<DataTemplate x:Key="EnumPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
+	<DataTemplate x:Key="Int16NumericRangePropertyTemplate" x:DataType="vm:Int16PropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="UInt32NumericRangePropertyTemplate" x:DataType="vm:UInt32PropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="Int32NumericRangePropertyTemplate" x:DataType="vm:Int32PropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="UInt64NumericRangePropertyTemplate" x:DataType="vm:UInt64PropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			Maximum="{x:Bind MaximumValue, Converter={StaticResource UInt64ToDoubleConverter}, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Converter={StaticResource UInt64ToDoubleConverter}, Mode=OneWay}"
+			Value="{x:Bind Value, Converter={StaticResource UInt64ToDoubleConverter}, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="Int64NumericRangePropertyTemplate" x:DataType="vm:Int64PropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			Maximum="{x:Bind MaximumValue, Converter={StaticResource Int64ToDoubleConverter}, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Converter={StaticResource Int64ToDoubleConverter}, Mode=OneWay}"
+			Value="{x:Bind Value, Converter={StaticResource Int64ToDoubleConverter}, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="HalfNumericRangePropertyTemplate" x:DataType="vm:HalfPropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			Maximum="{x:Bind MaximumValue, Converter={StaticResource HalfToDoubleConverter}, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Converter={StaticResource HalfToDoubleConverter}, Mode=OneWay}"
+			Value="{x:Bind Value, Converter={StaticResource HalfToDoubleConverter}, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="SingleNumericRangePropertyTemplate" x:DataType="vm:SinglePropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="DoubleNumericRangePropertyTemplate" x:DataType="vm:DoublePropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="ByteNumericPropertyTemplate" x:DataType="vm:BytePropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="SByteNumericPropertyTemplate" x:DataType="vm:SBytePropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="UInt16NumericPropertyTemplate" x:DataType="vm:UInt16PropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="Int16NumericPropertyTemplate" x:DataType="vm:Int16PropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="UInt32NumericPropertyTemplate" x:DataType="vm:UInt32PropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="Int32NumericPropertyTemplate" x:DataType="vm:Int32PropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="UInt64NumericPropertyTemplate" x:DataType="vm:UInt64PropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Converter={StaticResource UInt64ToDoubleConverter}, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="Int64NumericPropertyTemplate" x:DataType="vm:Int64PropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Converter={StaticResource Int64ToDoubleConverter}, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="HalfNumericPropertyTemplate" x:DataType="vm:HalfPropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Converter={StaticResource HalfToDoubleConverter}, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="SingleNumericPropertyTemplate" x:DataType="vm:SinglePropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="DoubleNumericPropertyTemplate" x:DataType="vm:DoublePropertyViewModel">
+		<NumberBox Value="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="BooleanPropertyTemplate" x:DataType="vm:BooleanPropertyViewModel">
+		<ToggleSwitch IsOn="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="StringPropertyTemplate" x:DataType="vm:StringPropertyViewModel">
+		<TextBox Text="{x:Bind Value, Mode=TwoWay}" />
+	</DataTemplate>
+	<DataTemplate x:Key="ByteEnumPropertyTemplate" x:DataType="vm:ByteEnumPropertyViewModel">
 		<ComboBox
 			SelectedValuePath="Value"
 			SelectedValue="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
 			ItemsSource="{x:Bind EnumerationValues, Mode=OneWay}" HorizontalAlignment="Stretch">
 			<ComboBox.ItemTemplate>
-				<DataTemplate x:DataType="vm:EnumerationValueViewModel">
+				<DataTemplate x:DataType="vm:ByteEnumerationValueViewModel">
 					<TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" />
 				</DataTemplate>
 			</ComboBox.ItemTemplate>
@@ -97,38 +210,241 @@
 			</mxi:Interaction.Behaviors>
 		</ComboBox>
 	</DataTemplate>
-	<DataTemplate x:Key="EnumRangePropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
+	<DataTemplate x:Key="SByteEnumPropertyTemplate" x:DataType="vm:SByteEnumPropertyViewModel">
+		<ComboBox
+			SelectedValuePath="Value"
+			SelectedValue="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+			ItemsSource="{x:Bind EnumerationValues, Mode=OneWay}" HorizontalAlignment="Stretch">
+			<ComboBox.ItemTemplate>
+				<DataTemplate x:DataType="vm:SByteEnumerationValueViewModel">
+					<TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" />
+				</DataTemplate>
+			</ComboBox.ItemTemplate>
+			<mxi:Interaction.Behaviors>
+				<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
+			</mxi:Interaction.Behaviors>
+		</ComboBox>
+	</DataTemplate>
+	<DataTemplate x:Key="UInt16EnumPropertyTemplate" x:DataType="vm:UInt16EnumPropertyViewModel">
+		<ComboBox
+			SelectedValuePath="Value"
+			SelectedValue="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+			ItemsSource="{x:Bind EnumerationValues, Mode=OneWay}" HorizontalAlignment="Stretch">
+			<ComboBox.ItemTemplate>
+				<DataTemplate x:DataType="vm:UInt16EnumerationValueViewModel">
+					<TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" />
+				</DataTemplate>
+			</ComboBox.ItemTemplate>
+			<mxi:Interaction.Behaviors>
+				<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
+			</mxi:Interaction.Behaviors>
+		</ComboBox>
+	</DataTemplate>
+	<DataTemplate x:Key="Int16EnumPropertyTemplate" x:DataType="vm:Int16EnumPropertyViewModel">
+		<ComboBox
+			SelectedValuePath="Value"
+			SelectedValue="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+			ItemsSource="{x:Bind EnumerationValues, Mode=OneWay}" HorizontalAlignment="Stretch">
+			<ComboBox.ItemTemplate>
+				<DataTemplate x:DataType="vm:Int16EnumerationValueViewModel">
+					<TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" />
+				</DataTemplate>
+			</ComboBox.ItemTemplate>
+			<mxi:Interaction.Behaviors>
+				<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
+			</mxi:Interaction.Behaviors>
+		</ComboBox>
+	</DataTemplate>
+	<DataTemplate x:Key="UInt32EnumPropertyTemplate" x:DataType="vm:UInt32EnumPropertyViewModel">
+		<ComboBox
+			SelectedValuePath="Value"
+			SelectedValue="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+			ItemsSource="{x:Bind EnumerationValues, Mode=OneWay}" HorizontalAlignment="Stretch">
+			<ComboBox.ItemTemplate>
+				<DataTemplate x:DataType="vm:UInt32EnumerationValueViewModel">
+					<TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" />
+				</DataTemplate>
+			</ComboBox.ItemTemplate>
+			<mxi:Interaction.Behaviors>
+				<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
+			</mxi:Interaction.Behaviors>
+		</ComboBox>
+	</DataTemplate>
+	<DataTemplate x:Key="Int32EnumPropertyTemplate" x:DataType="vm:Int32EnumPropertyViewModel">
+		<ComboBox
+			SelectedValuePath="Value"
+			SelectedValue="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+			ItemsSource="{x:Bind EnumerationValues, Mode=OneWay}" HorizontalAlignment="Stretch">
+			<ComboBox.ItemTemplate>
+				<DataTemplate x:DataType="vm:Int32EnumerationValueViewModel">
+					<TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" />
+				</DataTemplate>
+			</ComboBox.ItemTemplate>
+			<mxi:Interaction.Behaviors>
+				<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
+			</mxi:Interaction.Behaviors>
+		</ComboBox>
+	</DataTemplate>
+	<DataTemplate x:Key="UInt64EnumPropertyTemplate" x:DataType="vm:UInt64EnumPropertyViewModel">
+		<ComboBox
+			SelectedValuePath="Value"
+			SelectedValue="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+			ItemsSource="{x:Bind EnumerationValues, Mode=OneWay}" HorizontalAlignment="Stretch">
+			<ComboBox.ItemTemplate>
+				<DataTemplate x:DataType="vm:UInt64EnumerationValueViewModel">
+					<TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" />
+				</DataTemplate>
+			</ComboBox.ItemTemplate>
+			<mxi:Interaction.Behaviors>
+				<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
+			</mxi:Interaction.Behaviors>
+		</ComboBox>
+	</DataTemplate>
+	<DataTemplate x:Key="Int64EnumPropertyTemplate" x:DataType="vm:Int64EnumPropertyViewModel">
+		<ComboBox
+			SelectedValuePath="Value"
+			SelectedValue="{x:Bind Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+			ItemsSource="{x:Bind EnumerationValues, Mode=OneWay}" HorizontalAlignment="Stretch">
+			<ComboBox.ItemTemplate>
+				<DataTemplate x:DataType="vm:Int64EnumerationValueViewModel">
+					<TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" />
+				</DataTemplate>
+			</ComboBox.ItemTemplate>
+			<mxi:Interaction.Behaviors>
+				<behaviors:ComboBoxSystemBackdropWorkaroundBehavior />
+			</mxi:Interaction.Behaviors>
+		</ComboBox>
+	</DataTemplate>
+	<DataTemplate x:Key="ByteEnumRangePropertyTemplate" x:DataType="vm:ByteEnumPropertyViewModel">
 		<Slider
 			HorizontalAlignment="Stretch"
 			HorizontalContentAlignment="Stretch"
 			SnapsTo="StepValues"
 			TickFrequency="1"
-			Maximum="{x:Bind MaximumValue, Converter={StaticResource DoubleConverter}, Mode=OneWay}"
-			Minimum="{x:Bind MinimumValue, Converter={StaticResource DoubleConverter}, Mode=OneWay}"
-			Value="{x:Bind Value, Converter={StaticResource DoubleConverter}, Mode=TwoWay}">
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:EnumerationValueToNameConverter Values="{x:Bind EnumerationValues, Mode=OneWay}" />
+				<lconverters:ByteEnumerationValueToNameConverter Values="{x:Bind EnumerationValues, Mode=OneWay}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+	</DataTemplate>
+	<DataTemplate x:Key="SByteEnumRangePropertyTemplate" x:DataType="vm:SByteEnumPropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			SnapsTo="StepValues"
+			TickFrequency="1"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:SByteEnumerationValueToNameConverter Values="{x:Bind EnumerationValues, Mode=OneWay}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+	</DataTemplate>
+	<DataTemplate x:Key="UInt16EnumRangePropertyTemplate" x:DataType="vm:UInt16EnumPropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			SnapsTo="StepValues"
+			TickFrequency="1"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:UInt16EnumerationValueToNameConverter Values="{x:Bind EnumerationValues, Mode=OneWay}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+	</DataTemplate>
+	<DataTemplate x:Key="Int16EnumRangePropertyTemplate" x:DataType="vm:Int16EnumPropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			SnapsTo="StepValues"
+			TickFrequency="1"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:Int16EnumerationValueToNameConverter Values="{x:Bind EnumerationValues, Mode=OneWay}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+	</DataTemplate>
+	<DataTemplate x:Key="UInt32EnumRangePropertyTemplate" x:DataType="vm:UInt32EnumPropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			SnapsTo="StepValues"
+			TickFrequency="1"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:UInt32EnumerationValueToNameConverter Values="{x:Bind EnumerationValues, Mode=OneWay}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+	</DataTemplate>
+	<DataTemplate x:Key="Int32EnumRangePropertyTemplate" x:DataType="vm:Int32EnumPropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			SnapsTo="StepValues"
+			TickFrequency="1"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:Int32EnumerationValueToNameConverter Values="{x:Bind EnumerationValues, Mode=OneWay}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+	</DataTemplate>
+	<DataTemplate x:Key="UInt64EnumRangePropertyTemplate" x:DataType="vm:UInt64EnumPropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			SnapsTo="StepValues"
+			TickFrequency="1"
+			Maximum="{x:Bind MaximumValue, Converter={StaticResource UInt64ToDoubleConverter}, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Converter={StaticResource UInt64ToDoubleConverter}, Mode=OneWay}"
+			Value="{x:Bind Value, Converter={StaticResource UInt64ToDoubleConverter}, Mode=TwoWay}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:UInt64EnumerationValueToNameConverter Values="{x:Bind EnumerationValues, Mode=OneWay}" />
+			</Slider.ThumbToolTipValueConverter>
+		</Slider>
+	</DataTemplate>
+	<DataTemplate x:Key="Int64EnumRangePropertyTemplate" x:DataType="vm:Int64EnumPropertyViewModel">
+		<Slider
+			HorizontalAlignment="Stretch"
+			HorizontalContentAlignment="Stretch"
+			SnapsTo="StepValues"
+			TickFrequency="1"
+			Maximum="{x:Bind MaximumValue, Converter={StaticResource Int64ToDoubleConverter}, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Converter={StaticResource Int64ToDoubleConverter}, Mode=OneWay}"
+			Value="{x:Bind Value, Converter={StaticResource Int64ToDoubleConverter}, Mode=TwoWay}">
+			<Slider.ThumbToolTipValueConverter>
+				<lconverters:Int64EnumerationValueToNameConverter Values="{x:Bind EnumerationValues, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 	</DataTemplate>
 	<DataTemplate x:Key="FallbackPropertyTemplate" />
-	<DataTemplate x:Key="BrightnessTemplate" x:DataType="vm:ScalarPropertyViewModel">
+	<DataTemplate x:Key="BrightnessTemplate" x:DataType="vm:BrightnessPropertyViewModel">
 		<Slider
-			Maximum="{x:Bind MaximumValue, Converter={StaticResource DoubleConverter}, Mode=OneWay}"
-			Minimum="{x:Bind MinimumValue, Converter={StaticResource DoubleConverter}, Mode=OneWay}"
-			Value="{x:Bind Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
+			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
+			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
+			Value="{x:Bind Value, Mode=TwoWay}"
 			HorizontalAlignment="Stretch"
 			Style="{StaticResource BrightnessSliderStyle}">
 			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MaximumValue, Converter={StaticResource NullableConverter}, Mode=OneWay}" />
+				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MaximumValue, Mode=OneWay}" />
 			</Slider.ThumbToolTipValueConverter>
 		</Slider>
 	</DataTemplate>
 	<DataTemplate x:Key="FixedColorArrayPropertyTemplate" x:DataType="vm:RgbColorArrayPropertyViewModel">
 		<ItemsControl ItemsSource="{x:Bind Elements, Mode=OneWay}" Margin="-3,0,0,0">
 			<ItemsControl.ItemTemplate>
-				<DataTemplate>
-					<lcontrols:ColorSwatch Margin="3,0,3,0" Color="{Binding Value, Mode=TwoWay, Converter={StaticResource RgbColorConverter}}" />
+				<DataTemplate x:DataType="vm:RgbColorArrayElementViewModel">
+					<lcontrols:ColorSwatch Margin="3,0,3,0" Color="{x:Bind Value, Converter={StaticResource RgbColorConverter}, Mode=TwoWay}" />
 				</DataTemplate>
 			</ItemsControl.ItemTemplate>
 			<ItemsControl.ItemsPanel>
@@ -142,7 +458,7 @@
 		<StackPanel Orientation="Horizontal">
 			<ItemsControl ItemsSource="{x:Bind Elements, Mode=OneWay}" Margin="-3,0,0,0">
 				<ItemsControl.ItemTemplate>
-					<DataTemplate>
+					<DataTemplate x:DataType="vm:RgbColorArrayElementViewModel">
 						<Grid>
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition Width="*" />
@@ -152,9 +468,9 @@
 								<RowDefinition Height="Auto" />
 								<RowDefinition Height="*" />
 							</Grid.RowDefinitions>
-							<lcontrols:ColorSwatch Grid.ColumnSpan="2" Grid.RowSpan="2" Canvas.ZIndex="0" Margin="3,0,3,0" Color="{Binding Value, Mode=TwoWay, Converter={StaticResource RgbColorConverter}}" />
+							<lcontrols:ColorSwatch Grid.ColumnSpan="2" Grid.RowSpan="2" Canvas.ZIndex="0" Margin="3,0,3,0" Color="{x:Bind Value, Converter={StaticResource RgbColorConverter}, Mode=TwoWay}" />
 							<!-- TODO: Make a better style for the remove button. Accent is the easiest way to have it visible. This will do for now. -->
-							<Button Grid.Column="1" Canvas.ZIndex="10" Margin="0" Padding="1,0,0,0" Style="{StaticResource AccentButtonStyle}" Command="{Binding RemoveCommand, Mode=OneWay}" CommandParameter="{Binding}">
+							<Button Grid.Column="1" Canvas.ZIndex="10" Margin="0" Padding="1,0,0,0" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind RemoveCommand, Mode=OneWay}" CommandParameter="{x:Bind}">
 								<FontIcon Glyph="&#xE738;" FontSize="8" />
 							</Button>
 						</Grid>
@@ -171,22 +487,15 @@
 			</Button>
 		</StackPanel>
 	</DataTemplate>
-	<DataTemplate x:Key="ColorPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
-		<lcontrols:ColorSwatch Color="{x:Bind Value, Converter={StaticResource NullableConverter}, Mode=TwoWay}" HorizontalAlignment="Left" />
+	<DataTemplate x:Key="ColorPropertyTemplate" x:DataType="vm:RgbColorPropertyViewModel">
+		<lcontrols:ColorSwatch Color="{x:Bind Value, Converter={StaticResource RgbColorConverter}, Mode=TwoWay}" HorizontalAlignment="Left" />
 	</DataTemplate>
-	<DataTemplate x:Key="Direction1DPropertyTemplate" x:DataType="vm:ScalarPropertyViewModel">
+	<DataTemplate x:Key="Direction1DPropertyTemplate" x:DataType="vm:EffectDirection1DPropertyViewModel">
 		<StackPanel Orientation="Horizontal">
 			<ToggleButton x:Uid="EffectDirectionBackwardButton" Margin="0,0,3,0" Padding="9,4,9,5" IsChecked="{x:Bind Value, Mode=TwoWay, Converter={StaticResource EffectDirectionToBooleanConverter}}">
 				<FontIcon Glyph="&#xE72B;" />
 			</ToggleButton>
-			<ToggleButton x:Uid="EffectDirectionForwardButton" Margin="3,0,0,0" Padding="9,4,9,5">
-				<ToggleButton.IsChecked>
-					<Binding Path="Value" Mode="TwoWay" Converter="{StaticResource EffectDirectionToBooleanConverter}">
-						<Binding.ConverterParameter>
-							<x:Boolean>True</x:Boolean>
-						</Binding.ConverterParameter>
-					</Binding>
-				</ToggleButton.IsChecked>
+			<ToggleButton x:Uid="EffectDirectionForwardButton" Margin="3,0,0,0" Padding="9,4,9,5" IsChecked="{x:Bind Value, Mode=TwoWay, Converter={StaticResource EffectDirectionToInverseBooleanConverter}}">
 				<FontIcon Glyph="&#xE72A;" />
 			</ToggleButton>
 		</StackPanel>
@@ -195,14 +504,49 @@
 	<!-- Template selector for the above effect property templates. -->
 	<lts:EffectPropertyTemplateSelector
 		x:Key="EffectPropertyTemplateSelector"
-		NumericRangeTemplate="{StaticResource NumericRangePropertyTemplate}"
-		NumericTemplate="{StaticResource NumericPropertyTemplate}"
+		ByteNumericRangeTemplate="{StaticResource ByteNumericRangePropertyTemplate}"
+		SByteNumericRangeTemplate="{StaticResource SByteNumericRangePropertyTemplate}"
+		UInt16NumericRangeTemplate="{StaticResource UInt16NumericRangePropertyTemplate}"
+		Int16NumericRangeTemplate="{StaticResource Int16NumericRangePropertyTemplate}"
+		UInt32NumericRangeTemplate="{StaticResource UInt32NumericRangePropertyTemplate}"
+		Int32NumericRangeTemplate="{StaticResource Int32NumericRangePropertyTemplate}"
+		UInt64NumericRangeTemplate="{StaticResource UInt64NumericRangePropertyTemplate}"
+		Int64NumericRangeTemplate="{StaticResource Int64NumericRangePropertyTemplate}"
+		HalfNumericRangeTemplate="{StaticResource HalfNumericRangePropertyTemplate}"
+		SingleNumericRangeTemplate="{StaticResource SingleNumericRangePropertyTemplate}"
+		DoubleNumericRangeTemplate="{StaticResource DoubleNumericRangePropertyTemplate}"
+		ByteNumericTemplate="{StaticResource ByteNumericPropertyTemplate}"
+		SByteNumericTemplate="{StaticResource SByteNumericPropertyTemplate}"
+		UInt16NumericTemplate="{StaticResource UInt16NumericPropertyTemplate}"
+		Int16NumericTemplate="{StaticResource Int16NumericPropertyTemplate}"
+		UInt32NumericTemplate="{StaticResource UInt32NumericPropertyTemplate}"
+		Int32NumericTemplate="{StaticResource Int32NumericPropertyTemplate}"
+		UInt64NumericTemplate="{StaticResource UInt64NumericPropertyTemplate}"
+		Int64NumericTemplate="{StaticResource Int64NumericPropertyTemplate}"
+		HalfNumericTemplate="{StaticResource HalfNumericPropertyTemplate}"
+		SingleNumericTemplate="{StaticResource SingleNumericPropertyTemplate}"
+		DoubleNumericTemplate="{StaticResource DoubleNumericPropertyTemplate}"
 		BooleanTemplate="{StaticResource BooleanPropertyTemplate}"
+		TextTemplate="{StaticResource StringPropertyTemplate}"
 		BrightnessTemplate="{StaticResource BrightnessTemplate}"
 		Direction1DTemplate="{StaticResource Direction1DPropertyTemplate}"
 		ColorTemplate="{StaticResource ColorPropertyTemplate}"
-		EnumTemplate="{StaticResource EnumPropertyTemplate}"
-		EnumRangeTemplate="{StaticResource EnumRangePropertyTemplate}"
+		ByteEnumTemplate="{StaticResource ByteEnumPropertyTemplate}"
+		SByteEnumTemplate="{StaticResource SByteEnumPropertyTemplate}"
+		UInt16EnumTemplate="{StaticResource UInt16EnumPropertyTemplate}"
+		Int16EnumTemplate="{StaticResource Int16EnumPropertyTemplate}"
+		UInt32EnumTemplate="{StaticResource UInt32EnumPropertyTemplate}"
+		Int32EnumTemplate="{StaticResource Int32EnumPropertyTemplate}"
+		UInt64EnumTemplate="{StaticResource UInt64EnumPropertyTemplate}"
+		Int64EnumTemplate="{StaticResource Int64EnumPropertyTemplate}"
+		ByteEnumRangeTemplate="{StaticResource ByteEnumRangePropertyTemplate}"
+		SByteEnumRangeTemplate="{StaticResource SByteEnumRangePropertyTemplate}"
+		UInt16EnumRangeTemplate="{StaticResource UInt16EnumRangePropertyTemplate}"
+		Int16EnumRangeTemplate="{StaticResource Int16EnumRangePropertyTemplate}"
+		UInt32EnumRangeTemplate="{StaticResource UInt32EnumRangePropertyTemplate}"
+		Int32EnumRangeTemplate="{StaticResource Int32EnumRangePropertyTemplate}"
+		UInt64EnumRangeTemplate="{StaticResource UInt64EnumRangePropertyTemplate}"
+		Int64EnumRangeTemplate="{StaticResource Int64EnumRangePropertyTemplate}"
 		FixedColorArrayTemplate="{StaticResource FixedColorArrayPropertyTemplate}"
 		VariableColorArrayTemplate="{StaticResource VariableColorArrayPropertyTemplate}"
 		FallbackTemplate="{StaticResource FallbackPropertyTemplate}" />

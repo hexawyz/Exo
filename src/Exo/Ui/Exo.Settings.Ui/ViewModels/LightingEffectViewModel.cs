@@ -86,11 +86,38 @@ internal sealed partial class LightingEffectViewModel : IOrderable
 			}
 			if (property.IsArray)
 			{
-				vm[i] = new RgbColorArrayPropertyViewModel(property, (int)padding);
+				if (property.DataType == LightingDataType.ColorRgb24)
+				{
+					vm[i] = new RgbColorArrayPropertyViewModel(property, (int)padding);
+				}
+				else
+				{
+					throw new InvalidOperationException("Unsupported property type.");
+				}
 			}
 			else
 			{
-				vm[i] = new ScalarPropertyViewModel(property, (int)padding, brightnessCapabilities);
+				vm[i] = property.DataType switch
+				{
+					LightingDataType.UInt8 => property.EnumerationValues.IsDefaultOrEmpty ? new BytePropertyViewModel(property, (int)padding) : new ByteEnumPropertyViewModel(property, (int)padding),
+					LightingDataType.SInt8 => property.EnumerationValues.IsDefaultOrEmpty ? new SBytePropertyViewModel(property, (int)padding) : new SByteEnumPropertyViewModel(property, (int)padding),
+					LightingDataType.UInt16 => property.EnumerationValues.IsDefaultOrEmpty ? new UInt16PropertyViewModel(property, (int)padding) : new UInt16EnumPropertyViewModel(property, (int)padding),
+					LightingDataType.SInt16 => property.EnumerationValues.IsDefaultOrEmpty ? new Int16PropertyViewModel(property, (int)padding) : new Int16EnumPropertyViewModel(property, (int)padding),
+					LightingDataType.UInt32 => property.EnumerationValues.IsDefaultOrEmpty ? new UInt32PropertyViewModel(property, (int)padding) : new UInt32EnumPropertyViewModel(property, (int)padding),
+					LightingDataType.SInt32 => property.EnumerationValues.IsDefaultOrEmpty ? new Int32PropertyViewModel(property, (int)padding) : new Int32EnumPropertyViewModel(property, (int)padding),
+					LightingDataType.UInt64 => property.EnumerationValues.IsDefaultOrEmpty ? new UInt64PropertyViewModel(property, (int)padding) : new UInt64EnumPropertyViewModel(property, (int)padding),
+					LightingDataType.SInt64 => property.EnumerationValues.IsDefaultOrEmpty ? new Int64PropertyViewModel(property, (int)padding) : new Int64EnumPropertyViewModel(property, (int)padding),
+					LightingDataType.Float16 => new HalfPropertyViewModel(property, (int)padding),
+					LightingDataType.Float32 => new SinglePropertyViewModel(property, (int)padding),
+					LightingDataType.Float64 => new DoublePropertyViewModel(property, (int)padding),
+					LightingDataType.Boolean => new BooleanPropertyViewModel(property, (int)padding),
+					LightingDataType.String => new StringPropertyViewModel(property),
+					LightingDataType.EffectDirection1D => new EffectDirection1DPropertyViewModel(property, (int)padding),
+					LightingDataType.ColorRgb24 => new RgbColorPropertyViewModel(property, (int)padding),
+					LightingDataType.ColorRgbw32 => new RgbwColorPropertyViewModel(property, (int)padding),
+					LightingDataType.ColorArgb32 => new ArgbColorPropertyViewModel(property, (int)padding),
+					_ => throw new InvalidOperationException("Unsupported property type."),
+				};
 			}
 		}
 
