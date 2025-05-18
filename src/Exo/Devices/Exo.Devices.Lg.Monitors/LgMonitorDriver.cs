@@ -211,6 +211,7 @@ public class LgMonitorDriver :
 
 				// This special call will return the serial number. The monitor here has a 12 character long serial number, but let's hope this is fixed length.
 				await ddc.GetLgCustomWithRetryAsync(0x78, data.AsMemory(0, 12), cancellationToken).ConfigureAwait(false);
+				if (data.AsSpan(..12).IndexOf((byte)0) >= 0) throw new InvalidOperationException("Invalid Serial Number.");
 				serialNumber = Encoding.ASCII.GetString(data.AsSpan(..12));
 
 				ushort length = await ddc.GetCapabilitiesWithRetryAsync(data, cancellationToken).ConfigureAwait(false);
