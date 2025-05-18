@@ -12,61 +12,6 @@
 	xmlns:vm="using:Exo.Settings.Ui.ViewModels"
 	xmlns:numerics="using:System.Numerics">
 
-	<!-- Monitor setting UI templates -->
-	<DataTemplate x:Key="MonitorBrightnessSettingTemplate" x:DataType="vm:ContinuousMonitorDeviceSettingViewModel">
-		<Slider
-			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
-			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
-			Value="{x:Bind Value, Mode=TwoWay, Converter={StaticResource ByteToDoubleConverter}}"
-			HorizontalAlignment="Stretch"
-			Style="{StaticResource BrightnessSliderStyle}">
-			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MaximumValue, Mode=OneWay}" />
-			</Slider.ThumbToolTipValueConverter>
-		</Slider>
-	</DataTemplate>
-	<DataTemplate x:Key="MonitorContrastSettingTemplate" x:DataType="vm:ContinuousMonitorDeviceSettingViewModel">
-		<Slider
-			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
-			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
-			Value="{x:Bind Value, Mode=TwoWay}"
-			HorizontalContentAlignment="Stretch"
-			HorizontalAlignment="Stretch">
-			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MaximumValue, Mode=OneWay}" />
-			</Slider.ThumbToolTipValueConverter>
-		</Slider>
-	</DataTemplate>
-	<DataTemplate x:Key="MonitorDefaultContinuousSettingTemplate" x:DataType="vm:ContinuousMonitorDeviceSettingViewModel">
-		<Slider
-			Maximum="{x:Bind MaximumValue, Mode=OneWay}"
-			Minimum="{x:Bind MinimumValue, Mode=OneWay}"
-			Value="{x:Bind Value, Mode=TwoWay}"
-			HorizontalContentAlignment="Stretch"
-			HorizontalAlignment="Stretch">
-			<Slider.ThumbToolTipValueConverter>
-				<lconverters:CappedValueToPercentConverter MaximumValue="{x:Bind MaximumValue, Mode=OneWay}" />
-			</Slider.ThumbToolTipValueConverter>
-		</Slider>
-	</DataTemplate>
-	<DataTemplate x:Key="MonitorBrightnessLabelTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
-		<FontIcon Glyph="&#xE706;" HorizontalAlignment="Right" ToolTipService.ToolTip="Brightness" />
-	</DataTemplate>
-	<DataTemplate x:Key="MonitorContrastLabelTemplate" x:DataType="vm:MonitorDeviceSettingViewModel">
-		<FontIcon Glyph="&#xE793;" HorizontalAlignment="Right" ToolTipService.ToolTip="Contrast" />
-	</DataTemplate>
-	<DataTemplate x:Key="MonitorDefaultLabelSettingTemplate" x:DataType="vm:ContinuousMonitorDeviceSettingViewModel">
-		<TextBlock Text="{x:Bind DisplayName, Mode=OneWay}" />
-	</DataTemplate>
-	<lts:MonitorSettingTemplateSelector x:Key="MonitorSettingContentTemplateSelector"
-		BrightnessTemplate="{StaticResource MonitorBrightnessSettingTemplate}"
-		ContrastTemplate="{StaticResource MonitorContrastSettingTemplate}"
-		DefaultContinuousTemplate="{StaticResource MonitorDefaultContinuousSettingTemplate}" />
-	<lts:MonitorSettingTemplateSelector x:Key="MonitorSettingLabelTemplateSelector"
-		BrightnessTemplate="{StaticResource MonitorBrightnessLabelTemplate}"
-		ContrastTemplate="{StaticResource MonitorContrastLabelTemplate}"
-		DefaultContinuousTemplate="{StaticResource MonitorDefaultLabelSettingTemplate}" />
-
 	<!-- Lighting property templates -->
 	<DataTemplate x:Key="ByteNumericRangePropertyTemplate" x:DataType="vm:BytePropertyViewModel">
 		<Slider

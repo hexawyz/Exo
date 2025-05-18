@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Windows.Input;
 using Exo.Monitors;
 using Exo.Service;
@@ -12,7 +13,6 @@ using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class MonitorDeviceFeaturesViewModel : ApplicableResettableBindableObject, IRefreshable
 {
 	private readonly DeviceViewModel _device;
@@ -609,7 +609,6 @@ internal sealed partial class MonitorDeviceFeaturesViewModel : ApplicableResetta
 	}
 }
 
-[GeneratedBindableCustomProperty]
 internal abstract partial class MonitorDeviceSettingViewModel : ResettableBindableObject
 {
 	public abstract MonitorSetting Setting { get; }
@@ -617,7 +616,6 @@ internal abstract partial class MonitorDeviceSettingViewModel : ResettableBindab
 	internal abstract ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken);
 }
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class ContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
 {
 	private ushort _value;
@@ -718,17 +716,17 @@ internal sealed partial class ContinuousMonitorDeviceSettingViewModel : MonitorD
 	}
 
 	internal override ValueTask ApplyChangeAsync(IMonitorService monitorService, Guid deviceId, CancellationToken cancellationToken)
-		=> monitorService.SetSettingValueAsync(deviceId, Setting, Value , cancellationToken);
+		=> monitorService.SetSettingValueAsync(deviceId, Setting, Value, cancellationToken);
 
 	protected override void Reset() => Value = InitialValue;
 }
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class NonContinuousMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
 {
 	private ushort _value;
 	private ushort _initialValue;
-	private ReadOnlyCollection<NonContinuousValueViewModel> _supportedValueCollection;
+	private readonly ObservableCollection<NonContinuousValueViewModel> _supportedValueCollection;
+	private readonly ReadOnlyObservableCollection<NonContinuousValueViewModel> _readOnlySupportedValueCollection;
 	private readonly Dictionary<ushort, NonContinuousValueViewModel> _supportedValues;
 
 	public override bool IsChanged => _value != _initialValue;
@@ -788,23 +786,47 @@ internal sealed partial class NonContinuousMonitorDeviceSettingViewModel : Monit
 		}
 	}
 
-	public ReadOnlyCollection<NonContinuousValueViewModel> SupportedValues
-	{
-		get => _supportedValueCollection;
-		private set => SetValue(ref _supportedValueCollection, value, ChangedProperty.SupportedValues);
-	}
+	public ReadOnlyObservableCollection<NonContinuousValueViewModel> SupportedValues => _readOnlySupportedValueCollection;
 
 	public NonContinuousMonitorDeviceSettingViewModel(MonitorSetting setting, ushort currentValue)
 	{
 		Setting = setting;
-		_supportedValueCollection = ReadOnlyCollection<NonContinuousValueViewModel>.Empty;
+		_supportedValueCollection = new();
+		_readOnlySupportedValueCollection = new(_supportedValueCollection);
 		_supportedValues = new();
 		_value = _initialValue = currentValue;
 	}
 
 	internal void UpdateNonContinuousValues(ISettingsMetadataService metadataService, ImmutableArray<NonContinuousValueDescription> values)
 	{
-		if (values.IsDefaultOrEmpty) SupportedValues = ReadOnlyCollection<NonContinuousValueViewModel>.Empty;
+		if (values.IsDefaultOrEmpty)
+		{
+			_supportedValues.Clear();
+			_supportedValueCollection.Clear();
+			return;
+		}
+
+		// This is a more direct shortcut than the generic code below, for the main use case which is to initialize the collection.
+		// We do not strictly need this, but if there were many lists to initialize, the few extra operations could become noticeable. (I guess)
+		if (_supportedValueCollection.Count == 0 && _supportedValues.Count == 0)
+		{
+			foreach (var valueDefinition in values)
+			{
+				string? friendlyName = valueDefinition.CustomName;
+				if (friendlyName is null && valueDefinition.NameStringId is { } stringId)
+				{
+					friendlyName = metadataService.GetString(CultureInfo.CurrentCulture, stringId);
+				}
+				if (friendlyName is null)
+				{
+					friendlyName = valueDefinition.Value.ToString("X4", CultureInfo.InvariantCulture);
+				}
+				var vm = new NonContinuousValueViewModel(this, valueDefinition.Value, friendlyName);
+				_supportedValues.Add(valueDefinition.Value, vm);
+				_supportedValueCollection.Add(vm);
+			}
+			return;
+		}
 
 		foreach (var valueDefinition in values)
 		{
@@ -827,29 +849,67 @@ internal sealed partial class NonContinuousMonitorDeviceSettingViewModel : Monit
 			}
 		}
 
+		// Implement a diff algorithm similar in essence to the one used for custom menu management in the service.
+		// I should probably find a way to make this generic so that it can be reused in all places where a similar logic is needed.
 		if (_supportedValueCollection.Count != values.Length || _supportedValues.Count > values.Length)
 		{
 			var oldInitialValue = InitialValue;
 			var oldValue = Value;
 
-			var oldValues = new HashSet<ushort>();
-			foreach (var vm in _supportedValueCollection)
-			{
-				oldValues.Add(vm.Value);
-			}
-			var supportedValues = new NonContinuousValueViewModel[values.Length];
+			var newValues = new Dictionary<ushort, int>();
 			for (int i = 0; i < values.Length; i++)
 			{
-				var valueDefinition = values[i];
-				oldValues.Remove(valueDefinition.Value);
-				supportedValues[i] = _supportedValues[valueDefinition.Value];
+				newValues.Add(values[i].Value, i);
 			}
-			foreach (var value in oldValues)
-			{
-				_supportedValues.Remove(value);
-			}
-			SupportedValues = Array.AsReadOnly(supportedValues);
 
+			int runningIndex = 0;
+			List<int>? removedIndices = null;
+			List<int>? updatedIndices = null;
+			for (int i = 0; i < _supportedValueCollection.Count; i++)
+			{
+				if (!newValues.Remove(_supportedValueCollection[i].Value, out var newItemPosition))
+				{
+					// We could remove the items immediately, but from an algorithmic POV, it is always more efficient to only remove items from the end, in reverse order.
+					(removedIndices ??= []).Add(i);
+				}
+				else
+				{
+					if (runningIndex != newItemPosition) (updatedIndices ??= []).Add(newItemPosition);
+					runningIndex++;
+				}
+			}
+
+			foreach (var addedIndex in newValues.Values)
+			{
+				(updatedIndices ??= []).Add(addedIndex);
+			}
+
+			// Remove items from the end.
+			// TODO: Backport this to the custom menu logic?
+			if (removedIndices is { Count: > 0 })
+			{
+				var removedIndicesSpan = CollectionsMarshal.AsSpan(removedIndices);
+				for (int i = removedIndicesSpan.Length; --i >= 0;)
+				{
+					_supportedValueCollection.RemoveAt(removedIndicesSpan[i]);
+				}
+			}
+
+			if (updatedIndices is { Count: > 0 })
+			{
+				var updatedIndicesSpan = CollectionsMarshal.AsSpan(updatedIndices);
+				updatedIndicesSpan.Sort();
+				for (int i = 0; i < updatedIndicesSpan.Length; i++)
+				{
+					int index = updatedIndicesSpan[i];
+					ushort value = values[index].Value;
+					var vm = _supportedValues[value];
+					if (newValues.ContainsKey(values[index].Value)) _supportedValueCollection.Insert(index, vm);
+					else _supportedValueCollection.Move(_supportedValueCollection.IndexOf(vm), index);
+				}
+			}
+
+			// TODO
 			if (!ReferenceEquals(oldInitialValue, InitialValue)) NotifyPropertyChanged(ChangedProperty.InitialValue);
 			if (!ReferenceEquals(oldValue, Value)) NotifyPropertyChanged(ChangedProperty.Value);
 		}
@@ -879,7 +939,6 @@ internal sealed partial class NonContinuousMonitorDeviceSettingViewModel : Monit
 	}
 }
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class NonContinuousValueViewModel : BindableObject
 {
 	internal NonContinuousMonitorDeviceSettingViewModel SettingViewModel { get; }
@@ -901,7 +960,6 @@ internal sealed partial class NonContinuousValueViewModel : BindableObject
 	}
 }
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class BooleanMonitorDeviceSettingViewModel : MonitorDeviceSettingViewModel
 {
 	private bool _value;
