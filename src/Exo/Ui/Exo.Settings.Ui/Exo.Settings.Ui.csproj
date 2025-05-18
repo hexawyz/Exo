@@ -67,7 +67,9 @@
 		<Compile Include="..\..\..\DeviceTools\DeviceTools.Core\PnpVendorId.cs" Link="Definitions\PnpVendorId.cs" />
 		<Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSource.cs" Link="Definitions\VendorIdSource.cs" />
 		<Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSourceExtensions.cs" Link="Definitions\VendorIdSourceExtensions.cs" />
+		<Compile Include="..\..\Core\Exo.Core\ColorFormats\ArgbColor.cs" Link="Definitions\ArgbColor.cs" />
 		<Compile Include="..\..\Core\Exo.Core\ColorFormats\RgbColor.cs" Link="Definitions\RgbColor.cs" />
+		<Compile Include="..\..\Core\Exo.Core\ColorFormats\RgbwColor.cs" Link="Definitions\RgbwColor.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Cooling\Configuration\CoolerConfiguration.cs" Link="Definitions\CoolerConfiguration.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Cooling\Configuration\CoolingControlCurveConfiguration.cs" Link="Definitions\CoolingControlCurveConfiguration.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Cooling\Configuration\CoolingModeConfiguration.cs" Link="Definitions\CoolingModeConfiguration.cs" />
