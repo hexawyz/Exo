@@ -40,7 +40,7 @@ public static class ArrayExtensions
 		return hash.ToHashCode();
 	}
 
-	public static T[] Add<T>(this T[]? array, T item)
+	internal static T[] Add<T>(this T[]? array, T item)
 	{
 		if (array is null) return [item];
 
@@ -50,7 +50,7 @@ public static class ArrayExtensions
 		return array;
 	}
 
-	public static T[]? Remove<T>(this T[]? array, T item)
+	internal static T[]? Remove<T>(this T[]? array, T item)
 	{
 		if (array is null) return null;
 

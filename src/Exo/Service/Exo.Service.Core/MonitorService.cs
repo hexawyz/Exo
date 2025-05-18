@@ -398,9 +398,10 @@ internal class MonitorService : IChangeSource<MonitorInformation>, IChangeSource
 		lock (_lock)
 		{
 			initialNotifications = new MonitorInformation[_deviceDetails.Count];
+			int i = 0;
 			foreach (var details in _deviceDetails.Values)
 			{
-				initialNotifications.Add(new(details.DeviceId, details.SupportedSettings, details.InputSources, details.InputLagLevels, details.ResponseTimeLevels, details.OsdLanguages));
+				initialNotifications[i++] = new(details.DeviceId, details.SupportedSettings, details.InputSources, details.InputLagLevels, details.ResponseTimeLevels, details.OsdLanguages);
 			}
 			_monitorChangeBroadcaster.Register(writer);
 		}
