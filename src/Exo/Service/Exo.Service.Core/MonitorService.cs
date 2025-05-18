@@ -205,18 +205,7 @@ internal class MonitorService : IChangeSource<MonitorInformation>, IChangeSource
 						var monitorChangeBroadcaster = _monitorChangeBroadcaster.GetSnapshot();
 						if (!monitorChangeBroadcaster.IsEmpty)
 						{
-							monitorChangeBroadcaster.Push
-							(
-								new()
-								{
-									DeviceId = deviceId,
-									SupportedSettings = settings,
-									InputSelectSources = inputSources,
-									InputLagLevels = inputLagLevels,
-									ResponseTimeLevels = responseTimeLevels,
-									OsdLanguages = osdLanguages
-								}
-							);
+							monitorChangeBroadcaster.Push(new(deviceId, settings, inputSources, inputLagLevels, responseTimeLevels, osdLanguages));
 						}
 					}
 
@@ -411,18 +400,7 @@ internal class MonitorService : IChangeSource<MonitorInformation>, IChangeSource
 			initialNotifications = new MonitorInformation[_deviceDetails.Count];
 			foreach (var details in _deviceDetails.Values)
 			{
-				initialNotifications.Add
-				(
-					new()
-					{
-						DeviceId = details.DeviceId,
-						SupportedSettings = details.SupportedSettings,
-						InputSelectSources = details.InputSources,
-						InputLagLevels = details.InputLagLevels,
-						ResponseTimeLevels = details.ResponseTimeLevels,
-						OsdLanguages = details.OsdLanguages
-					}
-				);
+				initialNotifications.Add(new(details.DeviceId, details.SupportedSettings, details.InputSources, details.InputLagLevels, details.ResponseTimeLevels, details.OsdLanguages));
 			}
 			_monitorChangeBroadcaster.Register(writer);
 		}

@@ -1251,15 +1251,15 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	{
 		var reader = new BufferReader(data);
 
-		var information = new MonitorInformation()
-		{
-			DeviceId = reader.ReadGuid(),
-			SupportedSettings = ReadSupportedSettings(ref reader),
-			InputSelectSources = ReadValueDescriptions(ref reader),
-			InputLagLevels = ReadValueDescriptions(ref reader),
-			ResponseTimeLevels = ReadValueDescriptions(ref reader),
-			OsdLanguages = ReadValueDescriptions(ref reader),
-		};
+		var information = new MonitorInformation
+		(
+			reader.ReadGuid(),
+			ReadSupportedSettings(ref reader),
+			ReadValueDescriptions(ref reader),
+			ReadValueDescriptions(ref reader),
+			ReadValueDescriptions(ref reader),
+			ReadValueDescriptions(ref reader)
+		);
 
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnMonitorDeviceUpdate(information));
 

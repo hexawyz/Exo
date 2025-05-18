@@ -6,6 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<RootNamespace>Exo.Settings.Ui</RootNamespace>
 		<Nullable>enable</Nullable>
+		<WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<Platforms>x86;x64;ARM64</Platforms>
 		<RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
@@ -50,7 +51,6 @@
 		<None Remove="MonitorMiscSettingsControl.xaml" />
 		<None Remove="MonitorPerformanceSettingsControl.xaml" />
 		<None Remove="MonitorRgbSettingsControl.xaml" />
-		<None Remove="MonitorSettingControl.xaml" />
 		<None Remove="MonitorSettingsControl.xaml" />
 		<None Remove="MonitorSixAxisSettingsControl.xaml" />
 		<None Remove="MousePerformanceSettingsControl.xaml" />
@@ -297,11 +297,6 @@
 	</ItemGroup>
 	<ItemGroup>
 		<Page Update="DataTemplates.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</Page>
-	</ItemGroup>
-	<ItemGroup>
-		<Page Update="MonitorSettingControl.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>

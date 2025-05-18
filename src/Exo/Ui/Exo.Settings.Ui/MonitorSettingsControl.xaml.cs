@@ -6,7 +6,7 @@ namespace Exo.Settings.Ui;
 
 internal sealed partial class MonitorSettingsControl : UserControl
 {
-	public MonitorDeviceFeaturesViewModel MonitorDeviceFeatures
+	public MonitorDeviceFeaturesViewModel? MonitorDeviceFeatures
 	{
 		get => (MonitorDeviceFeaturesViewModel)GetValue(MonitorDeviceFeaturesProperty);
 		set => SetValue(MonitorDeviceFeaturesProperty, value);
