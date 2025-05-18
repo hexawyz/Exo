@@ -2,11 +2,9 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using Exo.Programming;
 using Exo.Ui;
-using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class ProgrammingViewModel : BindableObject, IAsyncDisposable
 {
 	private ReadOnlyCollection<ModuleViewModel> _modules;

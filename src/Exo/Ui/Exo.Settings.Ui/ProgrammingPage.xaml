@@ -14,16 +14,16 @@
 	<ScrollViewer
 		VerticalScrollBarVisibility="Auto"
 		VerticalScrollMode="Auto">
-		<ItemsControl Margin="{StaticResource NavigationContentScrollViewerPadding}" ItemsSource="{Binding Programming.Modules}">
+		<ItemsControl Margin="{StaticResource NavigationContentScrollViewerPadding}" ItemsSource="{x:Bind Programming.Modules, Mode=OneTime}">
 			<ItemsControl.ItemTemplate>
-				<DataTemplate>
+				<DataTemplate x:DataType="vm:ModuleViewModel">
 					<Grid HorizontalAlignment="Stretch">
 						<Grid.ColumnDefinitions>
 							<ColumnDefinition Width="Auto" />
 							<ColumnDefinition Width="*" />
 						</Grid.ColumnDefinitions>
 						<FontIcon Glyph="&#xE943;" />
-						<TextBlock Grid.Column="1" Text="{Binding Name}" Margin="{StaticResource TitleTextIconMargin}" />
+						<TextBlock Grid.Column="1" Text="{x:Bind Name, Mode=OneWay}" Margin="{StaticResource TitleTextIconMargin}" />
 					</Grid>
 				</DataTemplate>
 			</ItemsControl.ItemTemplate>
