@@ -2,6 +2,13 @@ using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;
 
+internal sealed partial class ByteToDoubleConverter : IValueConverter
+{
+	public object? Convert(object value, Type targetType, object parameter, string language) => value is byte i ? (double)i : null;
+
+	public object? ConvertBack(object value, Type targetType, object parameter, string language) => value is double d ? (byte)d : null;
+}
+
 internal sealed partial class UInt16ToDoubleConverter : IValueConverter
 {
 	public object? Convert(object value, Type targetType, object parameter, string language) => value is ushort i ? (double)i : null;

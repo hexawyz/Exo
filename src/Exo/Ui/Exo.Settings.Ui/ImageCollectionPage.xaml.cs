@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Exo.Settings.Ui.ViewModels;
 using Exo.Ui;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -9,50 +10,43 @@ namespace Exo.Settings.Ui;
 /// <summary>
 /// An empty page that can be used on its own or navigated to within a Frame.
 /// </summary>
-public sealed partial class ImageCollectionPage : Page
+internal sealed partial class ImageCollectionPage : Page
 {
+	public SettingsViewModel SettingsViewModel { get; }
+	public ImagesViewModel Images { get; }
+
 	public ImageCollectionPage()
 	{
+		SettingsViewModel = App.Current.Services.GetRequiredService<SettingsViewModel>();
+		Images = SettingsViewModel.Images;
 		InitializeComponent();
+
+		Loaded += OnLoaded;
+		Unloaded += OnUnloaded;
 	}
 
-	private ImagesViewModel? _imagesViewModel;
+	private void OnLoaded(object sender, RoutedEventArgs e)
+	{
+		if (Images.SelectedImage is { } selectedImage && Images.Images.IndexOf(selectedImage) is int index and >= 0)
+		{
+			ImageItemsView.Select(index);
+		}
+		Images.PropertyChanged += OnImagesViewModelPropertyChanged;
+	}
+
+	private void OnUnloaded(object sender, RoutedEventArgs e)
+		=> Images.PropertyChanged -= OnImagesViewModelPropertyChanged;
+
 	private int _shouldIgnoreSelectedItemChanged;
 
 	private void OnItemsViewSelectionChanged(ItemsView sender, ItemsViewSelectionChangedEventArgs args)
 	{
-		if (_imagesViewModel is not null && _shouldIgnoreSelectedItemChanged == 0)
+		if (_shouldIgnoreSelectedItemChanged == 0)
 		{
 			_shouldIgnoreSelectedItemChanged++;
 			try
 			{
-				_imagesViewModel.SelectedImage = sender.SelectedItem as ImageViewModel;
-			}
-			finally
-			{
-				_shouldIgnoreSelectedItemChanged--;
-			}
-		}
-	}
-
-	private void OnItemsViewDataContextChanged(FrameworkElement sender, DataContextChangedEventArgs args)
-	{
-		var newValue = args.NewValue as ImagesViewModel;
-		if (!ReferenceEquals(newValue, _imagesViewModel))
-		{
-			_shouldIgnoreSelectedItemChanged++;
-			try
-			{
-				if (_imagesViewModel is not null) _imagesViewModel.PropertyChanged -= OnImagesViewModelPropertyChanged;
-				_imagesViewModel = newValue;
-				if (_imagesViewModel is not null)
-				{
-					if (_imagesViewModel!.SelectedImage is { } selectedImage && _imagesViewModel.Images.IndexOf(selectedImage) is int index and >= 0)
-					{
-						ImageItemsView.Select(index);
-					}
-					_imagesViewModel.PropertyChanged += OnImagesViewModelPropertyChanged;
-				}
+				Images.SelectedImage = sender.SelectedItem as ImageViewModel;
 			}
 			finally
 			{
@@ -65,9 +59,9 @@ public sealed partial class ImageCollectionPage : Page
 	{
 		if (BindableObject.Equals(e, ChangedProperty.SelectedImage))
 		{
-			if (_imagesViewModel!.SelectedImage is { } selectedImage)
+			if (Images.SelectedImage is { } selectedImage)
 			{
-				if (_imagesViewModel.Images.IndexOf(selectedImage) is int index and >= 0)
+				if (Images.Images.IndexOf(selectedImage) is int index and >= 0)
 				{
 					ImageItemsView.Select(index);
 				}

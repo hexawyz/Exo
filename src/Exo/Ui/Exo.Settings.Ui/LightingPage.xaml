@@ -171,8 +171,8 @@
 										</Grid.ColumnDefinitions>
 										<CheckBox x:Uid="LightingPersistChangesCheckBox" Grid.Column="0" IsChecked="{x:Bind ShouldPersistChanges, Mode=TwoWay}" Visibility="{x:Bind CanPersistChanges, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneWay}">
 											<CheckBox.ContentTemplate>
-												<DataTemplate>
-													<TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
+												<DataTemplate x:DataType="x:String">
+													<TextBlock Text="{x:Bind}" TextTrimming="CharacterEllipsis" />
 												</DataTemplate>
 											</CheckBox.ContentTemplate>
 										</CheckBox>

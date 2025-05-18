@@ -15,7 +15,7 @@
 		<WindowsPackageType>None</WindowsPackageType>
 		<PublishSingleFile>false</PublishSingleFile>
 		<ApplicationIcon>..\..\..\..\exo-icon.ico</ApplicationIcon>
-		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN;EXO_UI</DefineConstants>
+		<DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN;DISABLE_XAML_GENERATED_BINDING_DEBUG_OUTPUT;DISABLE_XAML_GENERATED_RESOURCE_REFERENCE_DEBUG_OUTPUT;DISABLE_XAML_GENERATED_BREAK_ON_UNHANDLED_EXCEPTION;EXO_UI</DefineConstants>
 		<ServerGarbageCollection>false</ServerGarbageCollection>
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>

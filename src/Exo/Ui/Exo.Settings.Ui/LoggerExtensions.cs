@@ -4,17 +4,35 @@ namespace Exo.Settings.Ui;
 
 internal static partial class LoggerExtensions
 {
+	[LoggerMessage(Level = LogLevel.Error, Message = "XAML Binding failed: {Message}")]
+	public static partial void XamlBindingFailed(this ILogger logger, string message);
+
+	[LoggerMessage(Level = LogLevel.Error, Message = "XAML Resource Reference failed: {Message}")]
+	public static partial void XamlResourceReferenceFailed(this ILogger logger, string message);
+
+	[LoggerMessage(Level = LogLevel.Error, Message = "An unhandled exception occurred: {Message}")]
+	public static partial void XamlUnhandledException(this ILogger logger, string message, Exception exception);
+
+	[LoggerMessage(Level = LogLevel.Error, Message = "An unhandled exception occurred.")]
+	public static partial void UnhandledException(this ILogger logger, Exception exception);
+
 	[LoggerMessage(Level = LogLevel.Error, Message = "An error occurred when processing service messages.")]
 	public static partial void ServiceConnectionException(this ILogger logger, Exception exception);
 
 	[LoggerMessage(Level = LogLevel.Error, Message = "An error occurred when processing a device notification.")]
 	public static partial void DeviceNotificationError(this ILogger logger, Exception exception);
 
+	[LoggerMessage(Level = LogLevel.Error, Message = "Failed to open the image.")]
+	public static partial void ImageOpenError(this ILogger logger, Exception exception);
+
 	[LoggerMessage(Level = LogLevel.Error, Message = @"The image could not be added because the name ""{ImageName}"" is already in use.")]
-	public static partial void ImageDuplictateName(this ILogger logger, string imageName);
+	public static partial void ImageDuplicateName(this ILogger logger, string imageName);
 
 	[LoggerMessage(Level = LogLevel.Error, Message = "Failed to add an image to the library.")]
 	public static partial void ImageAddError(this ILogger logger, Exception exception);
+
+	[LoggerMessage(Level = LogLevel.Error, Message = "Failed to remove the image {ImageName} (ID {ImageId}) from the library.")]
+	public static partial void ImageRemoveError(this ILogger logger, string imageName, UInt128 imageId, Exception exception);
 
 	[LoggerMessage(Level = LogLevel.Error, Message = "An error occurred when applying lighting changes to {DeviceName}.")]
 	public static partial void LightingApplyError(this ILogger logger, string deviceName, Exception exception);

@@ -13,12 +13,12 @@ using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class ImagesViewModel : BindableObject, IDisposable
 {
-	private static class Commands
+	private static partial class Commands
 	{
-		public sealed class OpenImageCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class OpenImageCommand : ICommand
 		{
 			private readonly ImagesViewModel _viewModel;
 
@@ -34,15 +34,17 @@ internal sealed partial class ImagesViewModel : BindableObject, IDisposable
 				{
 					await _viewModel.OpenImageAsync(_viewModel.CancellationToken);
 				}
-				catch
+				catch (Exception ex)
 				{
+					_viewModel._logger.ImageOpenError(ex);
 				}
 			}
 
 			public void NotifyCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 		}
 
-		public sealed class AddImageCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class AddImageCommand : ICommand
 		{
 			private readonly ImagesViewModel _viewModel;
 
@@ -66,7 +68,8 @@ internal sealed partial class ImagesViewModel : BindableObject, IDisposable
 			public void NotifyCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 		}
 
-		public sealed class RemoveImageCommand : ICommand
+		[GeneratedBindableCustomProperty]
+		public sealed partial class RemoveImageCommand : ICommand
 		{
 			private readonly ImagesViewModel _viewModel;
 
@@ -349,7 +352,7 @@ internal sealed partial class ImagesViewModel : BindableObject, IDisposable
 		}
 		catch (DuplicateNameException)
 		{
-			_logger.ImageDuplictateName(imageName);
+			_logger.ImageDuplicateName(imageName);
 			_notificationSystem.PublishError("Failed to add image.", $"The name \"{imageName}\" is already in use.");
 		}
 		catch (Exception ex)
@@ -370,6 +373,11 @@ internal sealed partial class ImagesViewModel : BindableObject, IDisposable
 		try
 		{
 			await _imageService.RemoveImageAsync(_selectedImage.Id, cancellationToken);
+		}
+		catch (Exception ex)
+		{
+			_logger.ImageRemoveError(_selectedImage.Name, _selectedImage.Id, ex);
+			_notificationSystem.PublishError(ex, $"Failed to remove the image {_loadedImageName}.");
 		}
 		finally
 		{

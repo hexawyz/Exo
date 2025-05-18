@@ -9,14 +9,12 @@
   xmlns:vm="using:Exo.Settings.Ui.ViewModels"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-  mc:Ignorable="d"
-  d:DataContext="{d:DesignInstance vm:SettingsViewModel, IsDesignTimeCreatable=False}"
-	x:DataType="vm:SettingsViewModel">
+  mc:Ignorable="d">
 
 	<ScrollViewer
 		VerticalScrollBarVisibility="Auto"
 		VerticalScrollMode="Auto">
-		<Grid Margin="{StaticResource NavigationContentScrollViewerPadding}" DataContext="{Binding Images}">
+		<Grid Margin="{StaticResource NavigationContentScrollViewerPadding}">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto" MaxHeight="200" />
 				<RowDefinition Height="*" />
@@ -27,11 +25,11 @@
 						<ColumnDefinition Width="*" MaxWidth="200" />
 						<ColumnDefinition Width="Auto" />
 					</Grid.ColumnDefinitions>
-					<Image Margin="{ThemeResource RowContentMargin}" Source="{Binding LoadedImageData, Converter={StaticResource ByteArrayToBitmapImageConverter}}" />
+					<Image Margin="{ThemeResource RowContentMargin}" Source="{x:Bind Images.LoadedImageData, Converter={StaticResource ByteArrayToBitmapImageConverter}, Mode=OneWay}" />
 					<StackPanel Grid.Column="1" Orientation="Vertical" Margin="{ThemeResource RowContentMargin}">
-						<TextBox Text="{Binding LoadedImageName, Mode=TwoWay}" Header="Name" Width="250" IsEnabled="{Binding LoadedImageData, Converter={StaticResource NullabilityToBooleanConverter}}" />
-						<Button x:Uid="ImageCollectionOpenImageButton" Margin="{ThemeResource RowLabelMargin}" Command="{Binding OpenImageCommand}" Width="120" />
-						<Button x:Uid="ImageCollectionAddImageButton" Margin="{ThemeResource RowLabelMargin}" Command="{Binding AddImageCommand}" Width="120" Style="{ThemeResource AccentButtonStyle}" />
+						<TextBox Text="{x:Bind Images.LoadedImageName, Mode=TwoWay}" Header="Name" Width="250" IsEnabled="{x:Bind Images.LoadedImageData, Converter={StaticResource NullabilityToBooleanConverter}, Mode=OneTime}" />
+						<Button x:Uid="ImageCollectionOpenImageButton" Margin="{ThemeResource RowLabelMargin}" Command="{x:Bind Images.OpenImageCommand, Mode=OneTime}" Width="120" />
+						<Button x:Uid="ImageCollectionAddImageButton" Margin="{ThemeResource RowLabelMargin}" Command="{x:Bind Images.AddImageCommand, Mode=OneTime}" Width="120" Style="{ThemeResource AccentButtonStyle}" />
 					</StackPanel>
 				</Grid>
 			</Border>
@@ -52,25 +50,24 @@
 						<ScrollViewer Padding="6" VerticalAlignment="Top" HorizontalAlignment="Stretch">
 							<ItemsView
 								Name="ImageItemsView"
-								ItemsSource="{Binding Images}"
+								ItemsSource="{x:Bind Images.Images, Mode=OneTime}"
 								MinHeight="250"
 								HorizontalAlignment="Stretch"
-								DataContextChanged="OnItemsViewDataContextChanged"
 								SelectionChanged="OnItemsViewSelectionChanged">
 								<ItemsView.ItemTemplate>
 									<DataTemplate x:DataType="vm:ImageViewModel">
-										<ItemContainer AutomationProperties.Name="{Binding Name}">
+										<ItemContainer AutomationProperties.Name="{x:Bind Name, Mode=OneWay}">
 											<Grid Margin="6" Height="200" Width="200" MaxWidth="200" MaxHeight="200">
-												<Image Source="{Binding FileName, Converter={StaticResource FileNameToBitmapImageConverter}}" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MaxWidth="200" MaxHeight="200" />
+												<Image Source="{x:Bind FileName, Converter={StaticResource FileNameToBitmapImageConverter}, Mode=OneWay}" Stretch="UniformToFill" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" MaxWidth="200" MaxHeight="200" />
 												<StackPanel Orientation="Vertical" Height="60" VerticalAlignment="Bottom" Padding="5,1,5,1" Background="{ThemeResource SystemControlBackgroundBaseMediumBrush}" Opacity=".75">
-													<TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}"/>
+													<TextBlock Text="{x:Bind Name, Mode=OneWay}" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}"/>
 													<StackPanel Orientation="Horizontal">
-														<TextBlock Text="{Binding Width}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+														<TextBlock Text="{x:Bind Width, Mode=OneWay}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
 														<TextBlock Text="x" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
-														<TextBlock Text="{Binding Height}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+														<TextBlock Text="{x:Bind Height, Mode=OneWay}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
 													</StackPanel>
 													<StackPanel Orientation="Horizontal">
-														<TextBlock Text="{Binding Format}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
+														<TextBlock Text="{x:Bind Format, Mode=OneWay}" Foreground="{ThemeResource SystemControlForegroundAltHighBrush}" />
 													</StackPanel>
 												</StackPanel>
 											</Grid>
@@ -89,7 +86,7 @@
 						Orientation="Vertical"
 						HorizontalAlignment="Right"
 						Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}">
-						<Button HorizontalAlignment="Right" x:Uid="ImageCollectionRemoveImageButton" Command="{Binding RemoveImageCommand}">
+						<Button HorizontalAlignment="Right" x:Uid="ImageCollectionRemoveImageButton" Command="{x:Bind Images.RemoveImageCommand, Mode=OneTime}">
 							<FontIcon Glyph="&#xE74D;" />
 						</Button>
 					</StackPanel>

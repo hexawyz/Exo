@@ -38,6 +38,7 @@ public partial class App : Application
 	private Window? _window;
 	private readonly ILoggerFactory _loggerFactory;
 	private readonly ITypedLoggerProvider _loggerProvider;
+	private readonly ILogger<App> _logger;
 	private readonly RasterizationScaleController _rasterizationScaleController;
 	private readonly CancellationTokenSource _cancellationTokenSource;
 
@@ -53,6 +54,8 @@ public partial class App : Application
 
 		_loggerProvider = new TypedLoggerProvider(_loggerFactory);
 
+		_logger = _loggerProvider.GetLogger<App>();
+
 		_rasterizationScaleController = new();
 
 		_cancellationTokenSource = new();
@@ -60,6 +63,27 @@ public partial class App : Application
 		Services = ConfigureServices(_loggerProvider, _rasterizationScaleController);
 
 		InitializeComponent();
+
+		DebugSettings.BindingFailed += (sender, args) =>
+		{
+			_logger.XamlBindingFailed(args.Message);
+		};
+		DebugSettings.XamlResourceReferenceFailed += (sender, args) =>
+		{
+			_logger.XamlResourceReferenceFailed(args.Message);
+		};
+        UnhandledException += (sender, e) =>
+        {
+			_logger.XamlUnhandledException(e.Message, e.Exception);
+        };
+
+		AppDomain.CurrentDomain.UnhandledException += (senser, e) =>
+		{
+			if (e.ExceptionObject is Exception ex)
+			{
+				_logger.UnhandledException(ex);
+			}
+		};
 	}
 
 	/// <summary>
