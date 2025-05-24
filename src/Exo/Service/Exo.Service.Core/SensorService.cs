@@ -169,7 +169,7 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 	{
 		_deviceStates = deviceStates;
 		_lock = new();
-		_pollingScheduler = new(loggerFactory.CreateLogger<PollingScheduler>(), PollingIntervalInMilliseconds);
+		_pollingScheduler = new(loggerFactory.CreateLogger<PollingScheduler>(), TimeSpan.FromTicks(PollingIntervalInMilliseconds * TimeSpan.TicksPerMillisecond));
 		_devicesConfigurationContainer = devicesConfigurationContainer;
 		_logger = loggerFactory.CreateLogger<SensorService>();
 		_sensorStateLogger = loggerFactory.CreateLogger<SensorState>();
@@ -197,7 +197,7 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 					// TODO: Log
 				}
 			}
-			_pollingScheduler.Dispose();
+			await _pollingScheduler.DisposeAsync();
 			cts.Dispose();
 		}
 	}

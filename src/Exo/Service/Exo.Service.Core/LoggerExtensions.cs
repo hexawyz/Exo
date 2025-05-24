@@ -92,17 +92,17 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(Level = LogLevel.Error, Message = "An exception occurred when processing removal of lighting device {DeviceId:B} ({DeviceFriendlyName}).")]
 	public static partial void LightingServiceDeviceRemovalError(this ILogger logger, Guid deviceId, string deviceFriendlyName, Exception ex);
 
-	[LoggerMessage(Level = LogLevel.Trace, Message = "Acquiring the polling scheduler, with {ReferenceCount} current live references.")]
-	public static partial void SensorServicePollingSchedulerAcquire(this ILogger logger, int referenceCount);
+	[LoggerMessage(Level = LogLevel.Trace, Message = "Acquiring the polling scheduler.")]
+	public static partial void PollingSchedulerAcquire(this ILogger logger);
 
 	[LoggerMessage(Level = LogLevel.Debug, Message = "Polling scheduler enabled.")]
-	public static partial void SensorServicePollingSchedulerEnabled(this ILogger logger);
+	public static partial void PollingSchedulerEnabled(this ILogger logger);
 
-	[LoggerMessage(Level = LogLevel.Trace, Message = "Releasing the polling scheduler, with {ReferenceCount} current live references.")]
-	public static partial void SensorServicePollingSchedulerRelease(this ILogger logger, int referenceCount);
+	[LoggerMessage(Level = LogLevel.Trace, Message = "Releasing the polling scheduler.")]
+	public static partial void PollingSchedulerRelease(this ILogger logger);
 
 	[LoggerMessage(Level = LogLevel.Debug, Message = "Polling scheduler disabled.")]
-	public static partial void SensorServicePollingSchedulerDisabled(this ILogger logger);
+	public static partial void PollingSchedulerDisabled(this ILogger logger);
 
 	[LoggerMessage(Level = LogLevel.Error, Message = "Sensor watch execution error.")]
 	public static partial void SensorServiceSensorStateWatchError(this ILogger logger, Exception ex);

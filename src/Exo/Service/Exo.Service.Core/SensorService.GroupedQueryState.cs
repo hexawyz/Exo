@@ -10,6 +10,7 @@ internal sealed partial class SensorService
 		private readonly SensorService _sensorService;
 		private readonly ISensorsGroupedQueryFeature _groupedQueryFeature;
 		private readonly IGroupedPolledSensorState?[] _activeSensorStates;
+		private PollingScheduler.TickWaiter _tick;
 		private int _referenceCount;
 		private readonly Lock _lock;
 		private TaskCompletionSource _enableSignal;
@@ -63,7 +64,7 @@ internal sealed partial class SensorService
 				_activeSensorStates[index] = state;
 				if (_referenceCount++ == 0)
 				{
-					_sensorService._pollingScheduler.Acquire();
+					_tick = _sensorService._pollingScheduler.StartTicking();
 					_enableSignal.TrySetResult();
 				}
 			}
@@ -128,8 +129,7 @@ internal sealed partial class SensorService
 
 		private async ValueTask QueryValuesAsync(CancellationToken cancellationToken)
 		{
-			cancellationToken.ThrowIfCancellationRequested();
-			while (true)
+			while (!cancellationToken.IsCancellationRequested)
 			{
 				var now = DateTime.UtcNow;
 				// TODO: See if it is still possible to avoid locking here. Seems complicated to avoid but maybe there is a way.
@@ -160,10 +160,9 @@ internal sealed partial class SensorService
 						state.RefreshDataPoint(now);
 					}
 				}
-				cancellationToken.ThrowIfCancellationRequested();
+				if (cancellationToken.IsCancellationRequested) return;
 				await _groupedQueryFeature.QueryValuesAsync(cancellationToken).ConfigureAwait(false);
-				cancellationToken.ThrowIfCancellationRequested();
-				await _sensorService._pollingScheduler.WaitAsync(cancellationToken).ConfigureAwait(false);
+				if (cancellationToken.IsCancellationRequested || !await _tick.WaitAsync().ConfigureAwait(false)) return;
 			}
 		}
 
@@ -176,7 +175,8 @@ internal sealed partial class SensorService
 			if (isLast)
 			{
 				ClearAndDisposeCancellationTokenSource(ref _disableCancellationTokenSource);
-				_sensorService._pollingScheduler.Release();
+				_tick.Dispose();
+				_tick = default;
 			}
 			else if ((uint)index < (uint)_referenceCount)
 			{

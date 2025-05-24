@@ -290,18 +290,13 @@ internal sealed partial class SensorService
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 			var scheduler = _sensorService._pollingScheduler;
-			scheduler.Acquire();
-			try
+			using (var tick = scheduler.StartTicking())
 			{
-				while (true)
+				while (!cancellationToken.IsCancellationRequested)
 				{
-					await scheduler.WaitAsync(cancellationToken).ConfigureAwait(false);
+					if (!await tick.WaitAsync().ConfigureAwait(false) || cancellationToken.IsCancellationRequested) return;
 					OnDataPointReceived(await Sensor.GetValueAsync(cancellationToken).ConfigureAwait(false));
 				}
-			}
-			finally
-			{
-				scheduler.Release();
 			}
 		}
 	}
