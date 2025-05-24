@@ -78,16 +78,19 @@ internal sealed class PollingScheduler : IAsyncDisposable
 						_logger.PollingSchedulerRelease();
 						if (next is null)
 						{
-							if (!Unsafe.AreSame(ref start, ref current)) Volatile.Write(ref start, null);
+							if (!Unsafe.AreSame(ref start, ref current))
+							{
+								if (Unsafe.AreSame(ref start, ref _head))
+								{
+									timer.Period = Timeout.InfiniteTimeSpan;
+									_logger.PollingSchedulerDisabled();
+								}
+								Volatile.Write(ref start, null);
+							}
 							break;
 						}
 					}
 					current = ref next;
-				}
-				if (Volatile.Read(ref _head) is null)
-				{
-					timer.Period = Timeout.InfiniteTimeSpan;
-					_logger.PollingSchedulerDisabled();
 				}
 			}
 		}
