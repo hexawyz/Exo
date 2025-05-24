@@ -40,15 +40,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<LightingDeviceInformation> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var deviceInformation))
 					{
 						int length = Write(buffer.Span, deviceInformation);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -150,15 +150,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<LightingDeviceConfiguration> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var effectInformation))
 					{
 						int length = Write(buffer.Span, effectInformation);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -242,15 +242,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<LightingConfiguration> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var effectInformation))
 					{
 						int length = Write(buffer.Span, effectInformation);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -301,15 +301,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<LightingEffectInformation> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var effectInformation))
 					{
 						int length = Write(buffer.Span, effectInformation);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}

@@ -311,8 +311,16 @@ internal sealed class AssemblyLoader : IAssemblyLoader, IDisposable
 		return new(loadedAssemblies);
 	}
 
-	void IChangeSource<AssemblyChangeNotification>.UnregisterWatcher(ChannelWriter<AssemblyChangeNotification> writer)
+	void IChangeSource<AssemblyChangeNotification>.UnsafeUnregisterWatcher(ChannelWriter<AssemblyChangeNotification> writer)
+		=> _assemblyChangeBroadcaster.Unregister(writer);
+
+	ValueTask IChangeSource<AssemblyChangeNotification>.SafeUnregisterWatcherAsync(ChannelWriter<AssemblyChangeNotification> writer)
 	{
-		_assemblyChangeBroadcaster.Unregister(writer);
+		lock (_updateLock)
+		{
+			_assemblyChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+		return ValueTask.CompletedTask;
 	}
 }

@@ -619,8 +619,17 @@ internal sealed class PowerService :
 		}
 	}
 
-	void IChangeSource<PowerDeviceInformation>.UnregisterWatcher(ChannelWriter<PowerDeviceInformation> writer)
+	void IChangeSource<PowerDeviceInformation>.UnsafeUnregisterWatcher(ChannelWriter<PowerDeviceInformation> writer)
 		=> _deviceChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<PowerDeviceInformation>.SafeUnregisterWatcherAsync(ChannelWriter<PowerDeviceInformation> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_deviceChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	async ValueTask<ChangeWatchNotification<Guid, BatteryState>[]?> IChangeSource<ChangeWatchNotification<Guid, BatteryState>>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<ChangeWatchNotification<Guid, BatteryState>> writer, CancellationToken cancellationToken)
 	{
@@ -655,8 +664,17 @@ internal sealed class PowerService :
 		}
 	}
 
-	void IChangeSource<ChangeWatchNotification<Guid, BatteryState>>.UnregisterWatcher(ChannelWriter<ChangeWatchNotification<Guid, BatteryState>> writer)
+	void IChangeSource<ChangeWatchNotification<Guid, BatteryState>>.UnsafeUnregisterWatcher(ChannelWriter<ChangeWatchNotification<Guid, BatteryState>> writer)
 		=> _batteryChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<ChangeWatchNotification<Guid, BatteryState>>.SafeUnregisterWatcherAsync(ChannelWriter<ChangeWatchNotification<Guid, BatteryState>> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_batteryChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	async ValueTask<PowerDeviceLowPowerBatteryThresholdNotification[]?> IChangeSource<PowerDeviceLowPowerBatteryThresholdNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<PowerDeviceLowPowerBatteryThresholdNotification> writer, CancellationToken cancellationToken)
 	{
@@ -682,8 +700,17 @@ internal sealed class PowerService :
 		}
 	}
 
-	void IChangeSource<PowerDeviceLowPowerBatteryThresholdNotification>.UnregisterWatcher(ChannelWriter<PowerDeviceLowPowerBatteryThresholdNotification> writer)
+	void IChangeSource<PowerDeviceLowPowerBatteryThresholdNotification>.UnsafeUnregisterWatcher(ChannelWriter<PowerDeviceLowPowerBatteryThresholdNotification> writer)
 		=> _lowPowerBatteryThresholdBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<PowerDeviceLowPowerBatteryThresholdNotification>.SafeUnregisterWatcherAsync(ChannelWriter<PowerDeviceLowPowerBatteryThresholdNotification> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_lowPowerBatteryThresholdBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	async ValueTask<PowerDeviceIdleSleepTimerNotification[]?> IChangeSource<PowerDeviceIdleSleepTimerNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<PowerDeviceIdleSleepTimerNotification> writer, CancellationToken cancellationToken)
 	{
@@ -709,8 +736,17 @@ internal sealed class PowerService :
 		}
 	}
 
-	void IChangeSource<PowerDeviceIdleSleepTimerNotification>.UnregisterWatcher(ChannelWriter<PowerDeviceIdleSleepTimerNotification> writer)
+	void IChangeSource<PowerDeviceIdleSleepTimerNotification>.UnsafeUnregisterWatcher(ChannelWriter<PowerDeviceIdleSleepTimerNotification> writer)
 		=> _idleTimerBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<PowerDeviceIdleSleepTimerNotification>.SafeUnregisterWatcherAsync(ChannelWriter<PowerDeviceIdleSleepTimerNotification> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_idleTimerBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	async ValueTask<PowerDeviceWirelessBrightnessNotification[]?> IChangeSource<PowerDeviceWirelessBrightnessNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<PowerDeviceWirelessBrightnessNotification> writer, CancellationToken cancellationToken)
 	{
@@ -736,8 +772,17 @@ internal sealed class PowerService :
 		}
 	}
 
-	void IChangeSource<PowerDeviceWirelessBrightnessNotification>.UnregisterWatcher(ChannelWriter<PowerDeviceWirelessBrightnessNotification> writer)
+	void IChangeSource<PowerDeviceWirelessBrightnessNotification>.UnsafeUnregisterWatcher(ChannelWriter<PowerDeviceWirelessBrightnessNotification> writer)
 		=> _wirelessBrightnessBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<PowerDeviceWirelessBrightnessNotification>.SafeUnregisterWatcherAsync(ChannelWriter<PowerDeviceWirelessBrightnessNotification> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_wirelessBrightnessBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	public async Task SetLowPowerModeBatteryThresholdAsync(Guid deviceId, Half threshold, CancellationToken cancellationToken)
 	{

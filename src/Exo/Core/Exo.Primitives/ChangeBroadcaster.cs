@@ -123,31 +123,68 @@ public readonly struct ChangeBroadcasterSnapshot<T>
 public interface IChangeSource<T>
 {
 	public ValueTask<T[]?> GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<T> writer, CancellationToken cancellationToken);
-	public void UnregisterWatcher(ChannelWriter<T> writer);
+	/// <summary>Unregisters the writer without ensuring that all messages have been written.</summary>
+	/// <remarks>
+	/// In the normal completion path, we know for sure that we are called once the reader is no longer in use.
+	/// In this scenario, no lock is acquired and the channel cannot (must not) be completed.
+	/// </remarks>
+	/// <param name="writer"></param>
+	public void UnsafeUnregisterWatcher(ChannelWriter<T> writer);
+	/// <summary>Unregisters and completes the writer after ensuring that all messages have been written.</summary>
+	/// <remarks>
+	/// In the cancellation path, which is very likely, we want to complete the channel so that we can avoid throwing an <see cref="OperationCanceledException"/>.
+	/// This means that a lock needs to be acquired in order to guarantee that there is no conflicting use of the writer.
+	/// </remarks>
+	/// <param name="writer"></param>
+	/// <returns></returns>
+	public ValueTask SafeUnregisterWatcherAsync(ChannelWriter<T> writer);
 }
 
-// A light abstraction for watching values. Exposing the channel reader allows smoother 
+// A light abstraction for watching values. Exposing the channel reader allows smoother processing.
 public struct BroadcastedChangeWatcher<T> : IDisposable
 {
 	public static async ValueTask<BroadcastedChangeWatcher<T>> CreateAsync(IChangeSource<T> source, CancellationToken cancellationToken)
 	{
 		var channel = Channel.CreateUnbounded<T>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false });
 		var initialData = await source.GetInitialChangesAndRegisterWatcherAsync(channel, cancellationToken).ConfigureAwait(false);
-		return new(source, initialData, channel);
+		var registration = cancellationToken.CanBeCanceled ?
+			cancellationToken.UnsafeRegister
+			(
+				static async (state) =>
+				{
+					var (source, channel) = (Tuple<IChangeSource<T>, Channel<T>>)state!;
+					try
+					{
+						await source.SafeUnregisterWatcherAsync(channel.Writer).ConfigureAwait(false);
+					}
+					catch
+					{
+					}
+				},
+				Tuple.Create(source, channel)
+			) :
+			default;
+		return new(source, initialData, channel, registration);
 	}
 
 	private readonly IChangeSource<T> _source;
 	private T[]? _initialData;
 	private readonly Channel<T> _channel;
+	private readonly CancellationTokenRegistration _registration;
 
-	private BroadcastedChangeWatcher(IChangeSource<T> source, T[]? initialData, Channel<T> channel)
+	private BroadcastedChangeWatcher(IChangeSource<T> source, T[]? initialData, Channel<T> channel, CancellationTokenRegistration registration)
 	{
 		_source = source;
 		_channel = channel;
 		_initialData = initialData;
+		_registration = registration;
 	}
 
-	public void Dispose() => _source.UnregisterWatcher(_channel.Writer);
+	public void Dispose()
+	{
+		_source.UnsafeUnregisterWatcher(_channel.Writer);
+		_registration.Dispose();
+	}
 
 	public T[]? ConsumeInitialData() => Interlocked.Exchange(ref _initialData, null);
 	public ChannelReader<T> Reader => _channel.Reader;

@@ -38,15 +38,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<PowerDeviceInformation> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var deviceInformation))
 					{
 						int length = Write(buffer.Span, deviceInformation);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -107,15 +107,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<ChangeWatchNotification<Guid, BatteryState>> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var notification))
 					{
 						int length = Write(buffer.Span, notification);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -181,15 +181,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<PowerDeviceLowPowerBatteryThresholdNotification> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var notification))
 					{
 						int length = Write(buffer.Span, notification);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -240,15 +240,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<PowerDeviceIdleSleepTimerNotification> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var notification))
 					{
 						int length = Write(buffer.Span, notification);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -299,15 +299,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<PowerDeviceWirelessBrightnessNotification> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var notification))
 					{
 						int length = Write(buffer.Span, notification);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}

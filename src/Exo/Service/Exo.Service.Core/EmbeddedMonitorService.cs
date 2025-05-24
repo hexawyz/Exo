@@ -722,7 +722,7 @@ internal sealed partial class EmbeddedMonitorService : IChangeSource<EmbeddedMon
 	async ValueTask<EmbeddedMonitorDeviceInformation[]?> IChangeSource<EmbeddedMonitorDeviceInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<EmbeddedMonitorDeviceInformation> writer, CancellationToken cancellationToken)
 	{
 		var initialNotifications = new List<EmbeddedMonitorDeviceInformation>();
-		using (await _lock.WaitAsync(cancellationToken))
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			foreach (var state in _embeddedMonitorDeviceStates.Values)
 			{
@@ -733,15 +733,24 @@ internal sealed partial class EmbeddedMonitorService : IChangeSource<EmbeddedMon
 		return [.. initialNotifications];
 	}
 
-	void IChangeSource<EmbeddedMonitorDeviceInformation>.UnregisterWatcher(ChannelWriter<EmbeddedMonitorDeviceInformation> writer)
+	void IChangeSource<EmbeddedMonitorDeviceInformation>.UnsafeUnregisterWatcher(ChannelWriter<EmbeddedMonitorDeviceInformation> writer)
 	{
 		_deviceChangeBroadcaster.Unregister(writer);
+	}
+
+	async ValueTask IChangeSource<EmbeddedMonitorDeviceInformation>.SafeUnregisterWatcherAsync(ChannelWriter<EmbeddedMonitorDeviceInformation> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_deviceChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
 	}
 
 	async ValueTask<EmbeddedMonitorConfiguration[]?> IChangeSource<EmbeddedMonitorConfiguration>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<EmbeddedMonitorConfiguration> writer, CancellationToken cancellationToken)
 	{
 		var initialNotifications = new List<EmbeddedMonitorConfiguration>();
-		using (await _lock.WaitAsync(cancellationToken))
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			foreach (var device in _embeddedMonitorDeviceStates.Values)
 			{
@@ -758,9 +767,18 @@ internal sealed partial class EmbeddedMonitorService : IChangeSource<EmbeddedMon
 		return [.. initialNotifications];
 	}
 
-	void IChangeSource<EmbeddedMonitorConfiguration>.UnregisterWatcher(ChannelWriter<EmbeddedMonitorConfiguration> writer)
+	void IChangeSource<EmbeddedMonitorConfiguration>.UnsafeUnregisterWatcher(ChannelWriter<EmbeddedMonitorConfiguration> writer)
 	{
 		_configurationChangeBroadcaster.Unregister(writer);
+	}
+
+	async ValueTask IChangeSource<EmbeddedMonitorConfiguration>.SafeUnregisterWatcherAsync(ChannelWriter<EmbeddedMonitorConfiguration> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_configurationChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
 	}
 
 	private ValueTask PersistConfigurationAsync

@@ -465,8 +465,17 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 		return initialDeviceInfos?.ToArray();
 	}
 
-	void IChangeSource<SensorDeviceInformation>.UnregisterWatcher(ChannelWriter<SensorDeviceInformation> writer)
+	void IChangeSource<SensorDeviceInformation>.UnsafeUnregisterWatcher(ChannelWriter<SensorDeviceInformation> writer)
 		=> _sensorDeviceBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<SensorDeviceInformation>.SafeUnregisterWatcherAsync(ChannelWriter<SensorDeviceInformation> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_sensorDeviceBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	async ValueTask<SensorConfigurationUpdate[]?> IChangeSource<SensorConfigurationUpdate>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<SensorConfigurationUpdate> writer, CancellationToken cancellationToken)
 	{
@@ -496,8 +505,17 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 		return initialUpdates?.ToArray();
 	}
 
-	void IChangeSource<SensorConfigurationUpdate>.UnregisterWatcher(ChannelWriter<SensorConfigurationUpdate> writer)
+	void IChangeSource<SensorConfigurationUpdate>.UnsafeUnregisterWatcher(ChannelWriter<SensorConfigurationUpdate> writer)
 		=> _configurationChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<SensorConfigurationUpdate>.SafeUnregisterWatcherAsync(ChannelWriter<SensorConfigurationUpdate> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_configurationChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	public async ValueTask<IAsyncEnumerable<SensorDataPoint<TValue>>> GetValueWatcherAsync<TValue>(Guid deviceId, Guid sensorId, CancellationToken cancellationToken)
 		where TValue : struct, INumber<TValue>

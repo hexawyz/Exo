@@ -632,8 +632,17 @@ internal sealed class MouseService :
 		}
 	}
 
-	void IChangeSource<MouseDeviceInformation>.UnregisterWatcher(ChannelWriter<MouseDeviceInformation> writer)
+	void IChangeSource<MouseDeviceInformation>.UnsafeUnregisterWatcher(ChannelWriter<MouseDeviceInformation> writer)
 		=> _deviceChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<MouseDeviceInformation>.SafeUnregisterWatcherAsync(ChannelWriter<MouseDeviceInformation> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_deviceChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	async ValueTask<MouseDpiNotification[]?> IChangeSource<MouseDpiNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<MouseDpiNotification> writer, CancellationToken cancellationToken)
 	{
@@ -675,8 +684,17 @@ internal sealed class MouseService :
 		}
 	}
 
-	void IChangeSource<MouseDpiNotification>.UnregisterWatcher(ChannelWriter<MouseDpiNotification> writer)
+	void IChangeSource<MouseDpiNotification>.UnsafeUnregisterWatcher(ChannelWriter<MouseDpiNotification> writer)
 		=> _dpiChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<MouseDpiNotification>.SafeUnregisterWatcherAsync(ChannelWriter<MouseDpiNotification> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_dpiChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	async ValueTask<MouseDpiPresetsInformation[]?> IChangeSource<MouseDpiPresetsInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<MouseDpiPresetsInformation> writer, CancellationToken cancellationToken)
 	{
@@ -707,8 +725,17 @@ internal sealed class MouseService :
 		}
 	}
 
-	void IChangeSource<MouseDpiPresetsInformation>.UnregisterWatcher(ChannelWriter<MouseDpiPresetsInformation> writer)
+	void IChangeSource<MouseDpiPresetsInformation>.UnsafeUnregisterWatcher(ChannelWriter<MouseDpiPresetsInformation> writer)
 		=> _dpiPresetChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<MouseDpiPresetsInformation>.SafeUnregisterWatcherAsync(ChannelWriter<MouseDpiPresetsInformation> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_dpiPresetChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	async ValueTask<MousePollingFrequencyNotification[]?> IChangeSource<MousePollingFrequencyNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<MousePollingFrequencyNotification> writer, CancellationToken cancellationToken)
 	{
@@ -739,8 +766,17 @@ internal sealed class MouseService :
 		}
 	}
 
-	void IChangeSource<MousePollingFrequencyNotification>.UnregisterWatcher(ChannelWriter<MousePollingFrequencyNotification> writer)
+	void IChangeSource<MousePollingFrequencyNotification>.UnsafeUnregisterWatcher(ChannelWriter<MousePollingFrequencyNotification> writer)
 		=> _pollingFrequencyChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<MousePollingFrequencyNotification>.SafeUnregisterWatcherAsync(ChannelWriter<MousePollingFrequencyNotification> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_pollingFrequencyChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	public async Task SetActiveDpiPresetAsync(Guid deviceId, byte activePresetIndex, CancellationToken cancellationToken)
 	{

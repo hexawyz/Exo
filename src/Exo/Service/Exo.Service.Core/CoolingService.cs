@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Service;
 
-internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, IChangeSource<CoolingUpdate>
+internal partial class CoolingService : IChangeSource<CoolingDeviceInformation>, IChangeSource<CoolingUpdate>
 {
 	private static readonly BoundedChannelOptions CoolingChangeChannelOptions = new(20)
 	{
@@ -310,7 +310,7 @@ internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, 
 							// Only update the information if it has changed since the last time. (Do not wear the disk with useless writes)
 							if (info != coolerState.Information)
 							{
-							 	await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), SourceGenerationContext.Default.PersistedCoolerInformation, cancellationToken).ConfigureAwait(false);
+								await coolingConfigurationContainer.WriteValueAsync(info.CoolerId, new PersistedCoolerInformation(info), SourceGenerationContext.Default.PersistedCoolerInformation, cancellationToken).ConfigureAwait(false);
 							}
 						}
 						else
@@ -362,8 +362,17 @@ internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, 
 		return initialDeviceInfos?.ToArray();
 	}
 
-	void IChangeSource<CoolingDeviceInformation>.UnregisterWatcher(ChannelWriter<CoolingDeviceInformation> writer)
+	void IChangeSource<CoolingDeviceInformation>.UnsafeUnregisterWatcher(ChannelWriter<CoolingDeviceInformation> writer)
 		=> _deviceChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<CoolingDeviceInformation>.SafeUnregisterWatcherAsync(ChannelWriter<CoolingDeviceInformation> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_deviceChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	async ValueTask<CoolingUpdate[]?> IChangeSource<CoolingUpdate>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<CoolingUpdate> writer, CancellationToken cancellationToken)
 	{
@@ -385,8 +394,17 @@ internal partial class CoolingService: IChangeSource<CoolingDeviceInformation>, 
 		return initialUpdates?.ToArray();
 	}
 
-	void IChangeSource<CoolingUpdate>.UnregisterWatcher(ChannelWriter<CoolingUpdate> writer)
+	void IChangeSource<CoolingUpdate>.UnsafeUnregisterWatcher(ChannelWriter<CoolingUpdate> writer)
 		=> _coolingChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<CoolingUpdate>.SafeUnregisterWatcherAsync(ChannelWriter<CoolingUpdate> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_coolingChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	private static CoolingControlCurveConfiguration<TInput> CreatePersistedCurve<TInput>(InterpolatedSegmentControlCurve<TInput, byte> controlCurve)
 		where TInput : struct, INumber<TInput>

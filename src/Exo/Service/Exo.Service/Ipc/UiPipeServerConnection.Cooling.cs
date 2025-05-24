@@ -41,15 +41,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<CoolingDeviceInformation> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var deviceInformation))
 					{
 						int length = WriteNotification(buffer.Span, deviceInformation);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}
@@ -98,15 +98,15 @@ partial class UiPipeServerConnection
 
 		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<CoolingUpdate> watcher, CancellationToken cancellationToken)
 		{
-			while (true)
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
 			{
-				await watcher.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
 					var buffer = WriteBuffer;
 					while (watcher.Reader.TryRead(out var deviceInformation))
 					{
 						int length = WriteNotification(buffer.Span, deviceInformation);
+						if (cancellationToken.IsCancellationRequested) return;
 						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 					}
 				}

@@ -408,8 +408,18 @@ internal class MonitorService : IChangeSource<MonitorInformation>, IChangeSource
 		return new(initialNotifications);
 	}
 
-	void IChangeSource<MonitorInformation>.UnregisterWatcher(ChannelWriter<MonitorInformation> writer)
+	void IChangeSource<MonitorInformation>.UnsafeUnregisterWatcher(ChannelWriter<MonitorInformation> writer)
 		=> _monitorChangeBroadcaster.Unregister(writer);
+
+	ValueTask IChangeSource<MonitorInformation>.SafeUnregisterWatcherAsync(ChannelWriter<MonitorInformation> writer)
+	{
+		lock (_lock)
+		{
+			_monitorChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+		return ValueTask.CompletedTask;
+	}
 
 	ValueTask<MonitorSettingValue[]?> IChangeSource<MonitorSettingValue>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<MonitorSettingValue> writer, CancellationToken cancellationToken)
 	{
@@ -428,8 +438,18 @@ internal class MonitorService : IChangeSource<MonitorInformation>, IChangeSource
 		return new(initialNotifications is not null ? [.. initialNotifications] : []);
 	}
 
-	void IChangeSource<MonitorSettingValue>.UnregisterWatcher(ChannelWriter<MonitorSettingValue> writer)
+	void IChangeSource<MonitorSettingValue>.UnsafeUnregisterWatcher(ChannelWriter<MonitorSettingValue> writer)
 		=> _settingChangeBroadcaster.Unregister(writer);
+
+	ValueTask IChangeSource<MonitorSettingValue>.SafeUnregisterWatcherAsync(ChannelWriter<MonitorSettingValue> writer)
+	{
+		lock (_lock)
+		{
+			_settingChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+		return ValueTask.CompletedTask;
+	}
 
 	public ValueTask SetSettingValueAsync(Guid deviceId, MonitorSetting setting, ushort value, CancellationToken cancellationToken)
 		=> setting switch

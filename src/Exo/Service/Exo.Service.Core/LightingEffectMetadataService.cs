@@ -112,9 +112,19 @@ internal sealed class LightingEffectMetadataService : IChangeSource<LightingEffe
 		}
 	}
 
-	void IChangeSource<LightingEffectInformation>.UnregisterWatcher(ChannelWriter<LightingEffectInformation> writer)
+	void IChangeSource<LightingEffectInformation>.UnsafeUnregisterWatcher(ChannelWriter<LightingEffectInformation> writer)
 	{
 		_effectChangeBroadcaster.Unregister(writer);
+	}
+
+	ValueTask IChangeSource<LightingEffectInformation>.SafeUnregisterWatcherAsync(ChannelWriter<LightingEffectInformation> writer)
+	{
+		lock (_effectUpdateLock)
+		{
+			_effectChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+		return ValueTask.CompletedTask;
 	}
 
 	private ValueTask PersistEffectInformationAsync(LightingEffectInformation info, CancellationToken cancellationToken)

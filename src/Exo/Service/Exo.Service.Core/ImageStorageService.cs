@@ -378,8 +378,17 @@ internal sealed class ImageStorageService : IChangeSource<ImageChangeNotificatio
 
 	}
 
-	void IChangeSource<ImageChangeNotification>.UnregisterWatcher(ChannelWriter<ImageChangeNotification> writer)
+	void IChangeSource<ImageChangeNotification>.UnsafeUnregisterWatcher(ChannelWriter<ImageChangeNotification> writer)
 		=> _changeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<ImageChangeNotification>.SafeUnregisterWatcherAsync(ChannelWriter<ImageChangeNotification> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_changeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	public ImageFile GetImageFile(UInt128 imageId)
 	{

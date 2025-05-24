@@ -750,7 +750,7 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 	async ValueTask<LightDeviceInformation[]?> IChangeSource<LightDeviceInformation>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightDeviceInformation> writer, CancellationToken cancellationToken)
 	{
 		var initialNotifications = new List<LightDeviceInformation>();
-		using (await _lock.WaitAsync(cancellationToken))
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			foreach (var state in _deviceStates.Values)
 			{
@@ -762,13 +762,22 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 		return [.. initialNotifications];
 	}
 
-	void IChangeSource<LightDeviceInformation>.UnregisterWatcher(ChannelWriter<LightDeviceInformation> writer)
+	void IChangeSource<LightDeviceInformation>.UnsafeUnregisterWatcher(ChannelWriter<LightDeviceInformation> writer)
 		=> _deviceChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<LightDeviceInformation>.SafeUnregisterWatcherAsync(ChannelWriter<LightDeviceInformation> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_deviceChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 
 	async ValueTask<LightChangeNotification[]?> IChangeSource<LightChangeNotification>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightChangeNotification> writer, CancellationToken cancellationToken)
 	{
 		var initialNotifications = new List<LightChangeNotification>();
-		using (await _lock.WaitAsync(cancellationToken))
+		using (await _lock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			foreach (var device in _deviceStates.Values)
 			{
@@ -789,6 +798,15 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 		return [.. initialNotifications];
 	}
 
-	void IChangeSource<LightChangeNotification>.UnregisterWatcher(ChannelWriter<LightChangeNotification> writer)
+	void IChangeSource<LightChangeNotification>.UnsafeUnregisterWatcher(ChannelWriter<LightChangeNotification> writer)
 		=> _lightChangeBroadcaster.Unregister(writer);
+
+	async ValueTask IChangeSource<LightChangeNotification>.SafeUnregisterWatcherAsync(ChannelWriter<LightChangeNotification> writer)
+	{
+		using (await _lock.WaitAsync(default).ConfigureAwait(false))
+		{
+			_lightChangeBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+	}
 }

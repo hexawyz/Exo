@@ -25,7 +25,12 @@ namespace Exo.Service;
 
 [Module("Lighting")]
 [TypeId(0x85F9E09E, 0xFD66, 0x4F0A, 0xA2, 0x82, 0x3E, 0x3B, 0xFD, 0xEB, 0x5B, 0xC2)]
-internal sealed partial class LightingService : IAsyncDisposable, IPowerNotificationSink, IChangeSource<LightingDeviceInformation>, IChangeSource<LightingDeviceConfiguration>, IChangeSource<LightingConfiguration>
+internal sealed partial class LightingService :
+	IAsyncDisposable,
+	IPowerNotificationSink,
+	IChangeSource<LightingDeviceInformation>,
+	IChangeSource<LightingDeviceConfiguration>,
+	IChangeSource<LightingConfiguration>
 {
 	private sealed class DeviceState
 	{
@@ -979,8 +984,18 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		return new([.. initialNotifications]);
 	}
 
-	void IChangeSource<LightingDeviceInformation>.UnregisterWatcher(ChannelWriter<LightingDeviceInformation> writer)
+	void IChangeSource<LightingDeviceInformation>.UnsafeUnregisterWatcher(ChannelWriter<LightingDeviceInformation> writer)
 		=> _deviceInformationBroadcaster.Unregister(writer);
+
+	ValueTask IChangeSource<LightingDeviceInformation>.SafeUnregisterWatcherAsync(ChannelWriter<LightingDeviceInformation> writer)
+	{
+		lock (_changeLock)
+		{
+			_deviceInformationBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+		return ValueTask.CompletedTask;
+	}
 
 	ValueTask<LightingDeviceConfiguration[]?> IChangeSource<LightingDeviceConfiguration>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightingDeviceConfiguration> writer, CancellationToken cancellationToken)
 	{
@@ -999,8 +1014,18 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		return new([.. initialNotifications]);
 	}
 
-	void IChangeSource<LightingDeviceConfiguration>.UnregisterWatcher(ChannelWriter<LightingDeviceConfiguration> writer)
+	void IChangeSource<LightingDeviceConfiguration>.UnsafeUnregisterWatcher(ChannelWriter<LightingDeviceConfiguration> writer)
 		=> _deviceConfigurationBroadcaster.Unregister(writer);
+
+	ValueTask IChangeSource<LightingDeviceConfiguration>.SafeUnregisterWatcherAsync(ChannelWriter<LightingDeviceConfiguration> writer)
+	{
+		lock (_changeLock)
+		{
+			_deviceConfigurationBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+		return ValueTask.CompletedTask;
+	}
 
 	ValueTask<LightingConfiguration[]?> IChangeSource<LightingConfiguration>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<LightingConfiguration> writer, CancellationToken cancellationToken)
 	{
@@ -1013,8 +1038,18 @@ internal sealed partial class LightingService : IAsyncDisposable, IPowerNotifica
 		return new(configuration);
 	}
 
-	void IChangeSource<LightingConfiguration>.UnregisterWatcher(ChannelWriter<LightingConfiguration> writer)
+	void IChangeSource<LightingConfiguration>.UnsafeUnregisterWatcher(ChannelWriter<LightingConfiguration> writer)
 		=> _configurationBroadcaster.Unregister(writer);
+
+	ValueTask IChangeSource<LightingConfiguration>.SafeUnregisterWatcherAsync(ChannelWriter<LightingConfiguration> writer)
+	{
+		lock (_changeLock)
+		{
+			_configurationBroadcaster.Unregister(writer);
+			writer.TryComplete();
+		}
+		return ValueTask.CompletedTask;
+	}
 
 	public void SetEffect(Guid deviceId, Guid zoneId, Guid effectId, ReadOnlySpan<byte> data)
 	{
