@@ -10,91 +10,21 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Ipc;
 
-internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPipeServerConnection<UiPipeServerConnection>
+internal sealed partial class UiPipeServerConnection : PipeServerConnection
 {
 	private static readonly UnboundedChannelOptions SensorChannelOptions = new() { SingleWriter = false, SingleReader = true, AllowSynchronousContinuations = true };
 
-	public static UiPipeServerConnection Create(PipeServer<UiPipeServerConnection> server, NamedPipeServerStream stream)
-	{
-		var uiPipeServer = (UiPipeServer)server;
-		return new
-		(
-			uiPipeServer.ConnectionLogger,
-			server,
-			stream,
-			uiPipeServer.AssemblyLoader,
-			uiPipeServer.CustomMenuService,
-			uiPipeServer.ProgrammingService,
-			uiPipeServer.ImageStorageService,
-			uiPipeServer.DeviceRegistry,
-			uiPipeServer.PowerService,
-			uiPipeServer.MouseService,
-			uiPipeServer.MonitorService,
-			uiPipeServer.SensorService,
-			uiPipeServer.CoolingService,
-			uiPipeServer.LightingEffectMetadataService,
-			uiPipeServer.LightingService,
-			uiPipeServer.EmbeddedMonitorService,
-			uiPipeServer.LightService
-		);
-	}
-
-	private readonly IAssemblyLoader _assemblyLoader;
-	private readonly CustomMenuService _customMenuService;
-	private readonly ProgrammingService _programmingService;
-	private readonly ImageStorageService _imageStorageService;
-	private readonly DeviceRegistry _deviceRegistry;
-	private readonly PowerService _powerService;
-	private readonly MouseService _mouseService;
-	private readonly MonitorService _monitorService;
-	private readonly SensorService _sensorService;
-	private readonly CoolingService _coolingService;
-	private readonly LightingEffectMetadataService _lightingEffectMetadataService;
-	private readonly LightingService _lightingService;
-	private readonly EmbeddedMonitorService _embeddedMonitorService;
-	private readonly LightService _lightService;
-	private int _state;
+	private readonly UiPipeServer _server;
 	private readonly Dictionary<uint, SensorWatchState> _sensorWatchStates;
 	private readonly Channel<SensorUpdate> _sensorUpdateChannel;
 	private readonly Channel<SensorFavoritingRequest> _sensorFavoritingChannel;
 	private string? _imageUploadImageName;
 	private SharedMemory? _imageUploadSharedMemory;
+	private int _state;
 
-	private UiPipeServerConnection
-	(
-		ILogger<UiPipeServerConnection> logger,
-		PipeServer server,
-		NamedPipeServerStream stream,
-		IAssemblyLoader assemblyLoader,
-		CustomMenuService customMenuService,
-		ProgrammingService programmingService,
-		ImageStorageService imageStorageService,
-		DeviceRegistry deviceRegistry,
-		PowerService powerService,
-		MouseService mouseService,
-		MonitorService monitorService,
-		SensorService sensorService,
-		CoolingService coolingService,
-		LightingEffectMetadataService lightingEffectMetadataService,
-		LightingService lightingService,
-		EmbeddedMonitorService embeddedMonitorService,
-		LightService lightService
-	) : base(logger, server, stream)
+	internal UiPipeServerConnection(ILogger<UiPipeServerConnection> logger, UiPipeServer server, NamedPipeServerStream stream) : base(logger, server, stream)
 	{
-		_assemblyLoader = assemblyLoader;
-		_customMenuService = customMenuService;
-		_programmingService = programmingService;
-		_imageStorageService = imageStorageService;
-		_deviceRegistry = deviceRegistry;
-		_powerService = powerService;
-		_mouseService = mouseService;
-		_monitorService = monitorService;
-		_sensorService = sensorService;
-		_coolingService = coolingService;
-		_lightingEffectMetadataService = lightingEffectMetadataService;
-		_lightingService = lightingService;
-		_embeddedMonitorService = embeddedMonitorService;
-		_lightService = lightService;
+		_server = server;
 		using (var callingProcess = Process.GetProcessById(NativeMethods.GetNamedPipeClientProcessId(stream.SafePipeHandle)))
 		{
 			if (callingProcess.ProcessName != "Exo.Settings.Ui")
@@ -169,39 +99,48 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection, IPi
 
 		var coolingConfigurationWatchTask = WatchCoolingConfigurationChangesAsync(cancellationToken);
 
-		await Task.WhenAll
-		(
-			metadataWatchTask,
-			customMenuWatchTask,
-			programmingMetadataInitializationTask,
-			imageWatchTask,
-			lightingEffectsWatchTask,
-			deviceWatchTask,
-			powerDeviceWatchTask,
-			mouseDeviceWatchTask,
-			batteryStateWatchTask,
-			lowPowerBatteryThresholdWatchTask,
-			idleSleepTimerWatchTask,
-			wirelessBrightnessWatchTask,
-			mouseDpiWatchTask,
-			mouseDpiPresetWatchTask,
-			mousePollingFrequencyWatchTask,
-			lightingDeviceWatchTask,
-			lightingDeviceConfigurationWatchTask,
-			lightingConfigurationWatchTask,
-			embeddedMonitorDeviceWatchTask,
-			embeddedMonitorConfigurationWatchTask,
-			monitorDeviceWatchTask,
-			monitorSettingWatchTask,
-			sensorDeviceWatchTask,
-			sensorWatchTask,
-			sensorConfigurationWatchTask,
-			sensorFavoritingTask,
-			lightDeviceWatchTask,
-			lightConfigurationWatchTask,
-			coolingDeviceWatchTask,
-			coolingConfigurationWatchTask
-		).ConfigureAwait(false);
+		try
+		{
+			await Task.WhenAll
+			(
+				metadataWatchTask,
+				customMenuWatchTask,
+				programmingMetadataInitializationTask,
+				imageWatchTask,
+				lightingEffectsWatchTask,
+				deviceWatchTask,
+				powerDeviceWatchTask,
+				mouseDeviceWatchTask,
+				batteryStateWatchTask,
+				lowPowerBatteryThresholdWatchTask,
+				idleSleepTimerWatchTask,
+				wirelessBrightnessWatchTask,
+				mouseDpiWatchTask,
+				mouseDpiPresetWatchTask,
+				mousePollingFrequencyWatchTask,
+				lightingDeviceWatchTask,
+				lightingDeviceConfigurationWatchTask,
+				lightingConfigurationWatchTask,
+				embeddedMonitorDeviceWatchTask,
+				embeddedMonitorConfigurationWatchTask,
+				monitorDeviceWatchTask,
+				monitorSettingWatchTask,
+				sensorDeviceWatchTask,
+				sensorWatchTask,
+				sensorConfigurationWatchTask,
+				sensorFavoritingTask,
+				lightDeviceWatchTask,
+				lightConfigurationWatchTask,
+				coolingDeviceWatchTask,
+				coolingConfigurationWatchTask
+			).ConfigureAwait(false);
+		}
+		catch (PipeClosedException)
+		{
+		}
+		catch (OperationCanceledException)
+		{
+		}
 	}
 
 	protected override async Task ReadAndProcessMessagesAsync(PipeStream stream, Memory<byte> buffer, CancellationToken cancellationToken)

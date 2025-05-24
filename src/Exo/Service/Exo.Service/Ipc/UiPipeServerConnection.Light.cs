@@ -7,7 +7,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchLightDevicesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<LightDeviceInformation>.CreateAsync(_lightService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<LightDeviceInformation>.CreateAsync(_server.LightService, cancellationToken))
 		{
 			try
 			{
@@ -64,7 +64,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchLightConfigurationChangesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<LightChangeNotification>.CreateAsync(_lightService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<LightChangeNotification>.CreateAsync(_server.LightService, cancellationToken))
 		{
 			try
 			{
@@ -131,7 +131,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _lightService.SwitchLightAsync(deviceId, lightId, isOn, cancellationToken).ConfigureAwait(false);
+				await _server.LightService.SwitchLightAsync(deviceId, lightId, isOn, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{
@@ -171,7 +171,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _lightService.SetBrightnessAsync(deviceId, lightId, brightness, cancellationToken).ConfigureAwait(false);
+				await _server.LightService.SetBrightnessAsync(deviceId, lightId, brightness, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{
@@ -211,7 +211,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _lightService.SetTemperatureAsync(deviceId, lightId, temperature, cancellationToken).ConfigureAwait(false);
+				await _server.LightService.SetTemperatureAsync(deviceId, lightId, temperature, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{

@@ -77,6 +77,9 @@ public abstract class PipeConnection : IAsyncDisposable
 				{
 					await ReadAndProcessMessagesAsync(_stream!, ReadBuffer, cancellationToken).ConfigureAwait(false);
 				}
+				catch (PipeClosedException)
+				{
+				}
 				catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
 				{
 					_logger.PipeConnectionReadError(ex);

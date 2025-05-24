@@ -8,7 +8,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchImagesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<ImageChangeNotification>.CreateAsync(_imageStorageService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<ImageChangeNotification>.CreateAsync(_server.ImageStorageService, cancellationToken))
 		{
 			try
 			{
@@ -89,7 +89,7 @@ partial class UiPipeServerConnection
 			await WriteImageStorageAddStatusAsync(ImageStorageOperationStatus.InvalidArgument, null, cancellationToken).ConfigureAwait(false);
 			return true;
 		}
-		if (await _imageStorageService.HasImageAsync(imageName, cancellationToken).ConfigureAwait(false))
+		if (await _server.ImageStorageService.HasImageAsync(imageName, cancellationToken).ConfigureAwait(false))
 		{
 			await WriteImageStorageAddStatusAsync(ImageStorageOperationStatus.NameAlreadyInUse, null, cancellationToken).ConfigureAwait(false);
 			return true;
@@ -143,7 +143,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _imageStorageService.AddImageAsync(_imageUploadImageName!, memoryManager.Memory, cancellationToken).ConfigureAwait(false);
+				await _server.ImageStorageService.AddImageAsync(_imageUploadImageName!, memoryManager.Memory, cancellationToken).ConfigureAwait(false);
 			}
 			catch (ArgumentException)
 			{
@@ -172,7 +172,7 @@ partial class UiPipeServerConnection
 	{
 		try
 		{
-			await _imageStorageService.RemoveImageAsync(imageId, cancellationToken).ConfigureAwait(false);
+			await _server.ImageStorageService.RemoveImageAsync(imageId, cancellationToken).ConfigureAwait(false);
 		}
 		catch (ImageNotFoundException)
 		{

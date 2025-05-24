@@ -8,8 +8,8 @@ public abstract class PipeClient
 	internal abstract CancellationToken CancellationToken { get; }
 }
 
-public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
-	where TConnection : PipeClientConnection, IPipeClientConnection<TConnection>
+public abstract class PipeClient<TConnection> : PipeClient, IAsyncDisposable
+	where TConnection : PipeClientConnection
 {
 	private readonly byte[] _buffers;
 	private readonly string _pipeName;
@@ -82,6 +82,8 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 	private NamedPipeClientStream CreateStream(PipeOptions options)
 		=> new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, options);
 
+	protected abstract TConnection CreateConnection(NamedPipeClientStream stream);
+
 	// Maybe we want to make this async at some point?
 	protected TConnection? CurrentConnection => Volatile.Read(ref _currentConnection);
 
@@ -104,7 +106,7 @@ public class PipeClient<TConnection> : PipeClient, IAsyncDisposable
 					}
 					try
 					{
-						Volatile.Write(ref _currentConnection, TConnection.Create(this, stream));
+						Volatile.Write(ref _currentConnection, CreateConnection(stream));
 					}
 					catch
 					{

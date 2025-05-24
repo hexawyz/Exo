@@ -10,7 +10,7 @@ partial class UiPipeServerConnection
 	{
 		try
 		{
-			await foreach (var notification in _customMenuService.WatchChangesAsync(cancellationToken).ConfigureAwait(false))
+			await foreach (var notification in _server.CustomMenuService.WatchChangesAsync(cancellationToken).ConfigureAwait(false))
 			{
 				var message = notification.Kind switch
 				{
@@ -82,7 +82,7 @@ partial class UiPipeServerConnection
 	{
 		try
 		{
-			await _customMenuService.UpdateMenuAsync(menuItems, cancellationToken).ConfigureAwait(false);
+			await _server.CustomMenuService.UpdateMenuAsync(menuItems, cancellationToken).ConfigureAwait(false);
 		}
 		catch (Exception)
 		{

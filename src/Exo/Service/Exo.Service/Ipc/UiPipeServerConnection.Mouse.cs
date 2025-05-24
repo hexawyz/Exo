@@ -7,7 +7,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchMouseDevicesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<MouseDeviceInformation>.CreateAsync(_mouseService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<MouseDeviceInformation>.CreateAsync(_server.MouseService, cancellationToken))
 		{
 			try
 			{
@@ -64,7 +64,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchMouseDpiAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<MouseDpiNotification>.CreateAsync(_mouseService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<MouseDpiNotification>.CreateAsync(_server.MouseService, cancellationToken))
 		{
 			try
 			{
@@ -121,7 +121,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchMouseDpiPresetsAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<MouseDpiPresetsInformation>.CreateAsync(_mouseService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<MouseDpiPresetsInformation>.CreateAsync(_server.MouseService, cancellationToken))
 		{
 			try
 			{
@@ -178,7 +178,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchMousePollingFrequencyAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<MousePollingFrequencyNotification>.CreateAsync(_mouseService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<MousePollingFrequencyNotification>.CreateAsync(_server.MouseService, cancellationToken))
 		{
 			try
 			{
@@ -245,7 +245,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _mouseService.SetActiveDpiPresetAsync(deviceId, activePresetIndex, cancellationToken).ConfigureAwait(false);
+				await _server.MouseService.SetActiveDpiPresetAsync(deviceId, activePresetIndex, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{
@@ -280,7 +280,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _mouseService.SetDpiPresetsAsync(deviceId, activePresetIndex, presets, cancellationToken).ConfigureAwait(false);
+				await _server.MouseService.SetDpiPresetsAsync(deviceId, activePresetIndex, presets, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{
@@ -315,7 +315,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _mouseService.SetPollingFrequencyAsync(deviceId, pollingFrequency, cancellationToken).ConfigureAwait(false);
+				await _server.MouseService.SetPollingFrequencyAsync(deviceId, pollingFrequency, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{

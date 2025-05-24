@@ -8,31 +8,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Service.Ipc;
 
-internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeServerConnection<HelperPipeServerConnection>
+internal sealed class HelperPipeServerConnection : PipeServerConnection
 {
-	public static HelperPipeServerConnection Create(PipeServer<HelperPipeServerConnection> server, NamedPipeServerStream stream)
-	{
-		var helperPipeServer = (HelperPipeServer)server;
-		return new(helperPipeServer.ConnectionLogger, server, stream, helperPipeServer.OverlayNotificationService, helperPipeServer.CustomMenuService, helperPipeServer.MonitorControlProxyService);
-	}
-
-	private readonly OverlayNotificationService _overlayNotificationService;
-	private readonly CustomMenuService _customMenuService;
+	private readonly HelperPipeServer _server;
 	private readonly DisposableChannel<MonitorControlProxyResponse, MonitorControlProxyRequest> _monitorControlProxyChannel;
 	private int _state;
 
-	private HelperPipeServerConnection
-	(
-		ILogger<HelperPipeServerConnection> logger,
-		PipeServer server,
-		NamedPipeServerStream stream,
-		OverlayNotificationService overlayNotificationService,
-		CustomMenuService customMenuService,
-		MonitorControlProxyService monitorControlProxyService
-	) : base(logger, server, stream)
+	internal HelperPipeServerConnection(ILogger<HelperPipeServerConnection> logger, HelperPipeServer server, NamedPipeServerStream stream) : base(logger, server, stream)
 	{
-		_overlayNotificationService = overlayNotificationService;
-		_customMenuService = customMenuService;
+		_server = server;
 		using (var callingProcess = Process.GetProcessById(NativeMethods.GetNamedPipeClientProcessId(stream.SafePipeHandle)))
 		{
 			if (callingProcess.ProcessName != "Exo.Overlay")
@@ -40,7 +24,7 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 				throw new UnauthorizedAccessException("The client is not authorized.");
 			}
 		}
-		_monitorControlProxyChannel = monitorControlProxyService.CreateChannel();
+		_monitorControlProxyChannel = server.MonitorControlProxyService.CreateChannel();
 	}
 
 	protected override ValueTask OnDisposedAsync() => _monitorControlProxyChannel.DisposeAsync();
@@ -58,7 +42,7 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 	{
 		try
 		{
-			await foreach (var request in _overlayNotificationService.WatchOverlayRequestsAsync(cancellationToken).ConfigureAwait(false))
+			await foreach (var request in _server.OverlayNotificationService.WatchOverlayRequestsAsync(cancellationToken).ConfigureAwait(false))
 			{
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
@@ -94,7 +78,7 @@ internal sealed class HelperPipeServerConnection : PipeServerConnection, IPipeSe
 	{
 		try
 		{
-			await foreach (var notification in _customMenuService.WatchChangesAsync(cancellationToken).ConfigureAwait(false))
+			await foreach (var notification in _server.CustomMenuService.WatchChangesAsync(cancellationToken).ConfigureAwait(false))
 			{
 				var message = notification.Kind switch
 				{

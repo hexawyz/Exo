@@ -8,7 +8,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchMetadataChangesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<AssemblyChangeNotification>.CreateAsync(_assemblyLoader, cancellationToken).ConfigureAwait(false))
+		using (var watcher = await BroadcastedChangeWatcher<AssemblyChangeNotification>.CreateAsync(_server.AssemblyLoader, cancellationToken).ConfigureAwait(false))
 		{
 			try
 			{

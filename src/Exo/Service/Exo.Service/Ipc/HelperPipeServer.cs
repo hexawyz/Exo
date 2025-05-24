@@ -6,7 +6,7 @@ namespace Exo.Service.Ipc;
 
 internal sealed class HelperPipeServer : PipeServer<HelperPipeServerConnection>
 {
-	internal ILogger<HelperPipeServerConnection> ConnectionLogger { get; }
+	private readonly ILogger<HelperPipeServerConnection> _connectionLogger;
 	internal OverlayNotificationService OverlayNotificationService { get; }
 	internal CustomMenuService CustomMenuService { get; }
 	internal MonitorControlProxyService MonitorControlProxyService { get; }
@@ -21,9 +21,12 @@ internal sealed class HelperPipeServer : PipeServer<HelperPipeServerConnection>
 		MonitorControlProxyService monitorControlProxyService
 	) : base(pipeName, 2, PipeTransmissionMode.Message, pipeSecurity)
 	{
-		ConnectionLogger = connectionLogger;
+		_connectionLogger = connectionLogger;
 		OverlayNotificationService = overlayNotificationService;
 		CustomMenuService = customMenuService;
 		MonitorControlProxyService = monitorControlProxyService;
 	}
+
+	protected override HelperPipeServerConnection CreateConnection(NamedPipeServerStream stream)
+		=> new(_connectionLogger, this, stream);
 }

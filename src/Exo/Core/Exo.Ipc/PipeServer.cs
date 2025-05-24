@@ -7,8 +7,8 @@ public abstract class PipeServer
 	internal abstract CancellationToken CancellationToken { get; }
 }
 
-public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
-	where TConnection : PipeServerConnection, IPipeServerConnection<TConnection>
+public abstract class PipeServer<TConnection> : PipeServer, IAsyncDisposable
+	where TConnection : PipeServerConnection
 {
 	private readonly string _pipeName;
 	private readonly PipeSecurity? _pipeSecurity;
@@ -94,6 +94,8 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 		}
 	}
 
+	protected abstract TConnection CreateConnection(NamedPipeServerStream stream);
+
 	internal override CancellationToken CancellationToken => (Volatile.Read(ref _cancellationTokenSource) ?? throw new ObjectDisposedException(GetType().FullName)).Token;
 
 	private async Task RunAsync(NamedPipeServerStream stream, CancellationToken cancellationToken)
@@ -147,7 +149,7 @@ public class PipeServer<TConnection> : PipeServer, IAsyncDisposable
 
 		try
 		{
-			_ = TConnection.Create(this, stream).StartAndGetRunTask();
+			_ = CreateConnection(stream).StartAndGetRunTask();
 		}
 		catch (UnauthorizedAccessException)
 		{

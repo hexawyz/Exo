@@ -9,7 +9,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchLightingDevicesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<LightingDeviceInformation>.CreateAsync(_lightingService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<LightingDeviceInformation>.CreateAsync(_server.LightingService, cancellationToken))
 		{
 			try
 			{
@@ -119,7 +119,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchLightingDeviceConfigurationAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<LightingDeviceConfiguration>.CreateAsync(_lightingService, cancellationToken).ConfigureAwait(false))
+		using (var watcher = await BroadcastedChangeWatcher<LightingDeviceConfiguration>.CreateAsync(_server.LightingService, cancellationToken).ConfigureAwait(false))
 		{
 			try
 			{
@@ -211,7 +211,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchLightingConfigurationAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<LightingConfiguration>.CreateAsync(_lightingService, cancellationToken).ConfigureAwait(false))
+		using (var watcher = await BroadcastedChangeWatcher<LightingConfiguration>.CreateAsync(_server.LightingService, cancellationToken).ConfigureAwait(false))
 		{
 			try
 			{
@@ -270,7 +270,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchLightingEffectsAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<LightingEffectInformation>.CreateAsync(_lightingEffectMetadataService, cancellationToken).ConfigureAwait(false))
+		using (var watcher = await BroadcastedChangeWatcher<LightingEffectInformation>.CreateAsync(_server.LightingEffectMetadataService, cancellationToken).ConfigureAwait(false))
 		{
 			try
 			{
@@ -614,7 +614,7 @@ partial class UiPipeServerConnection
 		using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 		{
 			var buffer = WriteBuffer;
-			int length = Write(buffer.Span, _lightingService.GetSupportedCentralizedEffects());
+			int length = Write(buffer.Span, _server.LightingService.GetSupportedCentralizedEffects());
 			await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
 		}
 
@@ -647,7 +647,7 @@ partial class UiPipeServerConnection
 				brightness = reader.ReadByte();
 				try
 				{
-					_lightingService.SetBrightness(deviceId, brightness);
+					_server.LightingService.SetBrightness(deviceId, brightness);
 					hasChanged = true;
 				}
 				catch (DeviceNotFoundException)
@@ -673,7 +673,7 @@ partial class UiPipeServerConnection
 				uint dataLength = reader.ReadVariableUInt32();
 				try
 				{
-					_lightingService.SetEffect(deviceId, zoneId, effectId, reader.UnsafeReadSpan(dataLength));
+					_server.LightingService.SetEffect(deviceId, zoneId, effectId, reader.UnsafeReadSpan(dataLength));
 					hasChanged = true;
 				}
 				catch (DeviceNotFoundException)
@@ -702,7 +702,7 @@ partial class UiPipeServerConnection
 			// NB: Maybe not the best place to put this, but at least the easiest.
 			// This will allow configuration updates to be pushed before the changes are applied onto the device, however it might be acceptable still.
 			// TODO: Refactor this by merging this whole method within the lighting service ?
-			if (hasChanged) _lightingService.NotifyDeviceConfiguration(deviceId);
+			if (hasChanged) _server.LightingService.NotifyDeviceConfiguration(deviceId);
 		}
 		ApplyLightingChanges(requestId, deviceId, (flags & LightingDeviceConfigurationFlags.Persist) != 0, cancellationToken);
 	}
@@ -720,7 +720,7 @@ partial class UiPipeServerConnection
 	{
 		try
 		{
-			await _lightingService.SetLightingConfigurationAsync(useCentralizedLighting, effect, cancellationToken).ConfigureAwait(false);
+			await _server.LightingService.SetLightingConfigurationAsync(useCentralizedLighting, effect, cancellationToken).ConfigureAwait(false);
 		}
 		catch (ArgumentException)
 		{
@@ -760,7 +760,7 @@ partial class UiPipeServerConnection
 	{
 		try
 		{
-			await _lightingService.ApplyChangesAsync(deviceId, shouldPersist).ConfigureAwait(false);
+			await _server.LightingService.ApplyChangesAsync(deviceId, shouldPersist).ConfigureAwait(false);
 		}
 		catch (DeviceNotFoundException)
 		{

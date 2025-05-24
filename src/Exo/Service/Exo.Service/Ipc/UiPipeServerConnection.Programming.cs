@@ -8,7 +8,7 @@ partial class UiPipeServerConnection
 	{
 		try
 		{
-			var modules = _programmingService.GetModules();
+			var modules = _server.ProgrammingService.GetModules();
 			if (modules is { Length: > 0 })
 			{
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
@@ -32,7 +32,7 @@ partial class UiPipeServerConnection
 		}
 	}
 
-	static void Write(ref BufferWriter writer, ImmutableArray<Programming.ModuleDefinition> modules)
+	private static void Write(ref BufferWriter writer, ImmutableArray<Programming.ModuleDefinition> modules)
 	{
 		if (modules.IsDefaultOrEmpty)
 		{
@@ -48,7 +48,7 @@ partial class UiPipeServerConnection
 		}
 	}
 
-	static void Write(ref BufferWriter writer, Programming.ModuleDefinition module)
+	private static void Write(ref BufferWriter writer, Programming.ModuleDefinition module)
 	{
 		writer.Write(module.Id);
 		writer.WriteVariableString(module.Name);

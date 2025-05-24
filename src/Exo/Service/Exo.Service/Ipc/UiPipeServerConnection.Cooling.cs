@@ -10,7 +10,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchCoolingDevicesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<CoolingDeviceInformation>.CreateAsync(_coolingService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<CoolingDeviceInformation>.CreateAsync(_server.CoolingService, cancellationToken))
 		{
 			try
 			{
@@ -67,7 +67,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchCoolingConfigurationChangesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<CoolingUpdate>.CreateAsync(_coolingService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<CoolingUpdate>.CreateAsync(_server.CoolingService, cancellationToken))
 		{
 			try
 			{
@@ -134,7 +134,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _coolingService.SetAutomaticPowerAsync(deviceId, coolerId, cancellationToken).ConfigureAwait(false);
+				await _server.CoolingService.SetAutomaticPowerAsync(deviceId, coolerId, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{
@@ -179,7 +179,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _coolingService.SetFixedPowerAsync(deviceId, coolerId, power, cancellationToken).ConfigureAwait(false);
+				await _server.CoolingService.SetFixedPowerAsync(deviceId, coolerId, power, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{
@@ -283,7 +283,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _coolingService.SetSoftwareControlCurveAsync
+				await _server.CoolingService.SetSoftwareControlCurveAsync
 				(
 					coolingDeviceId,
 					coolerId,
@@ -386,7 +386,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _coolingService.SetHardwareControlCurveAsync
+				await _server.CoolingService.SetHardwareControlCurveAsync
 				(
 					coolingDeviceId,
 					coolerId,

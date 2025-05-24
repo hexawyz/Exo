@@ -12,7 +12,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchSensorDevicesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<SensorDeviceInformation>.CreateAsync(_sensorService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<SensorDeviceInformation>.CreateAsync(_server.SensorService, cancellationToken))
 		{
 			try
 			{
@@ -108,7 +108,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchSensorConfigurationUpdatesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<SensorConfigurationUpdate>.CreateAsync(_sensorService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<SensorConfigurationUpdate>.CreateAsync(_server.SensorService, cancellationToken))
 		{
 			try
 			{
@@ -175,7 +175,7 @@ partial class UiPipeServerConnection
 				await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
 				while (reader.TryRead(out var update))
 				{
-					await _sensorService.SetFavoriteAsync(update.DeviceId, update.SensorId, update.IsFavorite, cancellationToken).ConfigureAwait(false);
+					await _server.SensorService.SetFavoriteAsync(update.DeviceId, update.SensorId, update.IsFavorite, cancellationToken).ConfigureAwait(false);
 				}
 			}
 		}
@@ -275,7 +275,7 @@ partial class UiPipeServerConnection
 				object enumerable;
 				try
 				{
-					(dataType, enumerable) = await _sensorService.GetValueWatcherAsync(deviceId, sensorId, cancellationToken).ConfigureAwait(false);
+					(dataType, enumerable) = await _server.SensorService.GetValueWatcherAsync(deviceId, sensorId, cancellationToken).ConfigureAwait(false);
 				}
 				catch (DeviceNotFoundException)
 				{

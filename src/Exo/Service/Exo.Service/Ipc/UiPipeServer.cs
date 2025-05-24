@@ -6,7 +6,7 @@ namespace Exo.Service.Ipc;
 
 internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 {
-	internal ILogger<UiPipeServerConnection> ConnectionLogger { get; }
+	internal IAssemblyLoader AssemblyLoader { get; }
 	internal CustomMenuService CustomMenuService { get; }
 	internal ProgrammingService ProgrammingService { get; }
 	internal ImageStorageService ImageStorageService { get; }
@@ -20,7 +20,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 	internal LightingService LightingService { get; }
 	internal EmbeddedMonitorService EmbeddedMonitorService { get; }
 	internal LightService LightService { get; }
-	internal IAssemblyLoader AssemblyLoader { get; }
+	private readonly ILogger<UiPipeServerConnection> _connectionLogger;
 
 	public UiPipeServer
 	(
@@ -43,7 +43,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 		LightService lightService
 	) : base(pipeName, 2, PipeTransmissionMode.Message, pipeSecurity)
 	{
-		ConnectionLogger = connectionLogger;
+		_connectionLogger = connectionLogger;
 		AssemblyLoader = assemblyLoader;
 		CustomMenuService = customMenuService;
 		ProgrammingService = programmingService;
@@ -59,4 +59,7 @@ internal sealed class UiPipeServer : PipeServer<UiPipeServerConnection>
 		EmbeddedMonitorService = embeddedMonitorService;
 		LightService = lightService;
 	}
+
+	protected override UiPipeServerConnection CreateConnection(NamedPipeServerStream stream)
+		=> new(_connectionLogger, this, stream);
 }

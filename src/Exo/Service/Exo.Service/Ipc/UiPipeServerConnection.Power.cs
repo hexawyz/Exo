@@ -7,7 +7,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchPowerDevicesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<PowerDeviceInformation>.CreateAsync(_powerService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<PowerDeviceInformation>.CreateAsync(_server.PowerService, cancellationToken))
 		{
 			try
 			{
@@ -76,7 +76,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchBatteryStateChangesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<ChangeWatchNotification<Guid, BatteryState>>.CreateAsync(_powerService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<ChangeWatchNotification<Guid, BatteryState>>.CreateAsync(_server.PowerService, cancellationToken))
 		{
 			try
 			{
@@ -150,7 +150,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchLowPowerBatteryThresholdUpdatesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<PowerDeviceLowPowerBatteryThresholdNotification>.CreateAsync(_powerService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<PowerDeviceLowPowerBatteryThresholdNotification>.CreateAsync(_server.PowerService, cancellationToken))
 		{
 			try
 			{
@@ -209,7 +209,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchIdleSleepTimerUpdatesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<PowerDeviceIdleSleepTimerNotification>.CreateAsync(_powerService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<PowerDeviceIdleSleepTimerNotification>.CreateAsync(_server.PowerService, cancellationToken))
 		{
 			try
 			{
@@ -268,7 +268,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchWirelessBrightnessUpdatesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<PowerDeviceWirelessBrightnessNotification>.CreateAsync(_powerService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<PowerDeviceWirelessBrightnessNotification>.CreateAsync(_server.PowerService, cancellationToken))
 		{
 			try
 			{
@@ -337,7 +337,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _powerService.SetLowPowerModeBatteryThresholdAsync(deviceId, threshold, cancellationToken).ConfigureAwait(false);
+				await _server.PowerService.SetLowPowerModeBatteryThresholdAsync(deviceId, threshold, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{
@@ -372,7 +372,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _powerService.SetIdleSleepTimerAsync(deviceId, idleTimer, cancellationToken).ConfigureAwait(false);
+				await _server.PowerService.SetIdleSleepTimerAsync(deviceId, idleTimer, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{
@@ -407,7 +407,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _powerService.SetWirelessBrightnessAsync(deviceId, brightness, cancellationToken).ConfigureAwait(false);
+				await _server.PowerService.SetWirelessBrightnessAsync(deviceId, brightness, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{

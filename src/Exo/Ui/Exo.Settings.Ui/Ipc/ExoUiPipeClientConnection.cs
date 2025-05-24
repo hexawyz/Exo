@@ -27,7 +27,7 @@ using Microsoft.UI.Dispatching;
 
 namespace Exo.Service.Ipc;
 
-internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeClientConnection<ExoUiPipeClientConnection>, IServiceControl
+internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IServiceControl
 {
 	// Logic used to track multiple concurrent operations of a given kind.
 	// The idea of this is to reuse low numeric IDs and avoid allocating a lot of storage for operations that should most of the time never happen or no more than a few at a time.
@@ -104,12 +104,6 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 
 	private static readonly ImmutableArray<byte> GitCommitId = GetModuleFileName() is string fileName ? GitCommitHelper.GetCommitId(fileName) : [];
 
-	public static ExoUiPipeClientConnection Create(PipeClient<ExoUiPipeClientConnection> client, NamedPipeClientStream stream)
-	{
-		var uiPipeClient = (ExoUiPipeClient)client;
-		return new(uiPipeClient.ConnectionLogger, client, stream, uiPipeClient.DispatcherQueue, uiPipeClient.ServiceClient);
-	}
-
 	private readonly DispatcherQueue _dispatcherQueue;
 	private readonly IServiceClient _serviceClient;
 	private SensorWatchOperation?[]? _sensorWatchOperations;
@@ -125,7 +119,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IPipeCli
 	private ConcurrentDictionary<UInt128, TaskCompletionSource<ImageStorageOperationStatus>>? _imageOperations;
 	private bool _isConnected;
 
-	private ExoUiPipeClientConnection
+	internal ExoUiPipeClientConnection
 	(
 		ILogger<ExoUiPipeClientConnection> logger,
 		PipeClient client,

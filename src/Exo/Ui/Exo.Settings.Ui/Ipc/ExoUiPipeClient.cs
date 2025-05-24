@@ -7,9 +7,9 @@ namespace Exo.Service.Ipc;
 
 internal sealed class ExoUiPipeClient : PipeClient<ExoUiPipeClientConnection>
 {
-	internal ILogger<ExoUiPipeClientConnection> ConnectionLogger { get; }
-	internal DispatcherQueue DispatcherQueue { get; }
-	internal IServiceClient ServiceClient { get; }
+	private readonly ILogger<ExoUiPipeClientConnection> _connectionLogger;
+	private readonly DispatcherQueue _dispatcherQueue;
+	private readonly IServiceClient _serviceClient;
 
 	public ExoUiPipeClient
 	(
@@ -19,8 +19,11 @@ internal sealed class ExoUiPipeClient : PipeClient<ExoUiPipeClientConnection>
 		IServiceClient serviceClient
 	) : base(pipeName, PipeTransmissionMode.Message)
 	{
-		ConnectionLogger = connectionLogger;
-		DispatcherQueue = dispatcherQueue;
-		ServiceClient = serviceClient;
+		_connectionLogger = connectionLogger;
+		_dispatcherQueue = dispatcherQueue;
+		_serviceClient = serviceClient;
 	}
+
+	protected override ExoUiPipeClientConnection CreateConnection(NamedPipeClientStream stream)
+		=> new(_connectionLogger, this, stream, _dispatcherQueue, _serviceClient);
 }

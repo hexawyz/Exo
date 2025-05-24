@@ -9,7 +9,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchEmbeddedMonitorDevicesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<EmbeddedMonitorDeviceInformation>.CreateAsync(_embeddedMonitorService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<EmbeddedMonitorDeviceInformation>.CreateAsync(_server.EmbeddedMonitorService, cancellationToken))
 		{
 			try
 			{
@@ -66,7 +66,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchEmbeddedMonitorConfigurationChangesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<EmbeddedMonitorConfiguration>.CreateAsync(_embeddedMonitorService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<EmbeddedMonitorConfiguration>.CreateAsync(_server.EmbeddedMonitorService, cancellationToken))
 		{
 			try
 			{
@@ -133,7 +133,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _embeddedMonitorService.SetBuiltInGraphicsAsync(deviceId, monitorId, graphicsId, cancellationToken).ConfigureAwait(false);
+				await _server.EmbeddedMonitorService.SetBuiltInGraphicsAsync(deviceId, monitorId, graphicsId, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{
@@ -173,7 +173,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await _embeddedMonitorService.SetImageAsync(deviceId, monitorId, imageId, imageRegion, cancellationToken).ConfigureAwait(false);
+				await _server.EmbeddedMonitorService.SetImageAsync(deviceId, monitorId, imageId, imageRegion, cancellationToken).ConfigureAwait(false);
 			}
 			catch (DeviceNotFoundException)
 			{

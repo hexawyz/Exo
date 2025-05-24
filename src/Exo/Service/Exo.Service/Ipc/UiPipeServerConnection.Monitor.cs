@@ -8,7 +8,7 @@ partial class UiPipeServerConnection
 {
 	private async Task WatchMonitorDevicesAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<MonitorInformation>.CreateAsync(_monitorService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<MonitorInformation>.CreateAsync(_server.MonitorService, cancellationToken))
 		{
 			try
 			{
@@ -105,7 +105,7 @@ partial class UiPipeServerConnection
 
 	private async Task WatchMonitorSettingsAsync(CancellationToken cancellationToken)
 	{
-		using (var watcher = await BroadcastedChangeWatcher<MonitorSettingValue>.CreateAsync(_monitorService, cancellationToken))
+		using (var watcher = await BroadcastedChangeWatcher<MonitorSettingValue>.CreateAsync(_server.MonitorService, cancellationToken))
 		{
 			try
 			{
@@ -179,7 +179,7 @@ partial class UiPipeServerConnection
 		var status = MonitorOperationStatus.Success;
 		try
 		{
-			await _monitorService.SetSettingValueAsync(deviceId, setting, value, cancellationToken).ConfigureAwait(false);
+			await _server.MonitorService.SetSettingValueAsync(deviceId, setting, value, cancellationToken).ConfigureAwait(false);
 		}
 		catch (OperationCanceledException)
 		{
@@ -223,7 +223,7 @@ partial class UiPipeServerConnection
 		var status = MonitorOperationStatus.Success;
 		try
 		{
-			await _monitorService.RefreshValuesAsync(deviceId, cancellationToken).ConfigureAwait(false);
+			await _server.MonitorService.RefreshValuesAsync(deviceId, cancellationToken).ConfigureAwait(false);
 		}
 		catch (OperationCanceledException)
 		{

@@ -11,22 +11,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Overlay;
 
-internal sealed class ExoHelperPipeClientConnection : PipeClientConnection, IPipeClientConnection<ExoHelperPipeClientConnection>
+internal sealed class ExoHelperPipeClientConnection : PipeClientConnection
 {
 	private static readonly ImmutableArray<byte> GitCommitId = GitCommitHelper.GetCommitId(typeof(ExoHelperPipeClientConnection).Assembly);
-
-	public static ExoHelperPipeClientConnection Create(PipeClient<ExoHelperPipeClientConnection> client, NamedPipeClientStream stream)
-	{
-		var helperPipeClient = (ExoHelperPipeClient)client;
-		return new(helperPipeClient.ConnectionLogger, client, stream, helperPipeClient.OverlayRequestWriter, helperPipeClient.MenuChannel, helperPipeClient.MonitorControlProxyRequestChannel);
-	}
 
 	private readonly ChannelWriter<OverlayRequest> _overlayRequestWriter;
 	private readonly ResettableChannel<MenuChangeNotification> _menuChannel;
 	private readonly ResettableChannel<MonitorControlProxyRequest> _monitorControlProxyRequestChannel;
 	private readonly ILogger<ExoHelperPipeClientConnection> _logger;
 
-	private ExoHelperPipeClientConnection
+	internal ExoHelperPipeClientConnection
 	(
 		ILogger<ExoHelperPipeClientConnection> logger,
 		PipeClient client,
@@ -56,7 +50,6 @@ internal sealed class ExoHelperPipeClientConnection : PipeClientConnection, IPip
 		}
 		catch (Exception ex)
 		{
-
 		}
 		finally
 		{
@@ -341,10 +334,10 @@ internal sealed class ExoHelperPipeClientConnection : PipeClientConnection, IPip
 
 internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperPipeClientConnection>, IMenuItemInvoker, IMonitorControlProxyResponseWriter
 {
-	internal ILogger<ExoHelperPipeClientConnection> ConnectionLogger { get; }
-	internal ChannelWriter<OverlayRequest> OverlayRequestWriter { get; }
-	internal ResettableChannel<MenuChangeNotification> MenuChannel { get; }
-	internal ResettableChannel<MonitorControlProxyRequest> MonitorControlProxyRequestChannel { get; }
+	private readonly ChannelWriter<OverlayRequest> _overlayRequestWriter;
+	private readonly ResettableChannel<MenuChangeNotification> _menuChannel;
+	private readonly ResettableChannel<MonitorControlProxyRequest> _monitorControlProxyRequestChannel;
+	private readonly ILogger<ExoHelperPipeClientConnection> _connectionLogger;
 
 	public ExoHelperPipeClient
 	(
@@ -355,11 +348,14 @@ internal sealed class ExoHelperPipeClient : PipeClient<ExoHelperPipeClientConnec
 		ResettableChannel<MonitorControlProxyRequest> monitorControlProxyRequestChannel
 	) : base(pipeName, PipeTransmissionMode.Message)
 	{
-		ConnectionLogger = connectionLogger;
-		OverlayRequestWriter = overlayRequestWriter;
-		MenuChannel = menuChannel;
-		MonitorControlProxyRequestChannel = monitorControlProxyRequestChannel;
+		_connectionLogger = connectionLogger;
+		_overlayRequestWriter = overlayRequestWriter;
+		_menuChannel = menuChannel;
+		_monitorControlProxyRequestChannel = monitorControlProxyRequestChannel;
 	}
+
+	protected override ExoHelperPipeClientConnection CreateConnection(NamedPipeClientStream stream)
+		=> new(_connectionLogger, this, stream, _overlayRequestWriter, _menuChannel, _monitorControlProxyRequestChannel);
 
 	public async ValueTask InvokeMenuItemAsync(Guid menuItemId, CancellationToken cancellationToken)
 	{

@@ -8,7 +8,7 @@ partial class UiPipeServerConnection
 	{
 		try
 		{
-			await foreach (var info in _deviceRegistry.WatchAllAsync(cancellationToken).ConfigureAwait(false))
+			await foreach (var info in _server.DeviceRegistry.WatchAllAsync(cancellationToken).ConfigureAwait(false))
 			{
 				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
 				{
