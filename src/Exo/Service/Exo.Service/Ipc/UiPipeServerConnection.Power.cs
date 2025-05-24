@@ -141,7 +141,7 @@ partial class UiPipeServerConnection
 			}
 			else
 			{
-				writer.Write((byte)1);
+				writer.Write((byte)0);
 			}
 			writer.Write((byte)state.BatteryStatus);
 			writer.Write((byte)state.ExternalPowerStatus);
