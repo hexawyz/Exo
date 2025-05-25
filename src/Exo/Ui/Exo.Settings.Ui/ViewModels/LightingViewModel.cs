@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
 using System.Windows.Input;
@@ -18,7 +19,7 @@ using ILightingService = Exo.Settings.Ui.Services.ILightingService;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposable
+internal sealed partial class LightingViewModel : ChangeableBindableObject, IAsyncDisposable
 {
 	private readonly DevicesViewModel _devicesViewModel;
 	private readonly ISettingsMetadataService _metadataService;
@@ -38,6 +39,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 	private readonly Commands.ExportConfigurationCommand _exportConfigurationCommand;
 	private readonly Commands.ImportConfigurationCommand _importConfigurationCommand;
 
+	private int _changedLightingDeviceCount;
 	private bool _isBusy;
 	private bool _initialUseCentralizedLighting;
 	private bool _useCentralizedLighting;
@@ -57,6 +59,11 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		private set => SetValue(ref _isBusy, !value, ChangedProperty.IsReady);
 	}
 
+	private bool IsNonDeviceChanged => _useCentralizedLighting != _initialUseCentralizedLighting || _centralizedLightingZone.IsChanged;
+	private bool IsNonCentralizedLightingUseChanged => _changedLightingDeviceCount != 0 || _centralizedLightingZone.IsChanged;
+	private bool IsNonCentralizedLightingZoneChanged => _changedLightingDeviceCount != 0 || _useCentralizedLighting != _initialUseCentralizedLighting;
+	public override bool IsChanged => _changedLightingDeviceCount != 0 || IsNonDeviceChanged;
+
 	public bool InitialUseCentralizedLighting
 	{
 		get => _initialUseCentralizedLighting;
@@ -67,7 +74,10 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 				_initialUseCentralizedLighting = value;
 				if (_useCentralizedLighting == value)
 				{
-					// TODO: Set not changed
+					if (!IsNonCentralizedLightingUseChanged)
+					{
+						OnChangeStateChange(false);
+					}
 				}
 				else
 				{
@@ -81,7 +91,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 	public bool UseCentralizedLighting
 	{
 		get => _useCentralizedLighting;
-		set => SetValue(ref _useCentralizedLighting, value, ChangedProperty.UseCentralizedLighting);
+		set => SetChangeableValue(ref _useCentralizedLighting, value, ChangedProperty.UseCentralizedLighting);
 	}
 
 	public LightingZoneViewModel CentralizedLightingZone => _centralizedLightingZone;
@@ -97,7 +107,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		_lightingDevices = new();
 		_lightingDeviceById = new();
 		_effectViewModelById = new();
-		_centralizedLightingZone = new(this, null, new(default, []), "Global Lighting", 0, LightingZoneComponentType.Unknown, LightingZoneShape.Other);
+		_centralizedLightingZone = new(this, null, new(default, []), "Centralized Lighting", 0, LightingZoneComponentType.Unknown, LightingZoneShape.Other);
 		_pendingConfigurationUpdates = new();
 		_pendingDeviceInformations = new();
 		_applyChangesCommand = new(this);
@@ -106,6 +116,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		_importConfigurationCommand = new(this);
 		_cancellationTokenSource = new CancellationTokenSource();
 		_devicesViewModel.Devices.CollectionChanged += OnDevicesCollectionChanged;
+		_centralizedLightingZone.PropertyChanged += OnCentralizedLightingZonePropertyChanged;
 	}
 
 	internal void OnConnected(ILightingService lightingService)
@@ -115,6 +126,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 
 	internal void OnConnectionReset()
 	{
+		bool wasChanged = IsChanged;
 		_lightingDeviceById.Clear();
 		_effectViewModelById.Clear();
 		_pendingConfigurationUpdates.Clear();
@@ -122,14 +134,17 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 
 		foreach (var device in _lightingDevices)
 		{
+			device.PropertyChanged -= OnDevicePropertyChanged;
 			device.Dispose();
 		}
 
 		_lightingDevices.Clear();
 
 		_lightingService = null;
+		_changedLightingDeviceCount = 0;
 		InitialUseCentralizedLighting = false;
 		UseCentralizedLighting = false;
+		OnChangeStateChange(wasChanged);
 	}
 
 	public ValueTask DisposeAsync()
@@ -176,6 +191,11 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		{
 			vm.OnDeviceConfigurationUpdated(in configuration);
 		}
+		if (vm.IsChanged && _changedLightingDeviceCount++ == 0 && !IsNonDeviceChanged)
+		{
+			OnChangeStateChange(false);
+		}
+		vm.PropertyChanged += OnDevicePropertyChanged;
 	}
 
 	private void OnDeviceRemoved(Guid deviceId)
@@ -183,11 +203,39 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		for (int i = 0; i < _lightingDevices.Count; i++)
 		{
 			var vm = _lightingDevices[i];
+			vm.PropertyChanged -= OnDevicePropertyChanged;
+			if (vm.IsChanged && --_changedLightingDeviceCount == 0 && !IsNonDeviceChanged)
+			{
+				OnChangeStateChange(true);
+			}
 			if (_lightingDevices[i].Id == deviceId)
 			{
 				_lightingDevices.RemoveAt(i);
 				_lightingDeviceById.Remove(vm.Id);
 				break;
+			}
+		}
+	}
+
+	private void OnDevicePropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (Equals(e, ChangedProperty.IsChanged))
+		{
+			bool isChanged = ((LightingDeviceViewModel)sender!).IsChanged;
+			if ((isChanged ? _changedLightingDeviceCount++ : --_changedLightingDeviceCount) == 0 && !IsNonDeviceChanged)
+			{
+				OnChanged(isChanged);
+			}
+		}
+	}
+
+	private void OnCentralizedLightingZonePropertyChanged(object? sender, PropertyChangedEventArgs e)
+	{
+		if (Equals(e, ChangedProperty.IsChanged))
+		{
+			if (!IsNonCentralizedLightingZoneChanged)
+			{
+				OnChanged(((LightingZoneViewModel)sender!).IsChanged);
 			}
 		}
 	}
@@ -353,11 +401,19 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 			{
 				device.ResetChanges();
 			}
+			UseCentralizedLighting = InitialUseCentralizedLighting;
 		}
 		finally
 		{
 			IsReady = true;
 		}
+	}
+
+	protected override void OnChanged(bool isChanged)
+	{
+		base.OnChanged(isChanged);
+		_applyChangesCommand.RaiseCanExecuteChanged();
+		_resetChangesCommand.RaiseCanExecuteChanged();
 	}
 
 	private static partial class Commands
@@ -367,7 +423,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		{
 			private readonly LightingViewModel _owner = owner;
 
-			bool ICommand.CanExecute(object? parameter) => true;
+			bool ICommand.CanExecute(object? parameter) => _owner.IsChanged;
 
 			async void ICommand.Execute(object? parameter)
 			{
@@ -387,6 +443,8 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 				add => CanExecuteChanged += value;
 				remove => CanExecuteChanged -= value;
 			}
+
+			public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 		}
 
 		[GeneratedBindableCustomProperty]
@@ -394,7 +452,7 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 		{
 			private readonly LightingViewModel _owner = owner;
 
-			bool ICommand.CanExecute(object? parameter) => true;
+			bool ICommand.CanExecute(object? parameter) => _owner.IsChanged;
 
 			void ICommand.Execute(object? parameter)
 			{
@@ -414,6 +472,8 @@ internal sealed partial class LightingViewModel : BindableObject, IAsyncDisposab
 				add => CanExecuteChanged += value;
 				remove => CanExecuteChanged -= value;
 			}
+
+			public void RaiseCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 		}
 
 		[GeneratedBindableCustomProperty]
