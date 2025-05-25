@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Threading.Channels;
+using Exo.Primitives;
 using Exo.Sensors;
 using Microsoft.Extensions.Logging;
 
@@ -180,7 +181,7 @@ internal sealed partial class SensorService
 	{
 		public new ISensor<TValue> Sensor => Unsafe.As<ISensor<TValue>>(base.Sensor);
 
-		private ChannelWriter<SensorDataPoint<TValue>>[]? _valueListeners;
+		private ChangeBroadcaster<SensorDataPoint<TValue>> _valueBroadcaster;
 
 		protected SensorState(ILogger<SensorState> logger, ISensor<TValue> sensor) : base(logger, sensor)
 		{
@@ -190,18 +191,16 @@ internal sealed partial class SensorService
 
 		protected void OnDataPointReceived(DateTime dateTime, TValue value) => OnDataPointReceived(new SensorDataPoint<TValue>(dateTime, value));
 
-		protected void OnDataPointReceived(SensorDataPoint<TValue> dataPoint) => Volatile.Read(ref _valueListeners).TryWrite(dataPoint);
+		protected void OnDataPointReceived(SensorDataPoint<TValue> dataPoint) => _valueBroadcaster.Push(dataPoint);
 
 		// NB: This method must be exclusive with the OnDataPointReceived methods.
 		protected sealed override void OnStateCompletion()
 		{
-			if (Interlocked.Exchange(ref _valueListeners, null) is { Length: > 0 } listeners)
+			// TODO: Delegate the error creation to the TryComplete method. (Generic with new() constraint ?)
+			var valueBroadcaster = _valueBroadcaster.GetSnapshot();
+			if (!valueBroadcaster.IsEmpty)
 			{
-				var exception = ExceptionDispatchInfo.SetCurrentStackTrace(new DeviceDisconnectedException());
-				foreach (var listener in listeners)
-				{
-					listener.TryComplete(exception);
-				}
+				_valueBroadcaster.TryComplete(ExceptionDispatchInfo.SetCurrentStackTrace(new DeviceDisconnectedException()));
 			}
 		}
 
@@ -210,9 +209,7 @@ internal sealed partial class SensorService
 			// NB: This can possibly made lock-lighter, but the value of this change would have is uncertain.
 			lock (this)
 			{
-				var listeners = _valueListeners.Add(listener);
-				Volatile.Write(ref _valueListeners, listeners);
-				if (listeners.Length == 1)
+				if (_valueBroadcaster.Register(listener))
 				{
 					StartWatching();
 				}
@@ -224,9 +221,7 @@ internal sealed partial class SensorService
 			// NB: This can possibly made lock-lighter, but the value of this change would have is uncertain.
 			lock (this)
 			{
-				var listeners = _valueListeners.Remove(listener);
-				Volatile.Write(ref _valueListeners, listeners);
-				if (listeners is null || listeners.Length == 0)
+				if (_valueBroadcaster.Unregister(listener))
 				{
 					StopWatching();
 				}

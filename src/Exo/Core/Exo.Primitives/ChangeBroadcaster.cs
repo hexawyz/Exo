@@ -32,13 +32,40 @@ public struct ChangeBroadcaster<T>
 	}
 
 	/// <summary>Captures a snapshot of the change broadcaster so that events can be pushed conditionally.</summary>
+	/// <remarks>
+	/// Snapshots must be short lived and serve the main purpose of checking if the watchers list is empty before pushing a message.
+	/// Any use of a snapshot falls under the same calling restrictions as the main <see cref="ChangeBroadcaster{T}"/>.
+	/// </remarks>
 	/// <returns>A read-only snapshot functionally equivalent to this instance for pushing values.</returns>
 	public ChangeBroadcasterSnapshot<T> GetSnapshot() => new(Volatile.Read(ref _listeners));
 
-	public void Register(ChannelWriter<T> writer)
+	/// <summary>Tries to complete all listeners at once.</summary>
+	/// <remarks>This must not be called concurrently with code calling the <see cref="Push(T)"/> method.</remarks>
+	/// <param name="error">The error to optionally signal to the watchers.</param>
+	public void TryComplete(Exception? error = null)
+	{
+		var listeners = Interlocked.Exchange(ref _listeners, null);
+		if (listeners is null) return;
+		if (listeners is ChannelWriter<T> writer)
+		{
+			writer.TryComplete(error);
+		}
+		else
+		{
+			foreach (var writer2 in Unsafe.As<ChannelWriter<T>[]>(listeners))
+			{
+				writer2.TryComplete(error);
+			}
+		}
+	}
+
+	/// <summary>Registers a channel writer to watch on values.</summary>
+	/// <param name="writer"></param>
+	/// <returns><see langword="true"/> if the writer was the first one after being registered. Otherwise, <see langword="false"/>.</returns>
+	public bool Register(ChannelWriter<T> writer)
 	{
 		object? listeners = Interlocked.CompareExchange(ref _listeners, writer, null);
-		if (listeners is null) return;
+		if (listeners is null) return true;
 
 		while (true)
 		{
@@ -51,28 +78,32 @@ public struct ChangeBroadcaster<T>
 			{
 				newListeners = [.. Unsafe.As<ChannelWriter<T>[]>(listeners), writer];
 			}
-			if (ReferenceEquals(listeners, listeners = Interlocked.CompareExchange(ref _listeners, newListeners, listeners))) return;
+			if (ReferenceEquals(listeners, listeners = Interlocked.CompareExchange(ref _listeners, newListeners, listeners))) return false;
 			if (listeners is null)
 			{
 				listeners = Interlocked.CompareExchange(ref _listeners, writer, null);
-				if (listeners is null) return;
+				if (listeners is null) return true;
 			}
 		}
 	}
 
-	public void Unregister(ChannelWriter<T> writer)
+	/// <summary>Unregisters a channel writer from watching on values.</summary>
+	/// <param name="writer"></param>
+	/// <returns><see langword="true"/> if the writer was the last one before being unregistered. Otherwise, <see langword="false"/>.</returns>
+	public bool Unregister(ChannelWriter<T> writer)
 	{
 		while (true)
 		{
 			object? listeners = Interlocked.CompareExchange(ref _listeners, null, writer);
-			if (ReferenceEquals(listeners, writer) || listeners is null || listeners is ChannelWriter<T>) return;
+			if (ReferenceEquals(listeners, writer)) return true;
+			if (listeners is null || listeners is ChannelWriter<T>) return false;
 
 			while (true)
 			{
 				ChannelWriter<T>[]? newListeners;
 				newListeners = Unsafe.As<ChannelWriter<T>[]>(listeners);
 				int index = Array.IndexOf(newListeners, writer);
-				if (index < 0) return;
+				if (index < 0) return false;
 
 				int newLength = newListeners.Length - 1;
 
@@ -86,9 +117,10 @@ public struct ChangeBroadcaster<T>
 					Array.Copy(Unsafe.As<ChannelWriter<T>[]>(listeners), 0, newListeners, 0, index);
 					Array.Copy(Unsafe.As<ChannelWriter<T>[]>(listeners), index + 1, newListeners, index, newLength - index);
 				}
-				if (ReferenceEquals(listeners, listeners = Interlocked.CompareExchange(ref _listeners, newListeners, listeners)) || listeners is null) return;
+				if (ReferenceEquals(listeners, listeners = Interlocked.CompareExchange(ref _listeners, newListeners, listeners))) return newListeners is null;
+				if (listeners is null) return false;
 				if (ReferenceEquals(listeners, writer)) break;
-				if (listeners is ChannelWriter<T>) return;
+				if (listeners is ChannelWriter<T>) return false;
 			}
 		}
 	}
