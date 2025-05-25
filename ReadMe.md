@@ -167,7 +167,7 @@ Exo relies on these runtimes, that you can download from the official websites:
 
 * .NET 9.0.202 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
 * Windows App SDK 1.7 Runtime: https://aka.ms/windowsappsdk/1.7/1.7.250310001/windowsappruntimeinstall-x64.exe
-* PawnIO 2.0.0: https://github.com/namazso/PawnIO.Setup/releases/download/2.0.0/PawnIO_setup.exe
+* PawnIO 2: https://pawnio.eu/
 
 ℹ️ PawnIO is used for accessing low-level platform features in a safe way.
 You will need it to get things like CPU temperature sensors working.
