@@ -297,7 +297,7 @@ internal sealed partial class SensorService
 
 		protected override async ValueTask WatchValuesAsync(CancellationToken cancellationToken)
 		{
-			cancellationToken.ThrowIfCancellationRequested();
+			if (cancellationToken.IsCancellationRequested) return;
 			// Sensors managed by grouped queries are polled from the GroupedQueryState.
 			// The code here is just setting things up for enabling the sensor to be refreshed by the grouped query.
 			var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -307,7 +307,6 @@ internal sealed partial class SensorService
 				await tcs.Task.ConfigureAwait(false);
 				_groupedQueryState.Release(this);
 			}
-			cancellationToken.ThrowIfCancellationRequested();
 		}
 
 		public void RefreshDataPoint(DateTime dateTime)
