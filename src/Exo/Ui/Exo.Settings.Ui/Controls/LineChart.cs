@@ -221,9 +221,13 @@ internal partial class LineChart : Control
 
 	private static (PathGeometry Stroke, PathGeometry Fill, PathGeometry HorizontalGridLines, PathGeometry VerticalGridLines, PathGeometry MinMaxLines) GenerateCurves(ITimeSeries series, double minValue, double maxValue, double outputWidth, double outputHeight)
 	{
+		if (double.IsNaN(minValue) || double.IsNegativeInfinity(minValue)) minValue = 0;
+		if (double.IsNaN(maxValue) || double.IsPositiveInfinity(maxValue)) maxValue = 0;
+
 		for (int i = 0; i < series.Length; i++)
 		{
 			double value = series[i];
+			if (double.IsNaN(value)) value = 0;
 			minValue = Math.Min(value, minValue);
 			maxValue = Math.Max(value, maxValue);
 		}
@@ -238,7 +242,7 @@ internal partial class LineChart : Control
 		if (minValue > 0) minValue = 0;
 
 		// Force the chart to not be fully empty if the min and max are both zero. (result of previous adjustments)
-		if (minValue == maxValue) maxValue = 1;
+		if (minValue == maxValue) maxValue = minValue + 1;
 
 		var (scaleMinY, scaleMaxY, tickSpacingY) = NiceScale.Compute(minValue, maxValue);
 
@@ -257,6 +261,7 @@ internal partial class LineChart : Control
 		for (int j = 1; j < series.Length; j++)
 		{
 			double value = series[j];
+			if (double.IsNaN(value)) value = 0;
 			double x = j * outputAmplitudeX / scaleAmplitudeX;
 			double y = outputAmplitudeY - (value - scaleMinY) * outputAmplitudeY / scaleAmplitudeY;
 			point = new Point(x, y);
