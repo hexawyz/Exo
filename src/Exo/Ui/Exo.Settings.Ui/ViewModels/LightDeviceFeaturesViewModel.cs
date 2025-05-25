@@ -7,7 +7,6 @@ using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class LightDeviceFeaturesViewModel : BindableObject, IDisposable
 {
 	private readonly DeviceViewModel _device;

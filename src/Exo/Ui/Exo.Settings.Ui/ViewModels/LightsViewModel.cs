@@ -1,11 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using Exo.Ui;
-using WinRT;
 
 namespace Exo.Settings.Ui.ViewModels;
 
-[GeneratedBindableCustomProperty]
 internal sealed partial class LightsViewModel : IDisposable
 {
 	private readonly DevicesViewModel _devicesViewModel;
