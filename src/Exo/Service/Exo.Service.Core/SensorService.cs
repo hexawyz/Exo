@@ -517,7 +517,7 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 		}
 	}
 
-	public async ValueTask<IAsyncEnumerable<SensorDataPoint<TValue>>> GetValueWatcherAsync<TValue>(Guid deviceId, Guid sensorId, CancellationToken cancellationToken)
+	public async ValueTask<IChangeSource<SensorDataPoint<TValue>>> GetValueWatcherAsync<TValue>(Guid deviceId, Guid sensorId, CancellationToken cancellationToken)
 		where TValue : struct, INumber<TValue>
 	{
 		if (!_deviceStates.TryGetValue(deviceId, out var state)) throw new DeviceNotFoundException();
@@ -526,7 +526,7 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 			if (state.SensorStates is null || !state.SensorStates.TryGetValue(sensorId, out var sensorState)) throw new SensorNotFoundException();
 
 			// NB: This can throw InvalidCastException if TValue is not correct, which is intended behavior.
-			return ((SensorState<TValue>)sensorState).WatchAsync(cancellationToken);
+			return (IChangeSource<SensorDataPoint<TValue>>)sensorState;
 		}
 	}
 
@@ -538,7 +538,7 @@ internal sealed partial class SensorService : IChangeSource<SensorDeviceInformat
 			if (state.SensorStates is null || !state.SensorStates.TryGetValue(sensorId, out var sensorState)) throw new SensorNotFoundException();
 
 			// NB: This can throw InvalidCastException if TValue is not correct, which is intended behavior.
-			return (sensorState.DataType, sensorState.GetValueWatcher(cancellationToken));
+			return (sensorState.DataType, sensorState);
 		}
 	}
 

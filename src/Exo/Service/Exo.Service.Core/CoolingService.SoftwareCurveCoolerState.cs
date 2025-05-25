@@ -1,6 +1,8 @@
 using System.Numerics;
 using Exo.Cooling;
 using Exo.Cooling.Configuration;
+using Exo.Primitives;
+using Exo.Sensors;
 
 namespace Exo.Service;
 
@@ -84,13 +86,24 @@ internal partial class CoolingService
 					await CoolerState.SensorService.WaitForSensorAsync(_sensorDeviceId, _sensorId, cancellationToken).ConfigureAwait(false);
 					try
 					{
-						// TODO: We can certainly make this "even better" by returning an object that exposes the channel.
-						// As most of the code is internal, it makes sense to trade convenience for more performance. (Avoiding abstractions in this case)
-						var watcher = await CoolerState.SensorService.GetValueWatcherAsync<TInput>(_sensorDeviceId, _sensorId, cancellationToken).ConfigureAwait(false);
-						await foreach (var dataPoint in watcher.ConfigureAwait(false))
+						using (var watcher = await BroadcastedChangeWatcher<SensorDataPoint<TInput>>.CreateAsync(await CoolerState.SensorService.GetValueWatcherAsync<TInput>(_sensorDeviceId, _sensorId, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false))
 						{
-							// NB: The state lock is not acquired here, as we are guaranteed that this dynamic state will be disposed before any other update can occur.
-							CoolerState.SendManualPowerUpdate(_controlCurve[dataPoint.Value]);
+							var initialData = watcher.ConsumeInitialData();
+							if (initialData is { Length: > 0 })
+							{
+								// NB: The state lock is not acquired here, as we are guaranteed that this dynamic state will be disposed before any other update can occur.
+								var dataPoint = initialData[^1];
+								CoolerState.SendManualPowerUpdate(_controlCurve[dataPoint.Value]);
+							}
+
+							while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
+							{
+								while (watcher.Reader.TryRead(out var dataPoint))
+								{
+									CoolerState.SendManualPowerUpdate(_controlCurve[dataPoint.Value]);
+									if (cancellationToken.IsCancellationRequested) goto ReadCompleted;
+								}
+							}
 						}
 					}
 					catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -100,6 +113,7 @@ internal partial class CoolingService
 					{
 						// TODO: Log (Information)
 					}
+					ReadCompleted:;
 				}
 			}
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

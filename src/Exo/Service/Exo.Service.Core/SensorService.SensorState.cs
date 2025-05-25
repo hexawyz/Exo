@@ -171,12 +171,10 @@ internal sealed partial class SensorService
 		// Execution of this method will always be completed before CleanupValueListeners is called.
 		protected abstract ValueTask WatchValuesAsync(CancellationToken cancellationToken);
 
-		public abstract object GetValueWatcher(CancellationToken cancellationToken);
-
 		public SensorDataType DataType => TypeToSensorDataTypeMapping[_sensor.ValueType];
 	}
 
-	private abstract class SensorState<TValue> : SensorState
+	private abstract class SensorState<TValue> : SensorState, IChangeSource<SensorDataPoint<TValue>>
 		where TValue : struct, INumber<TValue>
 	{
 		public new ISensor<TValue> Sensor => Unsafe.As<ISensor<TValue>>(base.Sensor);
@@ -193,6 +191,43 @@ internal sealed partial class SensorService
 
 		protected void OnDataPointReceived(SensorDataPoint<TValue> dataPoint) => _valueBroadcaster.Push(dataPoint);
 
+		ValueTask<SensorDataPoint<TValue>[]?> IChangeSource<SensorDataPoint<TValue>>.GetInitialChangesAndRegisterWatcherAsync(ChannelWriter<SensorDataPoint<TValue>> writer, CancellationToken cancellationToken)
+		{
+			lock (this)
+			{
+				if (_valueBroadcaster.Register(writer))
+				{
+					StartWatching();
+				}
+			}
+			return new([]);
+		}
+
+		void IChangeSource<SensorDataPoint<TValue>>.UnsafeUnregisterWatcher(ChannelWriter<SensorDataPoint<TValue>> writer)
+		{
+			lock (this)
+			{
+				if (_valueBroadcaster.Unregister(writer))
+				{
+					StopWatching();
+				}
+				writer.TryComplete();
+			}
+		}
+
+		ValueTask IChangeSource<SensorDataPoint<TValue>>.SafeUnregisterWatcherAsync(ChannelWriter<SensorDataPoint<TValue>> writer)
+		{
+			lock (this)
+			{
+				if (_valueBroadcaster.Unregister(writer))
+				{
+					StopWatching();
+				}
+				writer.TryComplete();
+			}
+			return ValueTask.CompletedTask;
+		}
+
 		// NB: This method must be exclusive with the OnDataPointReceived methods.
 		protected sealed override void OnStateCompletion()
 		{
@@ -203,57 +238,6 @@ internal sealed partial class SensorService
 				_valueBroadcaster.TryComplete(ExceptionDispatchInfo.SetCurrentStackTrace(new DeviceDisconnectedException()));
 			}
 		}
-
-		private void AddListener(ChannelWriter<SensorDataPoint<TValue>> listener)
-		{
-			// NB: This can possibly made lock-lighter, but the value of this change would have is uncertain.
-			lock (this)
-			{
-				if (_valueBroadcaster.Register(listener))
-				{
-					StartWatching();
-				}
-			}
-		}
-
-		private void RemoveListener(ChannelWriter<SensorDataPoint<TValue>> listener)
-		{
-			// NB: This can possibly made lock-lighter, but the value of this change would have is uncertain.
-			lock (this)
-			{
-				if (_valueBroadcaster.Unregister(listener))
-				{
-					StopWatching();
-				}
-			}
-		}
-
-		public async IAsyncEnumerable<SensorDataPoint<TValue>> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken)
-		{
-			var channel = Channel.CreateBounded<SensorDataPoint<TValue>>(SensorWatchChannelOptions);
-			AddListener(channel);
-			try
-			{
-				// When the state is disposed, the channel will be completed with an exception, so that watchers are made aware of the operation completion.
-				// Generally, if a sensor is watched from the UI, the UI would cancel watching anyway, so there would never be a call to WatchAsync hanging.
-				// However, if a sensor is watched internally, such as for cooling curves, we absolutely need a deterministic way to detect that the sensor has become (temporarily) unavailable.
-				var reader = channel.Reader;
-				while (await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
-				{
-					while (reader.TryRead(out var dataPoint))
-					{
-						yield return dataPoint;
-					}
-				}
-			}
-			finally
-			{
-				RemoveListener(channel);
-			}
-		}
-
-		public override object GetValueWatcher(CancellationToken cancellationToken)
-			=> WatchAsync(cancellationToken);
 	}
 
 	private sealed class InternalSensorState<TValue> : SensorState<TValue>
@@ -265,8 +249,6 @@ internal sealed partial class SensorService
 
 		protected override ValueTask WatchValuesAsync(CancellationToken cancellationToken)
 			=> ValueTask.FromException(ExceptionDispatchInfo.SetCurrentStackTrace(new InvalidOperationException("This sensor can not be watched.")));
-
-		public override object GetValueWatcher(CancellationToken cancellationToken) => throw new InvalidOperationException("This sensor can not be watched.");
 	}
 
 	private sealed class PolledSensorState<TValue> : SensorState<TValue>, IPolledSensorState

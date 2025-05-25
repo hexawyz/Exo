@@ -190,7 +190,7 @@ partial class UiPipeServerConnection
 		{
 			try
 			{
-				await reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false);
+				if (!await reader.WaitToReadAsync().ConfigureAwait(false) || cancellationToken.IsCancellationRequested) return;
 			}
 			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 			{
@@ -216,6 +216,7 @@ partial class UiPipeServerConnection
 					{
 						_sensorWatchStates.Remove(streamId);
 					}
+					if (cancellationToken.IsCancellationRequested) return;
 				}
 			}
 		}
@@ -272,10 +273,10 @@ partial class UiPipeServerConnection
 			else
 			{
 				SensorDataType dataType;
-				object enumerable;
+				object changeSource;
 				try
 				{
-					(dataType, enumerable) = await _server.SensorService.GetValueWatcherAsync(deviceId, sensorId, cancellationToken).ConfigureAwait(false);
+					(dataType, changeSource) = await _server.SensorService.GetValueWatcherAsync(deviceId, sensorId, cancellationToken).ConfigureAwait(false);
 				}
 				catch (DeviceNotFoundException)
 				{
@@ -290,7 +291,7 @@ partial class UiPipeServerConnection
 				SensorWatchState state;
 				try
 				{
-					_sensorWatchStates.Add(streamId, state = SensorWatchState.Create(this, streamId, dataType, enumerable));
+					_sensorWatchStates.Add(streamId, state = SensorWatchState.Create(this, streamId, dataType, changeSource));
 				}
 				catch
 				{
@@ -308,22 +309,22 @@ partial class UiPipeServerConnection
 
 	private abstract class SensorWatchState : IAsyncDisposable
 	{
-		public static SensorWatchState Create(UiPipeServerConnection connection, uint streamId, SensorDataType dataType, object enumerable)
+		public static SensorWatchState Create(UiPipeServerConnection connection, uint streamId, SensorDataType dataType, object changeSource)
 			=> dataType switch
 			{
-				SensorDataType.UInt8 => new SensorWatchState<byte>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<byte>>>(enumerable)),
-				SensorDataType.UInt16 => new SensorWatchState<ushort>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<ushort>>>(enumerable)),
-				SensorDataType.UInt32 => new SensorWatchState<uint>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<uint>>>(enumerable)),
-				SensorDataType.UInt64 => new SensorWatchState<ulong>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<ulong>>>(enumerable)),
-				SensorDataType.UInt128 => new SensorWatchState<UInt128>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<UInt128>>>(enumerable)),
-				SensorDataType.SInt8 => new SensorWatchState<sbyte>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<sbyte>>>(enumerable)),
-				SensorDataType.SInt16 => new SensorWatchState<short>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<short>>>(enumerable)),
-				SensorDataType.SInt32 => new SensorWatchState<int>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<int>>>(enumerable)),
-				SensorDataType.SInt64 => new SensorWatchState<long>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<long>>>(enumerable)),
-				SensorDataType.SInt128 => new SensorWatchState<Int128>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<Int128>>>(enumerable)),
-				SensorDataType.Float16 => new SensorWatchState<Half>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<Half>>>(enumerable)),
-				SensorDataType.Float32 => new SensorWatchState<float>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<float>>>(enumerable)),
-				SensorDataType.Float64 => new SensorWatchState<double>(connection, streamId, Unsafe.As<IAsyncEnumerable<SensorDataPoint<double>>>(enumerable)),
+				SensorDataType.UInt8 => new SensorWatchState<byte>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<byte>>>(changeSource)),
+				SensorDataType.UInt16 => new SensorWatchState<ushort>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<ushort>>>(changeSource)),
+				SensorDataType.UInt32 => new SensorWatchState<uint>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<uint>>>(changeSource)),
+				SensorDataType.UInt64 => new SensorWatchState<ulong>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<ulong>>>(changeSource)),
+				SensorDataType.UInt128 => new SensorWatchState<UInt128>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<UInt128>>>(changeSource)),
+				SensorDataType.SInt8 => new SensorWatchState<sbyte>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<sbyte>>>(changeSource)),
+				SensorDataType.SInt16 => new SensorWatchState<short>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<short>>>(changeSource)),
+				SensorDataType.SInt32 => new SensorWatchState<int>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<int>>>(changeSource)),
+				SensorDataType.SInt64 => new SensorWatchState<long>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<long>>>(changeSource)),
+				SensorDataType.SInt128 => new SensorWatchState<Int128>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<Int128>>>(changeSource)),
+				SensorDataType.Float16 => new SensorWatchState<Half>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<Half>>>(changeSource)),
+				SensorDataType.Float32 => new SensorWatchState<float>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<float>>>(changeSource)),
+				SensorDataType.Float64 => new SensorWatchState<double>(connection, streamId, Unsafe.As<IChangeSource<SensorDataPoint<double>>>(changeSource)),
 				_ => throw new ArgumentOutOfRangeException(nameof(dataType)),
 			};
 
@@ -364,13 +365,13 @@ partial class UiPipeServerConnection
 		private TaskCompletionSource? _taskCompletionSource;
 		private readonly Task _task;
 
-		public SensorWatchState(UiPipeServerConnection connection, uint streamId, IAsyncEnumerable<SensorDataPoint<TValue>> enumerable)
+		public SensorWatchState(UiPipeServerConnection connection, uint streamId, IChangeSource<SensorDataPoint<TValue>> changeSource)
 			: base(connection, streamId)
 		{
 			_taskCompletionSource = new();
 			_task = Connection.Logger.IsEnabled(LogLevel.Trace) ?
-				WatchValuesWithLoggingAsync(enumerable, connection._sensorUpdateChannel.Writer, CancellationToken) :
-				WatchValuesAsync(enumerable, connection._sensorUpdateChannel.Writer, CancellationToken);
+				WatchValuesWithLoggingAsync(changeSource, connection._sensorUpdateChannel.Writer, CancellationToken) :
+				WatchValuesAsync(changeSource, connection._sensorUpdateChannel.Writer, CancellationToken);
 		}
 
 		protected override ValueTask DisposeOnceAsync(CancellationToken canceledToken)
@@ -382,22 +383,40 @@ partial class UiPipeServerConnection
 		public override void Start() => Interlocked.Exchange(ref _taskCompletionSource, null)?.TrySetResult();
 
 		// A version of the watcher that will log received values.
-		private async Task WatchValuesWithLoggingAsync(IAsyncEnumerable<SensorDataPoint<TValue>> enumerable, ChannelWriter<SensorUpdate> writer, CancellationToken cancellationToken)
+		private async Task WatchValuesWithLoggingAsync(IChangeSource<SensorDataPoint<TValue>> changeSource, ChannelWriter<SensorUpdate> writer, CancellationToken cancellationToken)
 		{
 			await _taskCompletionSource!.Task.ConfigureAwait(false);
 			try
 			{
 				try
 				{
-					await foreach (var value in enumerable.ConfigureAwait(false))
+					using (var watcher = await BroadcastedChangeWatcher<SensorDataPoint<TValue>>.CreateAsync(changeSource, cancellationToken).ConfigureAwait(false))
 					{
-						writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
-						Connection.Logger.UiSensorServiceSensorWatchNotification(StreamId, value.DateTime, value.Value);
+						var initialData = watcher.ConsumeInitialData();
+						if (initialData is { Length: > 0 })
+						{
+							foreach (var value in initialData)
+							{
+								writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
+								Connection.Logger.UiSensorServiceSensorWatchNotification(StreamId, value.DateTime, value.Value);
+							}
+						}
+
+						while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
+						{
+							while (watcher.Reader.TryRead(out var value))
+							{
+								writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
+								Connection.Logger.UiSensorServiceSensorWatchNotification(StreamId, value.DateTime, value.Value);
+								if (cancellationToken.IsCancellationRequested) goto WriteCompleted;
+							}
+						}
 					}
 				}
 				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 				{
 				}
+			WriteCompleted:;
 				// We want to notify the client of the stream end.
 				// Calling this helper method will be the simplest way for now, as it avoids dragging along the connection's cancellation token.
 				if (Connection.TryGetDefaultWriteCancellationToken(out var writeCancellationToken))
@@ -418,22 +437,38 @@ partial class UiPipeServerConnection
 			}
 		}
 
-		private async Task WatchValuesAsync(IAsyncEnumerable<SensorDataPoint<TValue>> enumerable, ChannelWriter<SensorUpdate> writer, CancellationToken cancellationToken)
+		private async Task WatchValuesAsync(IChangeSource<SensorDataPoint<TValue>> changeSource, ChannelWriter<SensorUpdate> writer, CancellationToken cancellationToken)
 		{
 			await _taskCompletionSource!.Task.ConfigureAwait(false);
 			try
 			{
 				try
 				{
-					await foreach (var value in enumerable.ConfigureAwait(false))
+					using (var watcher = await BroadcastedChangeWatcher<SensorDataPoint<TValue>>.CreateAsync(changeSource, cancellationToken).ConfigureAwait(false))
 					{
-						writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
-						Connection.Logger.UiSensorServiceSensorWatchNotification(StreamId, value.DateTime, value.Value);
+						var initialData = watcher.ConsumeInitialData();
+						if (initialData is { Length: > 0 })
+						{
+							foreach (var value in initialData)
+							{
+								writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
+							}
+						}
+
+						while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
+						{
+							while (watcher.Reader.TryRead(out var value))
+							{
+								writer.TryWrite(SensorUpdate.Create(StreamId, value.Value));
+								if (cancellationToken.IsCancellationRequested) goto WriteCompleted;
+							}
+						}
 					}
 				}
 				catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 				{
 				}
+			WriteCompleted:;
 				// We want to notify the client of the stream end.
 				// Calling this helper method will be the simplest way for now, as it avoids dragging along the connection's cancellation token.
 				if (Connection.TryGetDefaultWriteCancellationToken(out var writeCancellationToken))
