@@ -295,18 +295,27 @@ internal sealed partial class SensorService
 			_groupedQueryState = groupedQueryState;
 		}
 
-		protected override async ValueTask WatchValuesAsync(CancellationToken cancellationToken)
+		protected override ValueTask WatchValuesAsync(CancellationToken cancellationToken)
 		{
-			if (cancellationToken.IsCancellationRequested) return;
+			if (cancellationToken.IsCancellationRequested) return ValueTask.CompletedTask;
 			// Sensors managed by grouped queries are polled from the GroupedQueryState.
 			// The code here is just setting things up for enabling the sensor to be refreshed by the grouped query.
-			var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-			await using (cancellationToken.UnsafeRegister(static state => ((TaskCompletionSource)state!).TrySetResult(), tcs).ConfigureAwait(false))
-			{
-				_groupedQueryState.Acquire(this);
-				await tcs.Task.ConfigureAwait(false);
-				_groupedQueryState.Release(this);
-			}
+			var tcs = new TaskCompletionSource(this, TaskCreationOptions.RunContinuationsAsynchronously);
+			_groupedQueryState.Acquire(this);
+			// Because we exclusively depend on the cancellation token being cancelled, I don't believe it is necessary to do anything with the registration here.
+			// Logically, cancellation should clear out the internal cancellation registrations and prevent registering new ones (calling the callback immediately)
+			_= cancellationToken.UnsafeRegister
+			(
+				static state =>
+				{
+					var tcs = (TaskCompletionSource)state!;
+					var @this = (GroupedPolledSensorState<TValue>)tcs.Task.AsyncState!;
+					@this._groupedQueryState.Release(@this);
+					tcs.TrySetResult();
+				},
+				tcs
+			);
+			return new(tcs.Task);
 		}
 
 		public void RefreshDataPoint(DateTime dateTime)
