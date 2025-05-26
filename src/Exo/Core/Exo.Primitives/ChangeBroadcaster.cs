@@ -175,9 +175,50 @@ public interface IChangeSource<T>
 // A light abstraction for watching values. Exposing the channel reader allows smoother processing.
 public struct BroadcastedChangeWatcher<T> : IDisposable
 {
-	public static async ValueTask<BroadcastedChangeWatcher<T>> CreateAsync(IChangeSource<T> source, CancellationToken cancellationToken)
+	public static ValueTask<BroadcastedChangeWatcher<T>> CreateAsync(IChangeSource<T> source, CancellationToken cancellationToken)
+		=> CreateAsync(source, new UnboundedChannelOptions() { SingleWriter = true, SingleReader = true, AllowSynchronousContinuations = false }, cancellationToken);
+
+	public static async ValueTask<BroadcastedChangeWatcher<T>> CreateAsync(IChangeSource<T> source, UnboundedChannelOptions options, CancellationToken cancellationToken)
 	{
-		var channel = Channel.CreateUnbounded<T>(new() { SingleReader = true, SingleWriter = true, AllowSynchronousContinuations = false });
+		var channel = Channel.CreateUnbounded<T>(options);
+		var initialData = await source.GetInitialChangesAndRegisterWatcherAsync(channel, cancellationToken).ConfigureAwait(false);
+		var registration = cancellationToken.CanBeCanceled ?
+			cancellationToken.UnsafeRegister
+			(
+				static async (state) =>
+				{
+					var (source, channel) = (Tuple<IChangeSource<T>, Channel<T>>)state!;
+					try
+					{
+						await source.SafeUnregisterWatcherAsync(channel.Writer).ConfigureAwait(false);
+					}
+					catch
+					{
+					}
+				},
+				Tuple.Create(source, channel)
+			) :
+			default;
+		return new(source, initialData, channel, registration);
+	}
+
+	public static ValueTask<BroadcastedChangeWatcher<T>> CreateAsync(IChangeSource<T> source, int capacity, BoundedChannelFullMode fullMode, CancellationToken cancellationToken)
+		=> CreateAsync
+		(
+			source,
+			new BoundedChannelOptions(capacity)
+			{
+				SingleWriter = true,
+				SingleReader = true,
+				AllowSynchronousContinuations = false,
+				FullMode = fullMode,
+			},
+			cancellationToken
+		);
+
+	public static async ValueTask<BroadcastedChangeWatcher<T>> CreateAsync(IChangeSource<T> source, BoundedChannelOptions options, CancellationToken cancellationToken)
+	{
+		var channel = Channel.CreateBounded<T>(options);
 		var initialData = await source.GetInitialChangesAndRegisterWatcherAsync(channel, cancellationToken).ConfigureAwait(false);
 		var registration = cancellationToken.CanBeCanceled ?
 			cancellationToken.UnsafeRegister

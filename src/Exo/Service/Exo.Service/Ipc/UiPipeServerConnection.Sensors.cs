@@ -390,7 +390,7 @@ partial class UiPipeServerConnection
 			{
 				try
 				{
-					using (var watcher = await BroadcastedChangeWatcher<SensorDataPoint<TValue>>.CreateAsync(changeSource, cancellationToken).ConfigureAwait(false))
+					using (var watcher = await BroadcastedChangeWatcher<SensorDataPoint<TValue>>.CreateAsync(changeSource, 10, BoundedChannelFullMode.DropOldest, cancellationToken).ConfigureAwait(false))
 					{
 						var initialData = watcher.ConsumeInitialData();
 						if (initialData is { Length: > 0 })
@@ -444,7 +444,7 @@ partial class UiPipeServerConnection
 			{
 				try
 				{
-					using (var watcher = await BroadcastedChangeWatcher<SensorDataPoint<TValue>>.CreateAsync(changeSource, cancellationToken).ConfigureAwait(false))
+					using (var watcher = await BroadcastedChangeWatcher<SensorDataPoint<TValue>>.CreateAsync(changeSource, 10, BoundedChannelFullMode.DropOldest, cancellationToken).ConfigureAwait(false))
 					{
 						var initialData = watcher.ConsumeInitialData();
 						if (initialData is { Length: > 0 })
