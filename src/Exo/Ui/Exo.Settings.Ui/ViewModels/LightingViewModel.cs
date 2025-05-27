@@ -76,7 +76,7 @@ internal sealed partial class LightingViewModel : ChangeableBindableObject, IAsy
 				{
 					if (!IsNonCentralizedLightingUseChanged)
 					{
-						OnChangeStateChange(false);
+						OnChanged(false);
 					}
 				}
 				else
