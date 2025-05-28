@@ -289,20 +289,17 @@ public partial class AuraRamDriver :
 		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
 		if (destination.Length == 1)
 		{
-			byte result = await smBusDriver.ReadByteAsync(deviceAddress, ReadByteCommand);
-			destination.Span[0] = result;
+			destination.Span[0] = await smBusDriver.ReadByteAsync(deviceAddress, ReadByteCommand);
 		}
 		else if (destination.Length == 2)
 		{
-			ushort result = await smBusDriver.ReadByteAsync(deviceAddress, ReadByteCommand);
-			Unsafe.As<byte, ushort>(ref destination.Span[0]) = result;
+			MemoryMarshal.Write(destination.Span, await smBusDriver.ReadWordAsync(deviceAddress, ReadByteCommand));
 		}
 		else
 		{
 			// It seems like we are able to request reading blocks of data of an arbitrary size.
 			// Trying to read 32 would fail, but the sizes we actually need seem to work fine. (4 and 24)
-			var data = await smBusDriver.ReadBlockAsync(deviceAddress, (byte)(ReadCommandBase + destination.Length));
-			data.AsSpan(0, destination.Length).CopyTo(destination.Span);
+			(await smBusDriver.ReadBlockAsync(deviceAddress, (byte)(ReadCommandBase + destination.Length))).AsSpan(0, destination.Length).CopyTo(destination.Span);
 		}
 	}
 
