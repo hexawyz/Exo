@@ -5,36 +5,40 @@
 
 Exo is the exoskeleton for your Windows computer and its connected devices.
 
-You can use it to control or monitor your Mouses, Keyboards, Monitors, AIO, RGB lighting, etc.
+![Screenshot of Exo UI](https://exo-app.io/images/Screenshot-Exo-Home.png)
+
+It allows controlling or monitoring Mouses, Keyboards, Monitors, AIO, RGB lighting, etc.
 
 The project was started out of spite for all the client-side "drivers" for devices, that consume unimaginable amounts of RAM and CPU.
 As such, the goal of Exo is to replace all of these tools in a single service that will be more stable, consume a relatively small memory footprint, with a low CPU overhead.
 
 To support this vision, Exo is designed to be as modular as possible, and device support is provided through dynamically-loaded plugins that you can add or remove as you need.
 To be as light **and** reliable as possible, Exo is implemented as a background service, that will start early enough during the boot process to restore settings before user logon.
-You will not be held back by a heavy Electron-based or CEF-based UI, as the user interface is purely on-demand.
+You will not be held back by a heavy Electron-based or CEF-based UI, as the native user interface is purely on-demand.
 
-⚠️ The project is still in development, but many features are already available in a stable state.
+⚠️ The project is still in active development, and features are added one by one. However, many features are already in a perfectly usable state, depending on your needs.
 You can check the list of (known) supported devices at https://exo-app.io/devices.html.
 All the devices listed will have some or all of their hardware features exposed by Exo in some form or another.
 
-ℹ️ Some devices are based on the same protocol as those already supported. It is possible that the current code already support a specific device, but does not "recognize" it.
-In order to avoid communicating with a device that is incompatible, the code of the various device plugins will generally have an explicit list of each supported device.
+ℹ️ In order to avoid communicating with a device that is incompatible, the code of the various device plugins will generally have an explicit list of each supported device.
+This means that some of your devices will not be recognized by Exo although they maybe already be supported internally.
+If this is the case, adding support for your device may be relatively be easy. It will only need to be tested on your side.
 
 💡 If you want to request support for a device, or if you believe one of your devices should already be supported by the code, please make this known by opening an issue.
 
-For screenshots of the UI, go to https://exo-app.io
+For more details about the UI, go to https://exo-app.io
 
 # Why
 
 A lot of devices sold today, from mouses to RGB controllers and monitors, often provide features that can't be accessed directly at the OS level.
 This is fine, but those device require drivers and/or applications to provide their useful features to you.
 
-When these apps exist, they are more often than not presented as client-side application that will be a terrible Electron-based mess, and almost always as a bloated unoptimized suite with features you will never need.
+When these apps exist, they are too often presented as bloated and unoptimized client-side applications, sometimes as a large software suite with features you will never need or use.
 
-Other than being slow and consuming a huge chunk of your RAM for nothing, those applications are more often than not somewhat unstable, and can have undesired behavior such as random updates or invisible crashes. (Do you really need 5 unstable chrome processes to manage a mouse?)
+Other than being slow and consuming a huge chunk of your RAM for no good reason, those applications are often somewhat unstable and can have undesired behavior such as random updates or invisible crashes.
+Ask yourself if you really need to have 5 unstable chrome processes in the background just to manage your mouse at most a few times in the week.
 
-As the author of Exo, I believed that it is possible to do a much better job than this on all aspects, which should now have been mostly proven 😄
+As the author of Exo, I believe that it is possible to do a much better job than this on all aspects, and Exo should be the proof of it 😉
 Exo is designed and architected with this in mind, and aims to provide a Windows service that will detect and operate on your device by being mindful of system resources. (Expect between 20 and 40 MB depending on your configuration, and mostly no CPU usage)
 
 Current focus is on exposing passive hardware features, which is basically CPU free after the service has been initialized.
@@ -50,9 +54,11 @@ Exo currently support the following features, provided that there is a custom dr
 	* Some of the other features will push notifications that will be displayed on screen
 	* ⚠️ Notifications are sent by the service but displayed by the helper in-session UI application, `Exo.Overlay` (might rename this to `Exo.Helper` at some point)
 * RGB Lighting
+    * Flexible effect system allowing devices to expose their own specific effects with all supported settings
 	* Hardware lighting effects are supported, as exposed by the drivers for the devices
 	* Hardware persistence of lighting effects, if supported by the device
 	* Software persistence of lighting effects, for all devices
+    * Centralized lighting, allowing to apply an effect to all devices, with intelligent fallback.
 * Lamps
     * Live status updates (if the light is changed externally)
     * On/Off
@@ -147,7 +153,7 @@ NB: Support of a device does not mean that all of its features will be exposed i
 * Eaton
 	* Various UPS Models: Power consumption and battery level.
 * NZXT
-	* Kraken Z devices: Displaying custom images, Screen brightness, Cooling control, Sensors for Liquid temperature, Pump speed and Fan speed. (Still missing: RGB lighting)
+	* Kraken Z devices: Displaying custom images, Screen brightness, Cooling control, Sensors for Liquid temperature, Pump speed and Fan speed, RGB lighting accessories.
 * Other
 	* Generic monitor support (Requires a GPU driver for the GPU the monitor is connected to; May require the UI helper to be started if the GPU driver cannot directly provide I2C support)
 
@@ -166,7 +172,7 @@ Features are being added bit by bit, and while some are not yet fully designed, 
 Exo relies on these runtimes, that you can download from the official websites:
 
 * .NET 9.0.202 runtime: https://dotnet.microsoft.com/en-us/download/dotnet/9.0
-* Windows App SDK 1.7 Runtime: https://aka.ms/windowsappsdk/1.7/1.7.250310001/windowsappruntimeinstall-x64.exe
+* Windows App SDK 1.7.1 Runtime: https://aka.ms/windowsappsdk/1.7/1.7.250401001/windowsappruntimeinstall-x64.exe
 * PawnIO 2: https://pawnio.eu/
 
 ℹ️ PawnIO is used for accessing low-level platform features in a safe way.
@@ -218,7 +224,10 @@ e.g.:
 * Razer Synapse (in case of a supported device): The Razer protocol is not really designed to avoid conflicts, so the softwares can run into problems if two are running simultaneously.
 * Stream Deck: When accessing the device Exo can slightly disrupt the StreamDeck software, but this is probably an intentional behavior from Elgato in order to allow others to control the device. Distruption is instantly fixed by simply opening the main window of the Stream Deck software.
 * RGB Fusion 2.0: As long as the software is not open and running any effects, it seems that there are generally no conflicts.
-* NZXT CAM: If CAM is started prior to the service, it will prevent it from accessing Kraken devices.
+* NZXT CAM: If CAM is started prior to Exo, it will prevent it from accessing Kraken devices. If Exo is started prior to CAM, it will prevent CAM from accessing the device.
+
+⚠️ Please also note that in recent versions of Windows, many devices will now strictly require administrator rights to be acessed. I believe this is part of an effort from Microsoft to make the system more secure by preventing random apps from accessing any device.
+This will never be a problem if you run Exo as a service (which is the default configuration when using the installer), but it can be a problem if you try to run Exo manually or develop & debug within an IDE.
 
 ## Getting a binary release
 
@@ -254,7 +263,7 @@ As such, this approach is not recommended, unless you have a very specific need 
 
 # Architecture
 
-Disclaimer: I can't promise that Exo is (will not be) not over-engineered in some parts, as this is also an opinion matter. However, I'll try to choose the most efficient design to provide the most generic features possible.
+Disclaimer: While I will always try to choose the most efficient design to provide the most generic features possible, design is a matter of opinion. As such, I cannot promise you that some parts of Exo won't feel over-engineered.
 
 ## Top Level View
 
@@ -289,6 +298,8 @@ The service itself is split in different layers:
 	* Configuration service that will persist important configuration
 	* Device registry that references all known devices, connected or not
 	* Discovery orchestrator that will detect and load optional components and drivers from plugin assemblies
+
+In general, although Exo is opinionated towards managing hardware devices, it is designed more as a general-purpose management system that could be used outside of the scope of a computer.
 
 ## Device discovery
 
