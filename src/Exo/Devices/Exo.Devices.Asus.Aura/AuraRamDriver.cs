@@ -289,11 +289,12 @@ public partial class AuraRamDriver :
 		await WriteRegisterAddress(smBusDriver, deviceAddress, registerAddress);
 		if (destination.Length == 1)
 		{
-			destination.Span[0] = await smBusDriver.ReadByteAsync(deviceAddress, ReadByteCommand);
+			byte result = await smBusDriver.ReadByteAsync(deviceAddress, ReadByteCommand);
+			destination.Span[0] = result;
 		}
 		else if (destination.Length == 2)
 		{
-			MemoryMarshal.Write(destination.Span, await smBusDriver.ReadWordAsync(deviceAddress, ReadByteCommand));
+			MemoryMarshal.Write(value: await smBusDriver.ReadWordAsync(deviceAddress, ReadByteCommand), destination: destination.Span);
 		}
 		else
 		{
