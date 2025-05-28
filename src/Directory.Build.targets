@@ -1,6 +1,6 @@
 <Project>
 	<PropertyGroup>
-		<CentralDotNetPackageVersion>9.0.4</CentralDotNetPackageVersion>
+		<CentralDotNetPackageVersion>9.0.5</CentralDotNetPackageVersion>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Update="System.Memory" Version="4.6.3" />
@@ -21,8 +21,8 @@
 		<PackageReference Update="coverlet.collector" Version="6.0.4" />
 		<PackageReference Update="Microsoft.Bcl.AsyncInterfaces" Version="$(CentralDotNetPackageVersion)" />
 		<PackageReference Update="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
-		<PackageReference Update="Microsoft.CodeAnalysis.Common" Version="4.13.0" />
-		<PackageReference Update="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
+		<PackageReference Update="Microsoft.CodeAnalysis.Common" Version="4.14.0" />
+		<PackageReference Update="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
 		<PackageReference Update="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.12.0" />
 		<PackageReference Update="Microsoft.Extensions.DependencyInjection" Version="$(CentralDotNetPackageVersion)" />
 		<PackageReference Update="Microsoft.Extensions.Hosting" Version="$(CentralDotNetPackageVersion)" />
@@ -33,7 +33,7 @@
 		<PackageReference Update="Microsoft.Extensions.Logging.EventLog" Version="$(CentralDotNetPackageVersion)" />
 		<PackageReference Update="Microsoft.Extensions.Options" Version="$(CentralDotNetPackageVersion)" />
 		<PackageReference Update="Microsoft.Management.Infrastructure" Version="3.0.0" />
-		<PackageReference Update="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+		<PackageReference Update="Microsoft.NET.Test.Sdk" Version="17.14.0" />
 		<PackageReference Update="Serilog.Enrichers.Environment" Version="3.0.1" />
 		<PackageReference Update="Serilog.Enrichers.Thread" Version="4.0.0" />
 		<PackageReference Update="Serilog.Extensions.Hosting" Version="9.0.0" />
