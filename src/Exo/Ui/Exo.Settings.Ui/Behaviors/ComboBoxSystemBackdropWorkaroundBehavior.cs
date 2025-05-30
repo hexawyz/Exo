@@ -4,7 +4,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using CommunityToolkit.WinUI.Behaviors;
 using Microsoft.UI.Composition;
@@ -16,7 +15,6 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using WinRT;
-using WinRT.Interop;
 
 namespace Exo.Settings.Ui.Behaviors;
 
@@ -29,7 +27,7 @@ internal sealed class ComboBoxSystemBackdropWorkaroundBehavior : BehaviorBase<Co
 	private SystemBackdropConfiguration? _systemBackdropConfiguration;
 	private bool _connected;
 
-	public static bool TryAs<TInterface>(object? value, [NotNullWhen(true)] out TInterface? result)
+	public static bool TryAs<TInterface>(IWinRTObject? value, [NotNullWhen(true)] out TInterface? result)
 		where TInterface : class
 	{
 		if (value is null) goto NotSuccessful;
@@ -40,48 +38,32 @@ internal sealed class ComboBoxSystemBackdropWorkaroundBehavior : BehaviorBase<Co
 			return true;
 		}
 
-		ObjectReference<IUnknownVftbl> unknown;
-
-		if (ComWrappersSupport.TryUnwrapObject(value, out var objRef))
+		nint abi = 0;
+		try
 		{
-			unknown = objRef.As<IUnknownVftbl>(IID.IID_IUnknown);
-		}
-		else if (value is IWinRTObject winRTObject)
-		{
-			unknown = winRTObject.NativeObject.As<IUnknownVftbl>(IID.IID_IUnknown);
-		}
-		else
-		{
-			goto NotSuccessful;
-		}
-
-		using (unknown)
-		{
-			if (typeof(TInterface).IsDefined(typeof(ComImportAttribute)))
+			int qir = value.NativeObject.TryAs(GuidGenerator.GetGUID(typeof(TInterface)), out abi);
+			if (qir >= 0)
 			{
-				Guid iid = typeof(TInterface).GUID;
-				var qir = Marshal.QueryInterface(unknown.ThisPtr, in iid, out var ppv);
-				if (qir >= 0)
-				{
-					try
-					{
-						result = (TInterface)Marshal.GetObjectForIUnknown(ppv);
-					}
-					finally
-					{
-						Marshal.Release(ppv);
-					}
-				}
-				else if ((uint)qir == 0x80004002U)
-				{
-					goto NotSuccessful;
-				}
-				else
-				{
-					Marshal.ThrowExceptionForHR(qir);
-				}
+				result = MarshalInspectable<TInterface>.FromAbi(abi);
+				return true;
+			}
+			else if ((uint)qir == 0x80004002U)
+			{
+				goto NotSuccessful;
+			}
+			else
+			{
+				Marshal.ThrowExceptionForHR(qir);
 			}
 		}
+		finally
+		{
+			if (abi != 0)
+			{
+				MarshalInspectable<object>.DisposeAbi(abi);
+			}
+		}
+
 	NotSuccessful:;
 		result = null;
 		return false;
@@ -91,11 +73,14 @@ internal sealed class ComboBoxSystemBackdropWorkaroundBehavior : BehaviorBase<Co
 		where TElement : FrameworkElement
 	{
 		int childCount = VisualTreeHelper.GetChildrenCount(element);
-		if (childCount > 0)
-		{
-			return FindChild<TElement>(element, childCount, name);
-		}
-		return null;
+		return childCount > 0 ? FindChild<TElement>(element, childCount, name) : null;
+	}
+
+	private static TElement? RecursiveFindChild<TElement>(FrameworkElement element, string name)
+		where TElement : FrameworkElement
+	{
+		int childCount = VisualTreeHelper.GetChildrenCount(element);
+		return childCount > 0 ? RecursiveFindChild<TElement>(element, childCount, name) : null;
 	}
 
 	private static TElement? FindChild<TElement>(FrameworkElement element, int childCount, string name)
@@ -105,8 +90,21 @@ internal sealed class ComboBoxSystemBackdropWorkaroundBehavior : BehaviorBase<Co
 		{
 			if (VisualTreeHelper.GetChild(element, i) is not FrameworkElement child) continue;
 			if (child.Name == name && TryAs<TElement>(child, out var typedChild)) return typedChild;
+		}
+		return null;
+	}
+
+	private static TElement? RecursiveFindChild<TElement>(FrameworkElement element, int childCount, string name)
+		where TElement : FrameworkElement
+	{
+		// Step 1: Search children at top level
+		if (FindChild<TElement>(element, childCount, name) is { } foundChild) return foundChild;
+		// Step 2: Search children of children.
+		for (int i = 0; i < childCount; i++)
+		{
+			if (VisualTreeHelper.GetChild(element, i) is not FrameworkElement child) continue;
 			int count = VisualTreeHelper.GetChildrenCount(child);
-			if (count > 0 && FindChild<TElement>(child, count, name) is { } childChild) return childChild;
+			if (count > 0 && RecursiveFindChild<TElement>(child, count, name) is { } childChild) return childChild;
 		}
 		return null;
 	}
@@ -114,7 +112,7 @@ internal sealed class ComboBoxSystemBackdropWorkaroundBehavior : BehaviorBase<Co
 	protected override bool Initialize()
 	{
 		ComboBox comboBox = AssociatedObject;
-		if (FindChild<Popup>(comboBox, "Popup") is not { } popup)
+		if (RecursiveFindChild<Popup>(comboBox, "Popup") is not { } popup)
 		{
 			return false;
 		}
