@@ -4,7 +4,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
-using CommunityToolkit.WinUI;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using CommunityToolkit.WinUI.Behaviors;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Composition.SystemBackdrops;
@@ -13,7 +14,9 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Media;
 using WinRT;
+using WinRT.Interop;
 
 namespace Exo.Settings.Ui.Behaviors;
 
@@ -26,10 +29,92 @@ internal sealed class ComboBoxSystemBackdropWorkaroundBehavior : BehaviorBase<Co
 	private SystemBackdropConfiguration? _systemBackdropConfiguration;
 	private bool _connected;
 
+	public static bool TryAs<TInterface>(object? value, [NotNullWhen(true)] out TInterface? result)
+		where TInterface : class
+	{
+		if (value is null) goto NotSuccessful;
+
+		if (value is TInterface i)
+		{
+			result = i;
+			return true;
+		}
+
+		ObjectReference<IUnknownVftbl> unknown;
+
+		if (ComWrappersSupport.TryUnwrapObject(value, out var objRef))
+		{
+			unknown = objRef.As<IUnknownVftbl>(IID.IID_IUnknown);
+		}
+		else if (value is IWinRTObject winRTObject)
+		{
+			unknown = winRTObject.NativeObject.As<IUnknownVftbl>(IID.IID_IUnknown);
+		}
+		else
+		{
+			goto NotSuccessful;
+		}
+
+		using (unknown)
+		{
+			if (typeof(TInterface).IsDefined(typeof(ComImportAttribute)))
+			{
+				Guid iid = typeof(TInterface).GUID;
+				var qir = Marshal.QueryInterface(unknown.ThisPtr, in iid, out var ppv);
+				if (qir >= 0)
+				{
+					try
+					{
+						result = (TInterface)Marshal.GetObjectForIUnknown(ppv);
+					}
+					finally
+					{
+						Marshal.Release(ppv);
+					}
+				}
+				else if ((uint)qir == 0x80004002U)
+				{
+					goto NotSuccessful;
+				}
+				else
+				{
+					Marshal.ThrowExceptionForHR(qir);
+				}
+			}
+		}
+	NotSuccessful:;
+		result = null;
+		return false;
+	}
+
+	private static TElement? FindChild<TElement>(FrameworkElement element, string name)
+		where TElement : FrameworkElement
+	{
+		int childCount = VisualTreeHelper.GetChildrenCount(element);
+		if (childCount > 0)
+		{
+			return FindChild<TElement>(element, childCount, name);
+		}
+		return null;
+	}
+
+	private static TElement? FindChild<TElement>(FrameworkElement element, int childCount, string name)
+		where TElement : FrameworkElement
+	{
+		for (int i = 0; i < childCount; i++)
+		{
+			if (VisualTreeHelper.GetChild(element, i) is not FrameworkElement child) continue;
+			if (child.Name == name && TryAs<TElement>(child, out var typedChild)) return typedChild;
+			int count = VisualTreeHelper.GetChildrenCount(child);
+			if (count > 0 && FindChild<TElement>(child, count, name) is { } childChild) return childChild;
+		}
+		return null;
+	}
+
 	protected override bool Initialize()
 	{
 		ComboBox comboBox = AssociatedObject;
-		if (comboBox.FindDescendant("Popup") is not Popup popup)
+		if (FindChild<Popup>(comboBox, "Popup") is not { } popup)
 		{
 			return false;
 		}
@@ -66,8 +151,7 @@ internal sealed class ComboBoxSystemBackdropWorkaroundBehavior : BehaviorBase<Co
 			return;
 		}
 
-		this._popup = popup;
-
+		_popup = popup;
 		if (popup.FindName("PopupBorder") is not Border border)
 		{
 			return;
