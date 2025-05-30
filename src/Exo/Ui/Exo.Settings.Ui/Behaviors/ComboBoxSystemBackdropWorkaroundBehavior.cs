@@ -119,6 +119,8 @@ internal sealed class ComboBoxSystemBackdropWorkaroundBehavior : BehaviorBase<Co
 			return false;
 		}
 
+		_popup = popup;
+
 		popup.Opened += OnPopupOpened;
 		popup.ActualThemeChanged += OnPopupActualThemeChanged;
 
@@ -136,6 +138,7 @@ internal sealed class ComboBoxSystemBackdropWorkaroundBehavior : BehaviorBase<Co
 		{
 			_popup.Opened -= OnPopupOpened;
 			_popup.ActualThemeChanged -= OnPopupActualThemeChanged;
+			_popup = null;
 		}
 
 		Interlocked.Exchange(ref _backdropLink, null)?.Dispose();
@@ -151,7 +154,6 @@ internal sealed class ComboBoxSystemBackdropWorkaroundBehavior : BehaviorBase<Co
 			return;
 		}
 
-		_popup = popup;
 		if (popup.FindName("PopupBorder") is not Border border)
 		{
 			return;
