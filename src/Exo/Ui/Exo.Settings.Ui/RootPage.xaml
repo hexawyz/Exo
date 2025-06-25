@@ -159,7 +159,7 @@
             VerticalAlignment="Center"
             Visibility="{x:Bind Devices.SelectedDevice.SerialNumber, Converter={StaticResource NullabilityToVisibilityConverter}, FallbackValue=Collapsed, Mode=OneWay}">
 						<TextBlock x:Uid="DeviceSerialNumberLabel" VerticalAlignment="Center" Margin="0,0,4,0" Style="{StaticResource CaptionTextBlockStyle}" />
-						<TextBlock Text="{x:Bind Devices.SelectedDevice.SerialNumber}" Style="{StaticResource CaptionTextBlockStyle}" />
+						<TextBlock Text="{x:Bind Devices.SelectedDevice.SerialNumber, Mode=OneWay}" Style="{StaticResource CaptionTextBlockStyle}" />
 					</StackPanel>
 					<FontIcon
             Grid.Column="4"
