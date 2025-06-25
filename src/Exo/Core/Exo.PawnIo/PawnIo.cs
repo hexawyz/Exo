@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 using System.Security;
 using Microsoft.Win32;
 
-namespace Exo.Devices.Intel.Cpu;
+namespace Exo;
 
 [SuppressUnmanagedCodeSecurity]
-internal sealed class PawnIo : IDisposable
+public sealed class PawnIo : IDisposable
 {
 	private static readonly bool IsLibraryLoaded;
 	private static readonly uint LibraryVersion;
@@ -19,7 +19,7 @@ internal sealed class PawnIo : IDisposable
 			try
 			{
 				uint version = 0;
-				uint result = pawnio_version(out version);
+				uint result = PawnIoVersion(out version);
 				if (result != 0) Marshal.ThrowExceptionForHR((int)result);
 				LibraryVersion = version;
 				IsLibraryLoaded = true;
@@ -31,17 +31,17 @@ internal sealed class PawnIo : IDisposable
 		}
 	}
 
-	[DllImport("PawnIOLib", ExactSpelling = true, PreserveSig = true)]
-	private static extern uint pawnio_version(out uint version);
+	[DllImport("PawnIOLib", EntryPoint = "pawnio_version", ExactSpelling = true, PreserveSig = true)]
+	private static extern uint PawnIoVersion(out uint version);
 
-	[DllImport("PawnIOLib", ExactSpelling = true, PreserveSig = true)]
-	private static extern uint pawnio_open(out nint handle);
+	[DllImport("PawnIOLib", EntryPoint = "pawnio_open", ExactSpelling = true, PreserveSig = true)]
+	private static extern uint PawnIoOpen(out nint handle);
 
-	[DllImport("PawnIOLib", ExactSpelling = true, PreserveSig = true)]
-	private static extern unsafe uint pawnio_load(nint handle, byte* blob, nint size);
+	[DllImport("PawnIOLib", EntryPoint = "pawnio_load", ExactSpelling = true, PreserveSig = true)]
+	private static extern unsafe uint PawnIoLoad(nint handle, byte* blob, nint size);
 
-	[DllImport("PawnIOLib", ExactSpelling = true, PreserveSig = true)]
-	private static extern unsafe uint pawnio_execute
+	[DllImport("PawnIOLib", EntryPoint = "pawnio_execute", ExactSpelling = true, PreserveSig = true)]
+	private static extern unsafe uint PawnIoExecute
 	(
 		nint handle,
 		byte* name,
@@ -52,14 +52,13 @@ internal sealed class PawnIo : IDisposable
 		nint* return_size
 	);
 
-	[DllImport("PawnIOLib", ExactSpelling = true, PreserveSig = true)]
-	private static extern uint pawnio_close(nint handle);
+	[DllImport("PawnIOLib", EntryPoint = "pawnio_close", ExactSpelling = true, PreserveSig = true)]
+	private static extern uint PawnIoClose(nint handle);
 
 	private nint _handle;
 
 	private static bool TryLoadLibrary(out nint handle)
 	{
-		// There might be a problem with the installer, as on my system, the registry key ended up in the WoW64 world…
 #pragma warning disable CA1416 // Validate platform compatibility
 		if ((Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO", "InstallLocation", null) ??
 			Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\PawnIO", "Install_Dir", null)) is string { Length: > 0 } pawnIoPath)
@@ -82,7 +81,7 @@ internal sealed class PawnIo : IDisposable
 	public PawnIo()
 	{
 		if (!IsLibraryLoaded) throw new DllNotFoundException("PawnIOLib.dll was not found during startup.");
-		uint result = pawnio_open(out _handle);
+		uint result = PawnIoOpen(out _handle);
 		if (result != 0) Marshal.ThrowExceptionForHR((int)result);
 	}
 
@@ -106,7 +105,7 @@ internal sealed class PawnIo : IDisposable
 	private void Dispose(bool disposing)
 	{
 		nint handle = Interlocked.Exchange(ref _handle, 0);
-		if (handle != 0) pawnio_close(_handle);
+		if (handle != 0) PawnIoClose(_handle);
 	}
 
 	private nint Handle
@@ -123,7 +122,7 @@ internal sealed class PawnIo : IDisposable
 	{
 		fixed (byte* dataPointer = data)
 		{
-			uint result = pawnio_load(_handle, dataPointer, (nint)(uint)data.Length);
+			uint result = PawnIoLoad(_handle, dataPointer, (nint)(uint)data.Length);
 			if (result != 0) Marshal.ThrowExceptionForHR((int)result);
 		}
 	}
@@ -135,7 +134,7 @@ internal sealed class PawnIo : IDisposable
 			if (s is not UnmanagedMemoryStream ums) throw new InvalidOperationException();
 			unsafe
 			{
-				uint result = pawnio_load(_handle, ums.PositionPointer, (nint)ums.Length);
+				uint result = PawnIoLoad(_handle, ums.PositionPointer, (nint)ums.Length);
 				if (result != 0) Marshal.ThrowExceptionForHR((int)result);
 			}
 		}
@@ -149,7 +148,7 @@ internal sealed class PawnIo : IDisposable
 		fixed (ulong* inputPointer = input)
 		fixed (ulong* outputPointer = output)
 		{
-			uint result = pawnio_execute
+			uint result = PawnIoExecute
 			(
 				Handle,
 				namePointer,

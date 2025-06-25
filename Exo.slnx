@@ -67,6 +67,7 @@
     <Project Path="src/Exo/Core/Exo.Memory/Exo.Memory.csproj" />
     <Project Path="src/Exo/Core/Exo.Metadata/Exo.Metadata.csproj" />
     <Project Path="src/Exo/Core/Exo.MetadataCompiler/Exo.MetadataCompiler.csproj" />
+    <Project Path="src/Exo/Core/Exo.PawnIo/Exo.PawnIo.csproj" Id="b9c19a56-b53f-4f09-94e7-90e9d848658c" />
     <Project Path="src/Exo/Core/Exo.Primitives/Exo.Primitives.csproj" Id="438a7904-7c80-4055-9277-9ef4baa99ec0" />
     <Project Path="src/Exo/Core/Exo.Programming.Contracts/Exo.Programming.Contracts.csproj" />
     <Project Path="src/Exo/Core/Exo.SourceGenerators.Guids/Exo.SourceGenerators.Guids.csproj" Id="4d40b98c-894d-4400-8f24-c8be1bfd1068" />

@@ -17,6 +17,7 @@
 		<!-- NB: Projects are expected to be rooted in either Devices or Discovery directories. The paths below are relative to this. -->
 		<ProjectReference Update="..\..\Core\Exo.Primitives\Exo.Primitives.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\Core\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Update="..\..\Core\Exo.PawnIo\Exo.PawnIo.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\Discovery\Exo.Discovery.Hid\Exo.Discovery.Hid.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\Discovery\Exo.Discovery.Root\Exo.Discovery.Root.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Update="..\..\Discovery\Exo.Discovery.Monitor\Exo.Discovery.Monitor.csproj" Private="false" ExcludeAssets="runtime" />

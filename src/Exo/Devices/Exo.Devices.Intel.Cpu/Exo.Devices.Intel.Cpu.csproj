@@ -10,11 +10,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Remove="intel_msr.bin" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <EmbeddedResource Include="intel_msr.bin" LogicalName="intel_msr.bin" />
+	  <EmbeddedResource Include="IntelMSR.bin" LogicalName="IntelMSR.bin" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -24,6 +20,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Processors\DeviceTools.Processors.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\Core\Exo.PawnIo\Exo.PawnIo.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Cpu\Exo.Discovery.Cpu.csproj" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>
 
