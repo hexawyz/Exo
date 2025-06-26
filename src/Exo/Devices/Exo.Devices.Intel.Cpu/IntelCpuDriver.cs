@@ -83,7 +83,7 @@ public partial class IntelCpuDriver : Driver, IDeviceDriver<IMotherboardDeviceFe
 			try
 			{
 				pawnIo = new PawnIo();
-				pawnIo.LoadModuleFromResource(typeof(IntelCpuDriver).Assembly, "IntelMSR.bin");
+				pawnIo.LoadKnownModule(PawnIoKnownModule.IntelMSR);
 			}
 			catch (UnauthorizedAccessException)
 			{

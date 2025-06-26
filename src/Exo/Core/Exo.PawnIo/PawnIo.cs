@@ -163,4 +163,3 @@ public sealed class PawnIo : IDisposable
 		return length;
 	}
 }
-

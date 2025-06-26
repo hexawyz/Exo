@@ -5,6 +5,38 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<DefaultItemExcludes>$(DefaultItemExcludes);PawnIO.Modules\**;Modules\**</DefaultItemExcludes>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Modules\**\*.bin" LogicalName="%(Filename).bin" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="PawnIoKnownModule.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PawnIoKnownModule.tt</DependentUpon>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="PawnIoKnownModule.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>PawnIoKnownModule.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="PawnIoKnownModule.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>PawnIoKnownModule.tt</DependentUpon>
+    </Compile>
+  </ItemGroup>
 
 </Project>

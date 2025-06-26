@@ -10,10 +10,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Include="IntelMSR.bin" LogicalName="IntelMSR.bin" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>
 
