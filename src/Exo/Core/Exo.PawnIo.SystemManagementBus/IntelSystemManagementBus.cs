@@ -1,22 +1,21 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Exo.Features.Motherboards;
-using Exo.SystemManagementBus;
 
-namespace Exo.Devices.Intel.Cpu;
+namespace Exo.SystemManagementBus;
 
-public sealed class PawnIoIntelSystemManagementBus : ISystemManagementBus, IMotherboardSystemManagementBusFeature
+public sealed class IntelSystemManagementBus : ISystemManagementBus, IMotherboardSystemManagementBusFeature
 {
 	private const uint ErrorNoSuchDevice = 0x800701B1;
 
 	private readonly PawnIo _pawnIo;
 
-	public PawnIoIntelSystemManagementBus()
+	public IntelSystemManagementBus()
 	{
 		var pawnIo = new PawnIo();
 		try
 		{
-			pawnIo.LoadModuleFromResource(typeof(PawnIoIntelSystemManagementBus).Assembly, "SmbusI801.bin");
+			pawnIo.LoadKnownModule(PawnIoKnownModule.SmbusI801);
 		}
 		catch
 		{
@@ -145,7 +144,8 @@ public sealed class PawnIoIntelSystemManagementBus : ISystemManagementBus, IMoth
 		try
 		{
 			if (data.Length > 32) throw new ArgumentException(null, nameof(data));
-			Span<ulong> buffer = stackalloc ulong[3 + ((data.Length + 7) >>> 3)];
+			//Span<ulong> buffer = stackalloc ulong[3 + ((data.Length + 7) >>> 3)];
+			Span<ulong> buffer = stackalloc ulong[7];
 			buffer[0] = address;
 			buffer[1] = command;
 			buffer[2] = (uint)data.Length;

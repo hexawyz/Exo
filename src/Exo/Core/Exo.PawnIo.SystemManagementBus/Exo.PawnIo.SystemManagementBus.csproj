@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+		<RootNamespace>Exo.SystemManagementBus</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Exo.Core\Exo.Core.csproj" />
+    <ProjectReference Include="..\Exo.PawnIo\Exo.PawnIo.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -6,7 +6,8 @@
     <Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<DefaultItemExcludes>$(DefaultItemExcludes);PawnIO.Modules\**;Modules\**</DefaultItemExcludes>
-  </PropertyGroup>
+		<RootNamespace>Exo</RootNamespace>
+	</PropertyGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Modules\**\*.bin" LogicalName="%(Filename).bin" />
