@@ -1,20 +1,20 @@
 {
     "Exo.Devices.Elgato.Lights": {
-        "ElgatoLightDriver": {
-            // Arbitrarily define IDs for up to 10 lights.
-            // Devices would generally be composed of only one light, so we will see how weel that go.
-            "LightIds": [
-                "63668ab0-01b1-4d62-ab3f-0977631a8eb6",
-                "d0669a71-5692-4aaa-bae9-b806c70ca053",
-                "643f869a-7718-44b8-8ec6-278103094909",
-                "a01ce581-0569-4e09-ae10-75e7f2755cab",
-                "2c1263d5-40c7-45fc-b14c-a91e963330c7",
-                "83c62f7e-8988-4d65-a305-d83dbff5d10d",
-                "56166a65-f26a-486c-8a02-39f6636e3600",
-                "1b3f96f0-ad69-4c3a-a966-d32903f2e834",
-                "ba556d84-1512-4279-97cf-cd452e27a869",
-                "b7b23402-7a46-4a67-972b-6c7b9aba8335"
-            ]
-        }
+		"ElgatoLightDriver": {
+			// Arbitrarily define IDs for up to 10 lights.
+			// Devices would generally be composed of only one light, so we will see how weel that go.
+			"private protected:LightIds": [
+				"63668ab0-01b1-4d62-ab3f-0977631a8eb6",
+				"d0669a71-5692-4aaa-bae9-b806c70ca053",
+				"643f869a-7718-44b8-8ec6-278103094909",
+				"a01ce581-0569-4e09-ae10-75e7f2755cab",
+				"2c1263d5-40c7-45fc-b14c-a91e963330c7",
+				"83c62f7e-8988-4d65-a305-d83dbff5d10d",
+				"56166a65-f26a-486c-8a02-39f6636e3600",
+				"1b3f96f0-ad69-4c3a-a966-d32903f2e834",
+				"ba556d84-1512-4279-97cf-cd452e27a869",
+				"b7b23402-7a46-4a67-972b-6c7b9aba8335"
+			]
+		}
     }
 }

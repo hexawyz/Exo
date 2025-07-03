@@ -274,6 +274,21 @@ public class GuidsGenerator : IIncrementalGenerator
 					accessibility = "public";
 					name = name.Substring(7);
 				}
+				else if (name.StartsWith("internal:"))
+				{
+					accessibility = "internal";
+					name = name.Substring(9);
+				}
+				else if (name.StartsWith("protected:"))
+				{
+					accessibility = "protected";
+					name = name.Substring(10);
+				}
+				else if (name.StartsWith("private protected:"))
+				{
+					accessibility = "private protected";
+					name = name.Substring(18);
+				}
 				if (g.GuidCount == 0)
 				{
 					sb.Append(indent2)

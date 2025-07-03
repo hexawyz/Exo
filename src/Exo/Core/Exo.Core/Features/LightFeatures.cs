@@ -75,6 +75,22 @@ public interface ILightBrightness : ILight
 	ValueTask SetBrightnessAsync(byte brightness, CancellationToken cancellationToken);
 }
 
+/// <summary>Allows controlling the hue of the light directly.</summary>
+public interface ILightHue : ILight
+{
+	/// <summary>Gets the last known value for the hue.</summary>
+	ushort Value { get; }
+	ValueTask SetHueAsync(ushort hue, CancellationToken cancellationToken);
+}
+
+/// <summary>Allows controlling the saturation of the light directly.</summary>
+public interface ILightSaturation : ILight
+{
+	/// <summary>Gets the last known value for the saturation.</summary>
+	byte Value { get; }
+	ValueTask SetSaturationAsync(byte saturation, CancellationToken cancellationToken);
+}
+
 /// <summary>Allows controlling the color temperature of the light directly.</summary>
 public interface ILightTemperature : ILight
 {
@@ -115,4 +131,12 @@ public readonly struct TemperatureAdjustableDimmableLightState(bool isOn, byte b
 	public bool IsOn { get; } = isOn;
 	public byte Brightness { get; } = brightness;
 	public uint Temperature { get; } = temperature;
+}
+
+public readonly struct HsbColorLightState(bool isOn, ushort hue, byte saturation, byte brightness) : ILightState
+{
+	public bool IsOn { get; } = isOn;
+	public ushort Hue { get; } = hue;
+	public byte Saturation { get; } = saturation;
+	public byte Brightness { get; } = brightness;
 }
