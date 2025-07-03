@@ -1225,7 +1225,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IService
 			reader.ReadGuid(),
 			reader.ReadBoolean(),
 			reader.ReadByte(),
-			reader.Read<uint>()
+			reader.Read<uint>(),
+			reader.Read<ushort>(),
+			reader.Read<byte>()
 		);
 
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightConfigurationUpdate(notification));

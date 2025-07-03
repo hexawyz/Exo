@@ -272,6 +272,8 @@ partial class UiPipeServerConnection
 		writer.Write(notification.IsOn);
 		writer.Write(notification.Brightness);
 		writer.Write(notification.Temperature);
+		writer.Write(notification.Hue);
+		writer.Write(notification.Saturation);
 	}
 
 	private static void Write(ref BufferWriter writer, in LightInformation lightsInformation)

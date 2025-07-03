@@ -229,8 +229,6 @@ public abstract partial class ElgatoLightDriver : Driver,
 
 	private protected abstract Task RefreshLightsAsync(CancellationToken cancellationToken);
 
-	private protected abstract Task SwitchLightAsync(uint index, bool isOn, CancellationToken cancellationToken);
-
 	private protected static uint InternalValueToTemperature(ushort value) => 1000000 / Math.Clamp((uint)value, 143, 344);
 
 	private protected static ushort TemperatureToInternalValue(uint temperature) => (ushort)(1000000 / Math.Clamp(temperature, 2906, 6993));
@@ -388,8 +386,10 @@ internal abstract class ElgatoLightDriver<TLight, TLightUpdate, TLightState> : E
 		Guid ILight.Id => LightIds[(int)Index];
 		bool ILight.IsOn => IsOn;
 
+		protected abstract ValueTask SwitchAsync(bool isOn, CancellationToken cancellationToken);
+
 		ValueTask ILight.SwitchAsync(bool isOn, CancellationToken cancellationToken)
-			=> new(Driver.SwitchLightAsync(Index, isOn, cancellationToken));
+			=> SwitchAsync(isOn, cancellationToken);
 
 		protected LightChangeHandler<TState>? Changed => _changed;
 
@@ -436,22 +436,6 @@ internal sealed class ElgatoBasicLightDriver : ElgatoLightDriver<ElgatoLight, El
 		return lightStates;
 	}
 
-	private protected override Task SwitchLightAsync(uint index, bool isOn, CancellationToken cancellationToken)
-		=> SendUpdateAsync(index, new() { On = isOn ? (byte)1 : (byte)0 }, cancellationToken);
-
-	private async Task SetBrightnessAsync(uint index, byte brightness, CancellationToken cancellationToken)
-	{
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
-		await SendUpdateAsync(index, new() { Brightness = brightness }, cancellationToken);
-	}
-
-	private async Task SetTemperatureAsync(uint index, ushort temperature, CancellationToken cancellationToken)
-	{
-		ArgumentOutOfRangeException.ThrowIfLessThan(temperature, 143);
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(temperature, 344);
-		await SendUpdateAsync(index, new() { Temperature = temperature }, cancellationToken);
-	}
-
 	internal sealed class BasicLightState : LightState<TemperatureAdjustableDimmableLightState>, ILightBrightness, ILightTemperature
 	{
 		private byte _brightness;
@@ -489,25 +473,41 @@ internal sealed class ElgatoBasicLightDriver : ElgatoLightDriver<ElgatoLight, El
 
 		byte ILightBrightness.Value => _brightness;
 
-		// We avoid sending updates to the device for brightness values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
-		ValueTask ILightBrightness.SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
-			=> brightness != _brightness ? new(Driver.SetBrightnessAsync(Index, brightness, cancellationToken)) : ValueTask.CompletedTask;
-
 		// It is simpler to straight up map the temperature values to what the conversion formula gives, which is a K value between 2906 to 6993.
 		// That way, we are able to expose enough granularity to the UI.
 		uint ILightTemperature.Minimum => 2906;
 		uint ILightTemperature.Maximum => 6993;
 		uint ILightTemperature.Value => InternalValueToTemperature(_temperature);
 
-		// We avoid sending updates to the device for temperature values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
-		// This should be especially useful for temperature, as when driven by a UI, the UI will not be able to tell that two values end up in the same bucket.
-		ValueTask ILightTemperature.SetTemperatureAsync(uint temperature, CancellationToken cancellationToken)
-			=> TemperatureToInternalValue(temperature) is ushort value && value != _temperature ? new(Driver.SetTemperatureAsync(Index, value, cancellationToken)) : ValueTask.CompletedTask;
+		protected override ValueTask SwitchAsync(bool isOn, CancellationToken cancellationToken)
+			=> new(Driver.SendUpdateAsync(Index, new() { On = isOn ? (byte)1 : (byte)0 }, cancellationToken));
+
+		private async Task SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+		{
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
+			await Driver.SendUpdateAsync(Index, new() { Brightness = brightness }, cancellationToken);
+		}
+
+		private async Task SetTemperatureAsync(ushort temperature, CancellationToken cancellationToken)
+		{
+			ArgumentOutOfRangeException.ThrowIfLessThan(temperature, 143);
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(temperature, 344);
+			await Driver.SendUpdateAsync(Index, new() { Temperature = temperature }, cancellationToken);
+		}
 
 		protected override TemperatureAdjustableDimmableLightState CurrentState => new(IsOn, _brightness, InternalValueToTemperature(_temperature));
 
 		protected override ValueTask UpdateAsync(TemperatureAdjustableDimmableLightState state, CancellationToken cancellationToken)
 			=> new(Driver.SendUpdateAsync(Index, new ElgatoLightUpdate() { On = state.IsOn ? (byte)1 : (byte)0, Brightness = state.Brightness, Temperature = TemperatureToInternalValue(state.Temperature) }, cancellationToken));
+
+		// We avoid sending updates to the device for brightness values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
+		ValueTask ILightBrightness.SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+			=> brightness != _brightness ? new(SetBrightnessAsync(brightness, cancellationToken)) : ValueTask.CompletedTask;
+
+		// We avoid sending updates to the device for temperature values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
+		// This should be especially useful for temperature, as when driven by a UI, the UI will not be able to tell that two values end up in the same bucket.
+		ValueTask ILightTemperature.SetTemperatureAsync(uint temperature, CancellationToken cancellationToken)
+			=> TemperatureToInternalValue(temperature) is ushort value && value != _temperature ? new(SetTemperatureAsync(value, cancellationToken)) : ValueTask.CompletedTask;
 	}
 }
 
@@ -535,26 +535,6 @@ internal sealed class ElgatoColorLightDriver : ElgatoLightDriver<ElgatoColorLigh
 			lightStates[i] = new(this, lights[i], (uint)i);
 		}
 		return lightStates;
-	}
-
-	private protected override Task SwitchLightAsync(uint index, bool isOn, CancellationToken cancellationToken)
-		=> SendUpdateAsync(index, new() { On = isOn ? (byte)1 : (byte)0 }, cancellationToken);
-
-	private async Task SetBrightnessAsync(uint index, byte brightness, CancellationToken cancellationToken)
-	{
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
-		await SendUpdateAsync(index, new() { Brightness = brightness }, cancellationToken);
-	}
-
-	private async Task SetHueAsync(uint index, ushort hue, CancellationToken cancellationToken)
-	{
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(hue, 360);
-		await SendUpdateAsync(index, new() { Hue = hue }, cancellationToken);
-	}
-	private async Task SetSaturationAsync(uint index, byte saturation, CancellationToken cancellationToken)
-	{
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(saturation, 100);
-		await SendUpdateAsync(index, new() { Saturation = saturation }, cancellationToken);
 	}
 
 	internal sealed class ColorLightState : LightState<HsbColorLightState>, ILightBrightness, ILightHue, ILightSaturation
@@ -602,20 +582,40 @@ internal sealed class ElgatoColorLightDriver : ElgatoLightDriver<ElgatoColorLigh
 		ushort ILightHue.Value => _hue;
 		byte ILightSaturation.Value => _saturation;
 
-		// We avoid sending updates to the device for brightness values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
-		ValueTask ILightBrightness.SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
-			=> brightness != _brightness ? new(Driver.SetBrightnessAsync(Index, brightness, cancellationToken)) : ValueTask.CompletedTask;
+		protected override ValueTask SwitchAsync(bool isOn, CancellationToken cancellationToken)
+			=> new(Driver.SendUpdateAsync(Index, new() { On = isOn ? (byte)1 : (byte)0 }, cancellationToken));
+
+		private async Task SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+		{
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
+			await Driver.SendUpdateAsync(Index, new() { Brightness = brightness }, cancellationToken);
+		}
+
+		private async Task SetHueAsync(ushort hue, CancellationToken cancellationToken)
+		{
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(hue, 360);
+			await Driver.SendUpdateAsync(Index, new() { Hue = hue }, cancellationToken);
+		}
+		private async Task SetSaturationAsync(byte saturation, CancellationToken cancellationToken)
+		{
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(saturation, 100);
+			await Driver.SendUpdateAsync(Index, new() { Saturation = saturation }, cancellationToken);
+		}
 
 		protected override HsbColorLightState CurrentState => new(IsOn, _hue, _saturation, _brightness);
 
 		protected override ValueTask UpdateAsync(HsbColorLightState state, CancellationToken cancellationToken)
 			=> new(Driver.SendUpdateAsync(Index, new() { On = state.IsOn ? (byte)1 : (byte)0, Brightness = state.Brightness, Hue = state.Hue, Saturation = state.Saturation }, cancellationToken));
 
+		// We avoid sending updates to the device for brightness values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
+		ValueTask ILightBrightness.SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+			=> brightness != _brightness ? new(SetBrightnessAsync(brightness, cancellationToken)) : ValueTask.CompletedTask;
+
 		ValueTask ILightHue.SetHueAsync(ushort hue, CancellationToken cancellationToken)
-			=> hue != _hue ? new(Driver.SetHueAsync(Index, hue, cancellationToken)) : ValueTask.CompletedTask;
+			=> hue != _hue ? new(SetHueAsync(hue, cancellationToken)) : ValueTask.CompletedTask;
 
 		ValueTask ILightSaturation.SetSaturationAsync(byte saturation, CancellationToken cancellationToken)
-			=> saturation != _saturation ? new(Driver.SetSaturationAsync(Index, saturation, cancellationToken)) : ValueTask.CompletedTask;
+			=> saturation != _saturation ? new(SetSaturationAsync(saturation, cancellationToken)) : ValueTask.CompletedTask;
 	}
 }
 
@@ -645,31 +645,12 @@ internal sealed class ElgatoLedStripProDriver : ElgatoLightDriver<ElgatoLedStrip
 		return lightStates;
 	}
 
-	private protected override Task SwitchLightAsync(uint index, bool isOn, CancellationToken cancellationToken)
-		=> SendUpdateAsync(index, new() { On = isOn ? (byte)1 : (byte)0 }, cancellationToken);
-
-	private async Task SetBrightnessAsync(uint index, byte brightness, CancellationToken cancellationToken)
-	{
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
-		await SendUpdateAsync(index, new() { Brightness = brightness }, cancellationToken);
-	}
-
-	private async Task SetHueAsync(uint index, ushort hue, CancellationToken cancellationToken)
-	{
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(hue, 360);
-		await SendUpdateAsync(index, new() { Hue = hue }, cancellationToken);
-	}
-	private async Task SetSaturationAsync(uint index, byte saturation, CancellationToken cancellationToken)
-	{
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(saturation, 100);
-		await SendUpdateAsync(index, new() { Saturation = saturation }, cancellationToken);
-	}
-
 	internal sealed class LedStripProLightState : LightState<HsbColorLightState>, ILightBrightness, ILightHue, ILightSaturation
 	{
 		private byte _brightness;
 		private ushort _hue;
 		private byte _saturation;
+		private string? _effectId;
 
 		public LedStripProLightState(ElgatoLedStripProDriver driver, ElgatoLedStripProLight light, uint index)
 			: base(driver, light, index)
@@ -686,6 +667,13 @@ internal sealed class ElgatoLedStripProDriver : ElgatoLightDriver<ElgatoLedStrip
 			if (_brightness != light.Brightness)
 			{
 				_brightness = light.Brightness;
+				isChanged = true;
+			}
+			// Effect and Color are mutually exclusive, but we don't need to make the code more complicated here.
+			// If effect ID is specified, then hue and saturation won't be. Same in the opposed way.
+			if (_effectId != light.Id)
+			{
+				_effectId = light.Id;
 				isChanged = true;
 			}
 			if (_hue != light.Hue)
@@ -710,20 +698,41 @@ internal sealed class ElgatoLedStripProDriver : ElgatoLightDriver<ElgatoLedStrip
 		ushort ILightHue.Value => _hue;
 		byte ILightSaturation.Value => _saturation;
 
-		// We avoid sending updates to the device for brightness values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
-		ValueTask ILightBrightness.SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
-			=> brightness != _brightness ? new(Driver.SetBrightnessAsync(Index, brightness, cancellationToken)) : ValueTask.CompletedTask;
+		// The active effect ID *MUST* be sent when switching the light on, otherwise, any active effect will be reverted to a default color.
+		protected override ValueTask SwitchAsync(bool isOn, CancellationToken cancellationToken)
+			=> new(Driver.SendUpdateAsync(Index, new() { On = isOn ? (byte)1 : (byte)0, Id = _effectId }, cancellationToken));
+
+		private async Task SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+		{
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
+			await Driver.SendUpdateAsync(Index, new() { Brightness = brightness, Id = _effectId }, cancellationToken);
+		}
+
+		private async Task SetHueAsync(ushort hue, CancellationToken cancellationToken)
+		{
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(hue, 360);
+			await Driver.SendUpdateAsync(Index, new() { Hue = hue }, cancellationToken);
+		}
+		private async Task SetSaturationAsync(byte saturation, CancellationToken cancellationToken)
+		{
+			ArgumentOutOfRangeException.ThrowIfGreaterThan(saturation, 100);
+			await Driver.SendUpdateAsync(Index, new() { Saturation = saturation }, cancellationToken);
+		}
 
 		protected override HsbColorLightState CurrentState => new(IsOn, _hue, _saturation, _brightness);
 
 		protected override ValueTask UpdateAsync(HsbColorLightState state, CancellationToken cancellationToken)
 			=> new(Driver.SendUpdateAsync(Index, new() { On = state.IsOn ? (byte)1 : (byte)0, Brightness = state.Brightness, Hue = state.Hue, Saturation = state.Saturation }, cancellationToken));
 
+		// We avoid sending updates to the device for brightness values that are already the (cached) current one. (Only downside is if the cached value is very outdated)
+		ValueTask ILightBrightness.SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
+			=> brightness != _brightness ? new(SetBrightnessAsync(brightness, cancellationToken)) : ValueTask.CompletedTask;
+
 		ValueTask ILightHue.SetHueAsync(ushort hue, CancellationToken cancellationToken)
-			=> hue != _hue ? new(Driver.SetHueAsync(Index, hue, cancellationToken)) : ValueTask.CompletedTask;
+			=> hue != _hue ? new(SetHueAsync(hue, cancellationToken)) : ValueTask.CompletedTask;
 
 		ValueTask ILightSaturation.SetSaturationAsync(byte saturation, CancellationToken cancellationToken)
-			=> saturation != _saturation ? new(Driver.SetSaturationAsync(Index, saturation, cancellationToken)) : ValueTask.CompletedTask;
+			=> saturation != _saturation ? new(SetSaturationAsync(saturation, cancellationToken)) : ValueTask.CompletedTask;
 	}
 }
 
@@ -870,7 +879,6 @@ internal readonly struct ElgatoLedStripProLightUpdate
 	public string? Name { get; init; }
 	public JsonObject? MetaData { get; init; }
 	public ElgatoLedStripFrame[]? SceneSet { get; init; }
-	public byte SceneSaveStatus { get; init; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, NumberHandling = JsonNumberHandling.AllowReadingFromString)]

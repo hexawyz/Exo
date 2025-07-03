@@ -173,6 +173,14 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 				isChanged |= _minimumTemperature != minimumTemperature;
 				isChanged |= _maximumTemperature != maximumTemperature;
 			}
+			if (light is ILightHue)
+			{
+				capabilities |= LightCapabilities.Hue;
+			}
+			if (light is ILightSaturation)
+			{
+				capabilities |= LightCapabilities.Saturation;
+			}
 
 			isChanged |= _capabilities != capabilities;
 
@@ -193,6 +201,10 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 			case LightCapabilities.Brightness | LightCapabilities.Temperature:
 				if (_onChanged is not LightChangeHandler<TemperatureAdjustableDimmableLightState>) _onChanged = new LightChangeHandler<TemperatureAdjustableDimmableLightState>(OnLightChanged);
 				((ILight<TemperatureAdjustableDimmableLightState>)light).Changed += Unsafe.As<LightChangeHandler<TemperatureAdjustableDimmableLightState>>(_onChanged);
+				break;
+			case LightCapabilities.Brightness | LightCapabilities.Hue | LightCapabilities.Saturation:
+				if (_onChanged is not LightChangeHandler<HsbColorLightState>) _onChanged = new LightChangeHandler<HsbColorLightState>(OnLightChanged);
+				((ILight<HsbColorLightState>)light).Changed += Unsafe.As<LightChangeHandler<HsbColorLightState>>(_onChanged);
 				break;
 			default:
 				throw new InvalidOperationException("This light type is unsupported at the moment.");
@@ -234,6 +246,9 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 				case LightCapabilities.Brightness | LightCapabilities.Temperature:
 					((ILight<TemperatureAdjustableDimmableLightState>)light).Changed += Unsafe.As<LightChangeHandler<TemperatureAdjustableDimmableLightState>>(_onChanged);
 					break;
+				case LightCapabilities.Brightness | LightCapabilities.Hue | LightCapabilities.Saturation:
+					((ILight<HsbColorLightState>)light).Changed += Unsafe.As<LightChangeHandler<HsbColorLightState>>(_onChanged);
+					break;
 				default:
 					throw new InvalidOperationException("This light type is unsupported at the moment.");
 				}
@@ -259,6 +274,9 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 			=> _device.OnLightChanged(CreateNotification(state));
 
 		private void OnLightChanged(Driver driver, TemperatureAdjustableDimmableLightState state)
+			=> _device.OnLightChanged(CreateNotification(state));
+
+		private void OnLightChanged(Driver driver, HsbColorLightState state)
 			=> _device.OnLightChanged(CreateNotification(state));
 
 		public PersistedLightInformation CreatePersistedInformation()
@@ -300,6 +318,9 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 				case LightCapabilities.Brightness | LightCapabilities.Temperature:
 					notification = CreateNotification(Unsafe.As<ILight<TemperatureAdjustableDimmableLightState>>(light).CurrentState);
 					break;
+				case LightCapabilities.Brightness | LightCapabilities.Hue | LightCapabilities.Saturation:
+					notification = CreateNotification(Unsafe.As<ILight<HsbColorLightState>>(light).CurrentState);
+					break;
 				default:
 					goto Fail;
 				}
@@ -317,6 +338,8 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 				_id,
 				state.IsOn,
 				0,
+				0,
+				0,
 				0
 			);
 
@@ -327,6 +350,8 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 				_id,
 				state.IsOn,
 				state.Brightness,
+				0,
+				0,
 				0
 			);
 
@@ -337,7 +362,9 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 				_id,
 				state.IsOn,
 				0,
-				state.Temperature
+				state.Temperature,
+				0,
+				0
 			);
 
 		private LightChangeNotification CreateNotification(TemperatureAdjustableDimmableLightState state)
@@ -347,7 +374,21 @@ internal sealed partial class LightService : IChangeSource<LightDeviceInformatio
 				_id,
 				state.IsOn,
 				state.Brightness,
-				state.Temperature
+				state.Temperature,
+				0,
+				0
+			);
+
+		private LightChangeNotification CreateNotification(HsbColorLightState state)
+			=> new
+			(
+				_device.Id,
+				_id,
+				state.IsOn,
+				state.Brightness,
+				0,
+				state.Hue,
+				state.Saturation
 			);
 	}
 
