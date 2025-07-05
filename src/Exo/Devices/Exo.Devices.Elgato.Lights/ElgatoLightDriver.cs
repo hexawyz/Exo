@@ -671,7 +671,8 @@ internal sealed class ElgatoLedStripProDriver :
 	private static ReadOnlySpan<ushort> StandardFrameDelays => [300, 200, 100, 50, 25, 10];
 
 	// These are the same colors used by the Elgato software. (ScenesCommon.RAINBOW_COLORS)
-	private static ReadOnlySpan<byte> RainbowColorBytes =>
+	// Honestly, they are not that good. Keeping them here in case they can be useful.
+	private static ReadOnlySpan<byte> ElgatoRainbowColorBytes =>
 	[
 		255, 0, 0, // red
 		255, 165, 0, // orange
@@ -680,6 +681,18 @@ internal sealed class ElgatoLedStripProDriver :
 		0, 0, 255, // blue
 		75, 0, 130, // indigo
 		238, 130, 238  // violet
+	];
+
+	// These rainbow colors are the one from RGB Fusion. They do look better, so we'll use them for now.
+	private static ReadOnlySpan<byte> RainbowColorBytes =>
+	[
+		255, 0, 0,
+		255, 127, 0,
+		255, 255, 0,
+		0, 255, 0,
+		0, 0, 255,
+		75, 0, 130,
+		148, 0, 211,
 	];
 
 	private static ReadOnlySpan<RgbColor> RainbowColors => MemoryMarshal.Cast<byte, RgbColor>(RainbowColorBytes);
