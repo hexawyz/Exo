@@ -11,6 +11,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Exo.ColorFormats;
+using Exo.Devices.Elgato.Lights.Effects;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Lighting;
@@ -738,6 +739,8 @@ internal sealed class ElgatoLedStripProDriver :
 			{
 			case "com.exo.wave.color":
 				return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.ColorWaveMetaData));
+			case "com.exo.wave.multicolor":
+				return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.MultiColorWaveMetaData));
 			case "com.exo.wave.spectrum":
 				return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.SpectrumWaveMetaData));
 			}
@@ -751,6 +754,9 @@ internal sealed class ElgatoLedStripProDriver :
 
 	private static ReversibleVariableColorWaveEffect ParseEffect(ColorWaveMetaData metaData)
 		=> new ReversibleVariableColorWaveEffect(metaData.Color, metaData.Speed, metaData.Direction);
+
+	private static ReversibleVariableMultiColorWaveEffect ParseEffect(MultiColorWaveMetaData metaData)
+		=> new ReversibleVariableMultiColorWaveEffect(new FixedList10<RgbColor>(metaData.Colors), metaData.Speed, metaData.Direction, metaData.Size);
 
 	private static ReversibleVariableSpectrumWaveEffect ParseEffect(SpectrumWaveMetaData metaData)
 		=> new ReversibleVariableSpectrumWaveEffect(metaData.Speed, metaData.Direction);
@@ -782,6 +788,25 @@ internal sealed class ElgatoLedStripProDriver :
 						Direction = colorWaveEffect.Direction
 					},
 					SourceGenerationContext.Default.ColorWaveMetaData
+				),
+			};
+		case ReversibleVariableMultiColorWaveEffect colorWaveEffect:
+			return new()
+			{
+				On = 1,
+				Brightness = HsvColor.GetStandardValue(brightness),
+				Id = "com.exo.wave.multicolor",
+				SceneSet = GenerateSlidingSceneFrames(colorWaveEffect.Colors, colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, colorWaveEffect.Size),
+				MetaData = (JsonObject?)JsonSerializer.SerializeToNode
+				(
+					new MultiColorWaveMetaData()
+					{
+						Colors = ((ReadOnlySpan<RgbColor>)colorWaveEffect.Colors).ToArray(),
+						Speed = colorWaveEffect.Speed,
+						Direction = colorWaveEffect.Direction,
+						Size = colorWaveEffect.Size
+					},
+					SourceGenerationContext.Default.MultiColorWaveMetaData
 				),
 			};
 		case ReversibleVariableSpectrumWaveEffect spectrumWaveEffect:
@@ -854,6 +879,16 @@ internal sealed class ElgatoLedStripProDriver :
 		return frames;
 	}
 
+	private static bool SequenceEquals(in FixedList10<RgbColor> a, in FixedList10<RgbColor> b)
+	{
+		if (a.Count != b.Count) return false;
+		for (int i = 0; i < a.Count; i++)
+		{
+			if (a[i] != b[i]) return false;
+		}
+		return true;
+	}
+
 	internal sealed class LedStripProLightState :
 		LightState<HsbColorLightState>,
 		ILightBrightness,
@@ -864,7 +899,8 @@ internal sealed class ElgatoLedStripProDriver :
 		ILightingDynamicChanges,
 		ILightingZoneEffect<StaticColorEffect>,
 		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
-		ILightingZoneEffect<ReversibleVariableColorWaveEffect>
+		ILightingZoneEffect<ReversibleVariableColorWaveEffect>,
+		ILightingZoneEffect<ReversibleVariableMultiColorWaveEffect>
 	{
 		// Values are scaled up in the same ways as in HsvColor in order to preserve an accurate representation of colors and direct compatbility with HsvColor.
 		private ushort _hue;
@@ -1008,9 +1044,20 @@ internal sealed class ElgatoLedStripProDriver :
 			ApplyEffect(effect);
 		}
 
+		void ILightingZoneEffect<ReversibleVariableMultiColorWaveEffect>.ApplyEffect(in ReversibleVariableMultiColorWaveEffect effect)
+		{
+			if (_effect is ReversibleVariableMultiColorWaveEffect oldEffect &&
+				SequenceEquals(oldEffect.Colors, effect.Colors) &&
+				oldEffect.Speed == effect.Speed &&
+				oldEffect.Direction == effect.Direction &&
+				oldEffect.Size == effect.Size) return;
+			ApplyEffect(effect);
+		}
+
 		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => _effect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.TryGetCurrentEffect(out ReversibleVariableSpectrumWaveEffect effect) => _effect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ReversibleVariableColorWaveEffect>.TryGetCurrentEffect(out ReversibleVariableColorWaveEffect effect) => _effect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<ReversibleVariableMultiColorWaveEffect>.TryGetCurrentEffect(out ReversibleVariableMultiColorWaveEffect effect) => _effect.TryGetEffect(out effect);
 	}
 }
 
@@ -1166,6 +1213,14 @@ internal readonly struct ColorWaveMetaData
 	public required EffectDirection1D Direction { get; init; }
 }
 
+internal readonly struct MultiColorWaveMetaData
+{
+	public required RgbColor[] Colors { get; init; }
+	public required PredeterminedEffectSpeed Speed { get; init; }
+	public required EffectDirection1D Direction { get; init; }
+	public required byte Size { get; init; }
+}
+
 internal readonly struct SpectrumWaveMetaData
 {
 	public required PredeterminedEffectSpeed Speed { get; init; }
@@ -1181,6 +1236,7 @@ internal readonly struct SpectrumWaveMetaData
 [JsonSerializable(typeof(ElgatoLightsUpdate<ElgatoColorLightUpdate>), GenerationMode = JsonSourceGenerationMode.Serialization)]
 [JsonSerializable(typeof(ElgatoLightsUpdate<ElgatoLedStripProLightUpdate>), GenerationMode = JsonSourceGenerationMode.Serialization)]
 [JsonSerializable(typeof(ColorWaveMetaData))]
+[JsonSerializable(typeof(MultiColorWaveMetaData))]
 [JsonSerializable(typeof(SpectrumWaveMetaData))]
 internal partial class SourceGenerationContext : JsonSerializerContext
 {
