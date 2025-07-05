@@ -99,3 +99,18 @@ public interface ILightingBrightnessFeature : ILightingDeviceFeature
 	/// <summary>Gets the brightness as a percentage.</summary>
 	float BrightnessPercentage => CurrentBrightness / (float)MaximumBrightness;
 }
+
+/// <summary>A feature allowing to notify effect changes.</summary>
+/// <remarks>
+/// This feature is intended to support lighting controllers who are expected to change outside of the control of the service.
+/// This will be the case of devices supporting physical controls or devices that are commonly accessed through multiple services or devices, which is the case of Elgato lights.
+/// Most drivers <em>should not</em> implement this feature, especially as it will make the logic more complex for no benefit at all.
+/// </remarks>
+public interface ILightingDynamicChanges : ILightingDeviceFeature
+{
+	/// <summary>Notifies that the effect has changed on a specific lighting zone.</summary>
+	/// <remarks>This event does not indicate whether the change was externally triggered.</remarks>
+	event EffectChangeHandler EffectChanged;
+}
+
+public delegate void EffectChangeHandler(ILightingZone zone, ILightingEffect effect);

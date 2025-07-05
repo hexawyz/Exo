@@ -14,7 +14,8 @@
 				"1b3f96f0-ad69-4c3a-a966-d32903f2e834",
 				"ba556d84-1512-4279-97cf-cd452e27a869",
 				"b7b23402-7a46-4a67-972b-6c7b9aba8335"
-			]
+			],
+			"private protected:LedStripProZoneId": "ed430bd5-b68c-46e0-84e5-1761f99d89f3"
 		}
     }
 }

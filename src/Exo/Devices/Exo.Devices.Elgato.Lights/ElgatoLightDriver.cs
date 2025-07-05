@@ -10,9 +10,13 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using Exo.ColorFormats;
 using Exo.Discovery;
 using Exo.Features;
+using Exo.Features.Lighting;
 using Exo.Features.Lights;
+using Exo.Lighting;
+using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Elgato.Lights;
 
@@ -25,6 +29,8 @@ public abstract partial class ElgatoLightDriver : Driver,
 {
 	private protected const string AccessoryInfoPath = "/elgato/accessory-info";
 	private protected const string LightsPath = "/elgato/lights";
+	// Putting this here as a reminder that none of the settings features have been implemented yet.
+	private protected const string LightsSettingsPath = "/elgato/lights/settings";
 
 	[DiscoverySubsystem<DnsSdDiscoverySubsystem>]
 	[DnsSdServiceType("_elg._tcp")]
@@ -86,7 +92,7 @@ public abstract partial class ElgatoLightDriver : Driver,
 						using var stream = await httpClient.GetStreamAsync(LightsPath, cancellationToken).ConfigureAwait(false);
 						lights = JsonSerializer.Deserialize(stream, SourceGenerationContext.Default.ElgatoLightsElgatoLedStripProLight);
 
-						return new(keys, new ElgatoLedStripProDriver(deviceLifetime, httpClient, lights.Lights, instanceName, new DeviceConfigurationKey("elg", fullName, model ?? fullName, accessoryInfo.SerialNumber)));
+						return new(keys, new ElgatoLedStripProDriver(deviceLifetime, httpClient, lights.Lights, accessoryInfo.LedCount, instanceName, new DeviceConfigurationKey("elg", fullName, model ?? fullName, accessoryInfo.SerialNumber)));
 					}
 					catch (HttpRequestException ex) when (IsTimeout(ex))
 					{
@@ -160,7 +166,7 @@ public abstract partial class ElgatoLightDriver : Driver,
 	private readonly Array _lights;
 	private readonly HttpClient _httpClient;
 	private readonly AsyncLock _lock;
-	private readonly FixedSizeBufferWriter _updateBufferWriter;
+	private readonly object _updateBufferStorage;
 	private readonly Utf8JsonWriter _updateWriter;
 	private readonly DnsSdDeviceLifetime _lifetime;
 	private protected ulong LastUpdateTimestamp;
@@ -172,6 +178,7 @@ public abstract partial class ElgatoLightDriver : Driver,
 	(
 		DnsSdDeviceLifetime lifetime,
 		HttpClient httpClient,
+		bool useFixedBuffer,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
 	) : base(friendlyName, configurationKey)
@@ -186,8 +193,18 @@ public abstract partial class ElgatoLightDriver : Driver,
 		_lightFeatures = FeatureSet.Create<ILightDeviceFeature, ElgatoLightDriver, ILightControllerFeature, IPolledLightControllerFeature>(this);
 		_lock = new();
 		// This is not ideal, as it requires allocating an array way larger than what is actually necessary, but it will do for now. (At least it will avoid further allocations)
-		_updateBufferWriter = new(1024);
-		_updateWriter = new(_updateBufferWriter);
+		if (useFixedBuffer)
+		{
+			var w = new FixedSizeBufferWriter(1024);
+			_updateBufferStorage = w;
+			_updateWriter = new(w);
+		}
+		else
+		{
+			var s = new MemoryStream();
+			_updateBufferStorage = s;
+			_updateWriter = new(s);
+		}
 		_cancellationTokenSource = new();
 	}
 
@@ -207,9 +224,35 @@ public abstract partial class ElgatoLightDriver : Driver,
 
 	private protected HttpClient HttpClient => _httpClient;
 	private protected AsyncLock Lock => _lock;
-	private protected FixedSizeBufferWriter UpdateBufferWriter => _updateBufferWriter;
-	private protected Utf8JsonWriter UpdateWriter => _updateWriter;
 	private protected DnsSdDeviceLifetime Lifetime => _lifetime;
+
+	private protected Utf8JsonWriter ResetAndGetUpdateWriter()
+	{
+		if (_updateBufferStorage is FixedSizeBufferWriter fsbw)
+		{
+			fsbw.Reset();
+		}
+		else
+		{
+			Unsafe.As<MemoryStream>(_updateBufferStorage).Position = 0;
+		}
+
+		_updateWriter.Reset();
+		return _updateWriter;
+	}
+
+	private protected ArraySegment<byte> GetCurrentWriteBuffer()
+	{
+		if (_updateBufferStorage is FixedSizeBufferWriter fsbw)
+		{
+			return new(fsbw.GetBuffer(), 0, fsbw.Length);
+		}
+		else
+		{
+			var ms = Unsafe.As<MemoryStream>(_updateBufferStorage);
+			return new(ms.GetBuffer(), 0, (int)ms.Position);
+		}
+	}
 
 	private protected async void OnDeviceUpdated(object? sender, EventArgs e)
 	{
@@ -263,10 +306,11 @@ internal abstract class ElgatoLightDriver<TLight, TLightUpdate, TLightState> : E
 	(
 		DnsSdDeviceLifetime lifetime,
 		HttpClient httpClient,
+		bool useFixedBuffer,
 		ImmutableArray<TLight> lights,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
-	) : base(lifetime, httpClient, friendlyName, configurationKey)
+	) : base(lifetime, httpClient, useFixedBuffer, friendlyName, configurationKey)
 	{
 		SetLights(CreateLightStates(lights));
 		lifetime.DeviceUpdated += new(OnDeviceUpdated);
@@ -315,12 +359,10 @@ internal abstract class ElgatoLightDriver<TLight, TLightUpdate, TLightState> : E
 			// It can perhaps be simplified a bit, but don't be fooled.
 			// The device is very touchy on the kind of requests it accepts and will reject chunked encoding.
 			// However, it does seemingly not require any particular header to be specified.
-			var bufferWriter = UpdateBufferWriter;
-			UpdateBufferWriter.Reset();
-			var writer = UpdateWriter;
-			UpdateWriter.Reset();
+			var writer = ResetAndGetUpdateWriter();
 			JsonSerializer.Serialize(writer, update, LightsUpdateJsonTypeInfo);
-			using var json = new ByteArrayContent(bufferWriter.GetBuffer(), 0, bufferWriter.Length);
+			var buffer = GetCurrentWriteBuffer();
+			using var json = new ByteArrayContent(buffer.Array!, buffer.Offset, buffer.Count);
 			using var request = new HttpRequestMessage(HttpMethod.Put, LightsPath) { Content = json };
 			HttpResponseMessage response;
 			try
@@ -419,7 +461,7 @@ internal sealed class ElgatoBasicLightDriver : ElgatoLightDriver<ElgatoLight, El
 		ImmutableArray<ElgatoLight> lights,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
-	) : base(lifetime, httpClient, lights, friendlyName, configurationKey)
+	) : base(lifetime, httpClient, true, lights, friendlyName, configurationKey)
 	{
 	}
 
@@ -520,7 +562,7 @@ internal sealed class ElgatoColorLightDriver : ElgatoLightDriver<ElgatoColorLigh
 		ImmutableArray<ElgatoColorLight> lights,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
-	) : base(lifetime, httpClient, lights, friendlyName, configurationKey)
+	) : base(lifetime, httpClient, true, lights, friendlyName, configurationKey)
 	{
 	}
 
@@ -619,18 +661,47 @@ internal sealed class ElgatoColorLightDriver : ElgatoLightDriver<ElgatoColorLigh
 	}
 }
 
-internal sealed class ElgatoLedStripProDriver : ElgatoLightDriver<ElgatoLedStripProLight, ElgatoLedStripProLightUpdate, ElgatoLedStripProDriver.LedStripProLightState>
+internal sealed class ElgatoLedStripProDriver :
+	ElgatoLightDriver<ElgatoLedStripProLight, ElgatoLedStripProLightUpdate, ElgatoLedStripProDriver.LedStripProLightState>,
+	IDeviceDriver<ILightingDeviceFeature>
 {
+	// From the Elgato docs.
+	private const int MaximumFrameCount = 900;
+
+	private static ReadOnlySpan<ushort> StandardFrameDelays => [300, 200, 100, 50, 25, 10];
+
+	// These are the same colors used by the Elgato software. (ScenesCommon.RAINBOW_COLORS)
+	private static ReadOnlySpan<byte> RainbowColorBytes =>
+	[
+		255, 0, 0, // red
+		255, 165, 0, // orange
+		255, 255, 0, // yellow
+		0, 128, 0, // green
+		0, 0, 255, // blue
+		75, 0, 130, // indigo
+		238, 130, 238  // violet
+	];
+
+	private static ReadOnlySpan<RgbColor> RainbowColors => MemoryMarshal.Cast<byte, RgbColor>(RainbowColorBytes);
+
+	private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
+	private readonly ushort _ledCount;
+
 	public ElgatoLedStripProDriver
 	(
 		DnsSdDeviceLifetime lifetime,
 		HttpClient httpClient,
 		ImmutableArray<ElgatoLedStripProLight> lights,
+		ushort ledCount,
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
-	) : base(lifetime, httpClient, lights, friendlyName, configurationKey)
+	) : base(lifetime, httpClient, false, lights, friendlyName, configurationKey)
 	{
+		_ledCount = ledCount;
+		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, LedStripProLightState, IUnifiedLightingFeature, ILightingBrightnessFeature, ILightingDynamicChanges>(Lights[0]);
 	}
+
+	IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
 
 	protected override JsonTypeInfo<ElgatoLights<ElgatoLedStripProLight>> LightsJsonTypeInfo => SourceGenerationContext.Default.ElgatoLightsElgatoLedStripProLight;
 	protected override JsonTypeInfo<ElgatoLightsUpdate<ElgatoLedStripProLightUpdate>> LightsUpdateJsonTypeInfo => SourceGenerationContext.Default.ElgatoLightsUpdateElgatoLedStripProLightUpdate;
@@ -645,28 +716,185 @@ internal sealed class ElgatoLedStripProDriver : ElgatoLightDriver<ElgatoLedStrip
 		return lightStates;
 	}
 
-	internal sealed class LedStripProLightState : LightState<HsbColorLightState>, ILightBrightness, ILightHue, ILightSaturation
+	// Parses the current effect into one of ours if possible.
+	private static ILightingEffect ParseEffect(string effectId, JsonObject? metaData)
 	{
-		private byte _brightness;
+		switch (effectId)
+		{
+		case "com.exo.wave.color":
+			return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.ColorWaveMetaData));
+		case "com.exo.wave.spectrum":
+			return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.SpectrumWaveMetaData));
+		}
+		return NotApplicableEffect.SharedInstance;
+	}
+
+	private static ReversibleVariableColorWaveEffect ParseEffect(ColorWaveMetaData metaData)
+		=> new ReversibleVariableColorWaveEffect(metaData.Color, metaData.Speed, metaData.Direction);
+
+	private static ReversibleVariableSpectrumWaveEffect ParseEffect(SpectrumWaveMetaData metaData)
+		=> new ReversibleVariableSpectrumWaveEffect(metaData.Speed, metaData.Direction);
+
+	// The Light Strip Pro does not support any native effects.
+	// All effects are a prerendered sequence of LEDs, which is a very flexible way of implementing effects, but 
+	private static ElgatoLedStripProLightUpdate GenerateEffectUpdate(ILightingEffect effect, int ledCount, byte brightness)
+	{
+		switch (effect)
+		{
+		case DisabledEffect:
+			return new() { On = 0 };
+		case StaticColorEffect staticColorEffect:
+			var hsv = HsvColor.FromRgb(staticColorEffect.Color);
+			return new() { On = 1, Brightness = HsvColor.GetStandardValue(hsv.V), Hue = HsvColor.GetStandardHue(hsv.H), Saturation = HsvColor.GetStandardSaturation(hsv.S) };
+		case ReversibleVariableColorWaveEffect colorWaveEffect:
+			return new()
+			{
+				On = 1,
+				Brightness = HsvColor.GetStandardValue(brightness),
+				Id = "com.exo.wave.color",
+				SceneSet = GenerateSlidingSceneFrames([colorWaveEffect.Color, default, default, default], colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, 10),
+				MetaData = (JsonObject?)JsonSerializer.SerializeToNode
+				(
+					new ColorWaveMetaData()
+					{
+						Color = colorWaveEffect.Color,
+						Speed = colorWaveEffect.Speed,
+						Direction = colorWaveEffect.Direction
+					},
+					SourceGenerationContext.Default.ColorWaveMetaData
+				),
+			};
+		case ReversibleVariableSpectrumWaveEffect spectrumWaveEffect:
+			return new()
+			{
+				On = 1,
+				Brightness = HsvColor.GetStandardValue(brightness),
+				Id = "com.exo.wave.spectrum",
+				SceneSet = GenerateSpectrumWaveSceneFrames(spectrumWaveEffect.Speed, spectrumWaveEffect.Direction, ledCount, 10),
+				MetaData = (JsonObject?)JsonSerializer.SerializeToNode
+				(
+					new SpectrumWaveMetaData()
+					{
+						Speed = spectrumWaveEffect.Speed,
+						Direction = spectrumWaveEffect.Direction
+					},
+					SourceGenerationContext.Default.SpectrumWaveMetaData
+				),
+			};
+		default:
+			throw new InvalidOperationException($"Effects of type {effect.GetType()} are not supported.");
+		}
+	}
+
+	private static ElgatoLedStripFrame[] GenerateSpectrumWaveSceneFrames(PredeterminedEffectSpeed speed, EffectDirection1D direction, int ledCount, int size)
+		=> GenerateSlidingSceneFrames(RainbowColors, speed, direction, ledCount, size);
+
+	private static ElgatoLedStripFrame[] GenerateSlidingSceneFrames(ReadOnlySpan<RgbColor> colorSequence, PredeterminedEffectSpeed speed, EffectDirection1D direction, int ledCount, int size)
+	{
+		int frameCount = size * colorSequence.Length;
+		if (frameCount > MaximumFrameCount) throw new InvalidOperationException("Cannot generate the requested effect because of the frame limit.");
+		ushort delay = StandardFrameDelays[(byte)speed];
+		var frames = new ElgatoLedStripFrame[frameCount];
+		int startingColorIndex = 0;
+		int startingDuplicateIndex = 0;
+		for (int i = 0; i < frames.Length; i++)
+		{
+			var buffer = new byte[ledCount * 3];
+			var colors = MemoryMarshal.Cast<byte, RgbColor>(buffer);
+			int colorIndex = startingColorIndex;
+			int duplicateIndex = startingDuplicateIndex;
+			for (int j = 0; j < colors.Length; j++)
+			{
+				colors[j] = colorSequence[colorIndex];
+				if (++duplicateIndex >= size)
+				{
+					duplicateIndex = 0;
+					if (++colorIndex >= colorSequence.Length) colorIndex = 0;
+				}
+
+			}
+			frames[i] = new() { RgbRaw = buffer, Duration = delay };
+			if (direction == EffectDirection1D.Forward)
+			{
+				if ((uint)--startingDuplicateIndex >= size)
+				{
+					startingDuplicateIndex = size - 1;
+					if ((uint)--startingColorIndex >= colorSequence.Length) startingColorIndex = colorSequence.Length - 1;
+				}
+			}
+			else
+			{
+				if (++startingDuplicateIndex >= size)
+				{
+					startingDuplicateIndex = 0;
+					if (++startingColorIndex >= colorSequence.Length) startingColorIndex = 0;
+				}
+			}
+		}
+		return frames;
+	}
+
+	internal sealed class LedStripProLightState :
+		LightState<HsbColorLightState>,
+		ILightBrightness,
+		ILightHue,
+		ILightSaturation,
+		IUnifiedLightingFeature,
+		ILightingBrightnessFeature,
+		ILightingDynamicChanges,
+		ILightingZoneEffect<StaticColorEffect>,
+		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
+		ILightingZoneEffect<ReversibleVariableColorWaveEffect>
+	{
+		// Values are scaled up in the same ways as in HsvColor in order to preserve an accurate representation of colors and direct compatbility with HsvColor.
 		private ushort _hue;
+		private byte _brightness;
 		private byte _saturation;
 		private string? _effectId;
+		private ILightingEffect _effect;
+		private event EffectChangeHandler? EffectChanged;
 
 		public LedStripProLightState(ElgatoLedStripProDriver driver, ElgatoLedStripProLight light, uint index)
 			: base(driver, light, index)
 		{
+			// The effect is initialized by a call to Update() in the base constructor.
+			Unsafe.SkipInit(out _effect);
 		}
 
 		private new ElgatoLedStripProDriver Driver => Unsafe.As<ElgatoLedStripProDriver>(base.Driver);
+
+		byte ILightingBrightnessFeature.MaximumBrightness => 255;
+		byte ILightingBrightnessFeature.CurrentBrightness
+		{
+			get => _brightness;
+			set => _brightness = value;
+		}
+
+		bool IUnifiedLightingFeature.IsUnifiedLightingEnabled => true;
+
+		Guid ILightingZone.ZoneId => LedStripProZoneId;
+
+		ILightingEffect ILightingZone.GetCurrentEffect()
+			=> IsOn ? _effect : DisabledEffect.SharedInstance;
 
 		internal override void Update(ElgatoLedStripProLight light)
 		{
 			bool isOn = light.On != 0;
 			bool isChanged = isOn ^ IsOn;
 			IsOn = isOn;
+			if (_hue != light.Hue)
+			{
+				_hue = HsvColor.GetScaledHue(light.Hue);
+				isChanged = true;
+			}
+			if (_saturation != light.Saturation)
+			{
+				_saturation = HsvColor.GetScaledSaturation(light.Saturation);
+				isChanged = true;
+			}
 			if (_brightness != light.Brightness)
 			{
-				_brightness = light.Brightness;
+				_brightness = HsvColor.GetScaledValue(light.Brightness);
 				isChanged = true;
 			}
 			// Effect and Color are mutually exclusive, but we don't need to make the code more complicated here.
@@ -674,16 +902,14 @@ internal sealed class ElgatoLedStripProDriver : ElgatoLightDriver<ElgatoLedStrip
 			if (_effectId != light.Id)
 			{
 				_effectId = light.Id;
-				isChanged = true;
-			}
-			if (_hue != light.Hue)
-			{
-				_hue = light.Hue;
-				isChanged = true;
-			}
-			if (_saturation != light.Saturation)
-			{
-				_saturation = light.Saturation;
+				if (light.Id is not null)
+				{
+					_effect = ParseEffect(light.Id, light.MetaData);
+				}
+				else
+				{
+					_effect = new StaticColorEffect(new HsvColor(_hue, _saturation, _brightness).ToRgb());
+				}
 				isChanged = true;
 			}
 			if (isChanged && Changed is { } changed)
@@ -733,6 +959,38 @@ internal sealed class ElgatoLedStripProDriver : ElgatoLightDriver<ElgatoLedStrip
 
 		ValueTask ILightSaturation.SetSaturationAsync(byte saturation, CancellationToken cancellationToken)
 			=> saturation != _saturation ? new(SetSaturationAsync(saturation, cancellationToken)) : ValueTask.CompletedTask;
+
+
+		event EffectChangeHandler ILightingDynamicChanges.EffectChanged
+		{
+			add => EffectChanged += value;
+			remove => EffectChanged -= value;
+		}
+
+		private void ApplyEffect(ILightingEffect effect)
+			=> Driver.SendUpdateAsync(Index, GenerateEffectUpdate(_effect = effect, Driver._ledCount, _brightness), default).GetAwaiter().GetResult();
+
+		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect)
+		{
+			if (_effect is StaticColorEffect oldEffect && oldEffect.Color == effect.Color) return;
+			ApplyEffect(effect);
+		}
+
+		void ILightingZoneEffect<ReversibleVariableColorWaveEffect>.ApplyEffect(in ReversibleVariableColorWaveEffect effect)
+		{
+			if (_effect is ReversibleVariableColorWaveEffect oldEffect && oldEffect.Color == effect.Color && oldEffect.Speed == effect.Speed && oldEffect.Direction == effect.Direction) return;
+			ApplyEffect(effect);
+		}
+
+		void ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.ApplyEffect(in ReversibleVariableSpectrumWaveEffect effect)
+		{
+			if (_effect is ReversibleVariableSpectrumWaveEffect oldEffect && oldEffect.Speed == effect.Speed && oldEffect.Direction == effect.Direction) return;
+			ApplyEffect(effect);
+		}
+
+		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => _effect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.TryGetCurrentEffect(out ReversibleVariableSpectrumWaveEffect effect) => _effect.TryGetEffect(out effect);
+		bool ILightingZoneEffect<ReversibleVariableColorWaveEffect>.TryGetCurrentEffect(out ReversibleVariableColorWaveEffect effect) => _effect.TryGetEffect(out effect);
 	}
 }
 
@@ -741,7 +999,7 @@ internal sealed class FixedSizeBufferWriter : IBufferWriter<byte>
 	private readonly byte[] _data;
 	private int _length;
 
-	public FixedSizeBufferWriter(int capacity) => _data = GC.AllocateUninitializedArray<byte>(capacity, false);
+	public FixedSizeBufferWriter(int capacity) => _data = capacity > 0 ? GC.AllocateUninitializedArray<byte>(capacity, false) : [];
 
 	public void Reset() => _length = 0;
 
@@ -773,7 +1031,7 @@ internal readonly struct ElgatoAccessoryInfo
 	public required string SerialNumber { get; init; }
 	public required string DisplayName { get; init; }
 	public required ImmutableArray<string> Features { get; init; }
-	public int LedCount { get; init; }
+	public ushort LedCount { get; init; }
 }
 
 internal readonly struct ElgatoWifiInfo
@@ -821,12 +1079,12 @@ internal readonly struct ElgatoLedStripProLight
 {
 	// 0 - 1
 	public required byte On { get; init; }
-	// 0 - 100
-	public required byte Brightness { get; init; }
-	// 0 - 359 ?
-	public byte Hue { get; init; }
-	// 0 - 100
-	public byte Saturation { get; init; }
+	// [0..100]
+	public required float Brightness { get; init; }
+	// [0..360[
+	public float Hue { get; init; }
+	// [0..100]
+	public float Saturation { get; init; }
 	// Id of the effect, in java namespace style, limited to 36 characters per Elgato official documentation.
 	// This is an arbitrary string used to identify the current effect. The hardware has no care for it at all. (At least it shouldn't and doesn't seem to)
 	public string? Id { get; init; }
@@ -872,13 +1130,26 @@ internal readonly struct ElgatoColorLightUpdate
 internal readonly struct ElgatoLedStripProLightUpdate
 {
 	public byte? On { get; init; }
-	public byte? Brightness { get; init; }
-	public ushort? Hue { get; init; }
-	public byte? Saturation { get; init; }
+	public float? Brightness { get; init; }
+	public float? Hue { get; init; }
+	public float? Saturation { get; init; }
 	public string? Id { get; init; }
 	public string? Name { get; init; }
 	public JsonObject? MetaData { get; init; }
 	public ElgatoLedStripFrame[]? SceneSet { get; init; }
+}
+
+internal readonly struct ColorWaveMetaData
+{
+	public required RgbColor Color { get; init; }
+	public required PredeterminedEffectSpeed Speed { get; init; }
+	public required EffectDirection1D Direction { get; init; }
+}
+
+internal readonly struct SpectrumWaveMetaData
+{
+	public required PredeterminedEffectSpeed Speed { get; init; }
+	public required EffectDirection1D Direction { get; init; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, NumberHandling = JsonNumberHandling.AllowReadingFromString)]
@@ -889,6 +1160,8 @@ internal readonly struct ElgatoLedStripProLightUpdate
 [JsonSerializable(typeof(ElgatoLightsUpdate<ElgatoLightUpdate>), GenerationMode = JsonSourceGenerationMode.Serialization)]
 [JsonSerializable(typeof(ElgatoLightsUpdate<ElgatoColorLightUpdate>), GenerationMode = JsonSourceGenerationMode.Serialization)]
 [JsonSerializable(typeof(ElgatoLightsUpdate<ElgatoLedStripProLightUpdate>), GenerationMode = JsonSourceGenerationMode.Serialization)]
+[JsonSerializable(typeof(ColorWaveMetaData))]
+[JsonSerializable(typeof(SpectrumWaveMetaData))]
 internal partial class SourceGenerationContext : JsonSerializerContext
 {
 }
