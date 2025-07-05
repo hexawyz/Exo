@@ -135,7 +135,7 @@ public struct HsvColor : IEquatable<HsvColor>
 	public static byte GetScaledSaturation(float saturation)
 	{
 		if (saturation > 100) saturation = saturation % 100;
-		return (byte)(saturation * 255);
+		return (byte)(saturation * 255 / 100);
 	}
 
 	public static float GetStandardSaturation(byte scaledSaturation)

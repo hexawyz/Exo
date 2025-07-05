@@ -719,12 +719,19 @@ internal sealed class ElgatoLedStripProDriver :
 	// Parses the current effect into one of ours if possible.
 	private static ILightingEffect ParseEffect(string effectId, JsonObject? metaData)
 	{
-		switch (effectId)
+		try
 		{
-		case "com.exo.wave.color":
-			return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.ColorWaveMetaData));
-		case "com.exo.wave.spectrum":
-			return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.SpectrumWaveMetaData));
+			switch (effectId)
+			{
+			case "com.exo.wave.color":
+				return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.ColorWaveMetaData));
+			case "com.exo.wave.spectrum":
+				return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.SpectrumWaveMetaData));
+			}
+		}
+		catch (Exception ex)
+		{
+			// TODO: Log
 		}
 		return NotApplicableEffect.SharedInstance;
 	}
@@ -1099,12 +1106,6 @@ internal readonly struct ElgatoLedStripProLight
 	public byte SceneSaveStatus { get; init; }
 }
 
-internal readonly struct ElgatoLedStripFrame
-{
-	public required byte[] RgbRaw { get; init; }
-	public required ushort Duration { get; init; }
-}
-
 internal readonly struct ElgatoLightsUpdate<TLight>
 	where TLight : struct
 {
@@ -1137,6 +1138,12 @@ internal readonly struct ElgatoLedStripProLightUpdate
 	public string? Name { get; init; }
 	public JsonObject? MetaData { get; init; }
 	public ElgatoLedStripFrame[]? SceneSet { get; init; }
+}
+
+internal readonly struct ElgatoLedStripFrame
+{
+	public required byte[] RgbRaw { get; init; }
+	public required ushort Duration { get; init; }
 }
 
 internal readonly struct ColorWaveMetaData

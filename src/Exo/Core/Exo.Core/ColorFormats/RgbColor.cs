@@ -2,13 +2,32 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Exo.ColorFormats;
 
 [DebuggerDisplay("R = {R}, G = {G}, B = {B}")]
 [StructLayout(LayoutKind.Sequential, Size = 3)]
+[JsonConverter(typeof(JsonConverter))]
 public struct RgbColor : IEquatable<RgbColor>, IParsable<RgbColor>
 {
+	public sealed class JsonConverter : JsonConverter<RgbColor>
+	{
+		public override RgbColor Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+			=> Parse(reader.GetString()!, null);
+
+		public override void Write(Utf8JsonWriter writer, RgbColor value, JsonSerializerOptions options)
+		{
+			Span<byte> buffer = stackalloc byte[7];
+			buffer[0] = (byte)'#';
+			value.R.TryFormat(buffer[1..], out _, "X2", CultureInfo.InvariantCulture);
+			value.G.TryFormat(buffer[3..], out _, "X2", CultureInfo.InvariantCulture);
+			value.B.TryFormat(buffer[5..], out _, "X2", CultureInfo.InvariantCulture);
+			writer.WriteStringValue(buffer);
+		}
+	}
+
 	public byte R;
 	public byte G;
 	public byte B;
