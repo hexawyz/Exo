@@ -53,7 +53,7 @@ public struct HsvColor : IEquatable<HsvColor>
 	{
 		var twoPi = Vector128.Create(6 * 255);
 		var maxComponent = Vector128.Create(255);
-		var shiftedHue = Vector128.Create((int)H) + Vector128.Create([0, 4 * 255, 2 * 255, 0]);
+		var shiftedHue = Vector128.Create((int)H) + Vector128.Create(0, 4 * 255, 2 * 255, 0);
 		var hueColor = Vector128.Clamp(Vector128.Abs(shiftedHue - Vector128.BitwiseAnd(Vector128.GreaterThanOrEqual(shiftedHue, twoPi), twoPi) - Vector128.Create(3 * 255)) - Vector128.Create(255), Vector128<int>.Zero, maxComponent);
 		var scaledSaturatedHueColor = (Vector128.Create((int)V) * (hueColor * Vector128.Create((int)S) + maxComponent * Vector128.Create((int)(byte)~S))).AsUInt32();
 		if (Avx2.IsSupported)
@@ -63,6 +63,7 @@ public struct HsvColor : IEquatable<HsvColor>
 		}
 		else
 		{
+			// TODO: Optimize
 			var scaledDownComponents = scaledSaturatedHueColor / (255 * 255);
 			return new((byte)scaledDownComponents.GetElement(0), (byte)scaledDownComponents.GetElement(1), (byte)scaledDownComponents.GetElement(2));
 		}

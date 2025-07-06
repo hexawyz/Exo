@@ -685,7 +685,7 @@ internal sealed class ElgatoLedStripProDriver :
 	];
 
 	// These rainbow colors are the one from RGB Fusion. They do look better, so we'll use them for now.
-	private static ReadOnlySpan<byte> RainbowColorBytes =>
+	private static ReadOnlySpan<byte> GigabyteRainbowColorBytes =>
 	[
 		255, 0, 0,
 		255, 127, 0,
@@ -694,6 +694,18 @@ internal sealed class ElgatoLedStripProDriver :
 		0, 0, 255,
 		75, 0, 130,
 		148, 0, 211,
+	];
+
+	// More standard rainbow colors. (Ignoring any gamma curve. No idea how LEDs are calibrated anyway)
+	private static ReadOnlySpan<byte> RainbowColorBytes =>
+	[
+		255, 0, 0,
+		255, 128, 0,
+		255, 255, 0,
+		0, 255, 0,
+		0, 0, 255,
+		128, 0, 255,
+		255, 0, 255,
 	];
 
 	private static ReadOnlySpan<RgbColor> RainbowColors => MemoryMarshal.Cast<byte, RgbColor>(RainbowColorBytes);
@@ -756,7 +768,7 @@ internal sealed class ElgatoLedStripProDriver :
 		=> new ReversibleVariableColorWaveEffect(metaData.Color, metaData.Speed, metaData.Direction);
 
 	private static ReversibleVariableMultiColorWaveEffect ParseEffect(MultiColorWaveMetaData metaData)
-		=> new ReversibleVariableMultiColorWaveEffect(new FixedList10<RgbColor>(metaData.Colors), metaData.Speed, metaData.Direction, metaData.Size);
+		=> new ReversibleVariableMultiColorWaveEffect(new FixedList10<RgbColor>(metaData.Colors), metaData.Speed, metaData.Direction, metaData.Size, metaData.Interpolate);
 
 	private static ReversibleVariableSpectrumWaveEffect ParseEffect(SpectrumWaveMetaData metaData)
 		=> new ReversibleVariableSpectrumWaveEffect(metaData.Speed, metaData.Direction);
@@ -796,7 +808,9 @@ internal sealed class ElgatoLedStripProDriver :
 				On = 1,
 				Brightness = HsvColor.GetStandardValue(brightness),
 				Id = "com.exo.wave.multicolor",
-				SceneSet = GenerateSlidingSceneFrames(colorWaveEffect.Colors, colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, colorWaveEffect.Size),
+				SceneSet = colorWaveEffect.Interpolate ?
+					GenerateInterpolatedSlidingSceneFrames(colorWaveEffect.Colors, colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, colorWaveEffect.Size) :
+					GenerateSlidingSceneFrames(colorWaveEffect.Colors, colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, colorWaveEffect.Size),
 				MetaData = (JsonObject?)JsonSerializer.SerializeToNode
 				(
 					new MultiColorWaveMetaData()
@@ -804,7 +818,8 @@ internal sealed class ElgatoLedStripProDriver :
 						Colors = ((ReadOnlySpan<RgbColor>)colorWaveEffect.Colors).ToArray(),
 						Speed = colorWaveEffect.Speed,
 						Direction = colorWaveEffect.Direction,
-						Size = colorWaveEffect.Size
+						Size = colorWaveEffect.Size,
+						Interpolate = colorWaveEffect.Interpolate,
 					},
 					SourceGenerationContext.Default.MultiColorWaveMetaData
 				),
@@ -832,7 +847,7 @@ internal sealed class ElgatoLedStripProDriver :
 	}
 
 	private static ElgatoLedStripFrame[] GenerateSpectrumWaveSceneFrames(PredeterminedEffectSpeed speed, EffectDirection1D direction, int ledCount, int size)
-		=> GenerateSlidingSceneFrames(RainbowColors, speed, direction, ledCount, size);
+		=> GenerateInterpolatedSlidingSceneFrames(RainbowColors, speed, direction, ledCount, size);
 
 	private static ElgatoLedStripFrame[] GenerateSlidingSceneFrames(ReadOnlySpan<RgbColor> colorSequence, PredeterminedEffectSpeed speed, EffectDirection1D direction, int ledCount, int size)
 	{
@@ -844,7 +859,7 @@ internal sealed class ElgatoLedStripProDriver :
 		int startingDuplicateIndex = 0;
 		for (int i = 0; i < frames.Length; i++)
 		{
-			var buffer = new byte[ledCount * 3];
+			var buffer = GC.AllocateUninitializedArray<byte>(ledCount * 3);
 			var colors = MemoryMarshal.Cast<byte, RgbColor>(buffer);
 			int colorIndex = startingColorIndex;
 			int duplicateIndex = startingDuplicateIndex;
@@ -879,6 +894,78 @@ internal sealed class ElgatoLedStripProDriver :
 		return frames;
 	}
 
+	private static ElgatoLedStripFrame[] GenerateInterpolatedSlidingSceneFrames(ReadOnlySpan<RgbColor> colorSequence, PredeterminedEffectSpeed speed, EffectDirection1D direction, int ledCount, int size)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(size, 1);
+
+		if (colorSequence.Length < 2) return GenerateSlidingSceneFrames(colorSequence, speed, direction, ledCount, size);
+		if (size < 2) return GenerateSlidingSceneFrames(colorSequence, speed, direction, ledCount);
+
+		var colors = new RgbColor[colorSequence.Length * size];
+		int k = 0;
+		for (int i = 0; i < colorSequence.Length; i++)
+		{
+			var a = colorSequence[i];
+			int j = i + 1;
+			if (j >= colorSequence.Length) j = 0;
+			var b = colorSequence[j];
+			for (j = 0; j < size; j++)
+			{
+				colors[k++] = RgbColor.Lerp(a, b, (byte)(255 * j / (uint)size));
+			}
+		}
+		return GenerateSlidingSceneFrames(colors, speed, direction, ledCount);
+	}
+
+	private static ElgatoLedStripFrame[] GenerateSlidingSceneFrames(ReadOnlySpan<RgbColor> colorSequence, PredeterminedEffectSpeed speed, EffectDirection1D direction, int ledCount)
+	{
+		ArgumentOutOfRangeException.ThrowIfLessThan(ledCount, 1);
+
+		int frameCount = colorSequence.Length;
+		if (frameCount > MaximumFrameCount) throw new InvalidOperationException("Cannot generate the requested effect because of the frame limit.");
+		ushort delay = StandardFrameDelays[(byte)speed];
+		var frames = new ElgatoLedStripFrame[frameCount];
+		uint bufferLength = (uint)ledCount * 3;
+		var lastBuffer = GC.AllocateUninitializedArray<byte>((int)bufferLength);
+		var colors = MemoryMarshal.Cast<byte, RgbColor>(lastBuffer);
+		int rowOffset = colorSequence.Length > 1 ? colorSequence.Length - 1 : 0;
+		for (int i = 0; ;)
+		{
+			int count = colors.Length - i;
+			if (colorSequence.Length > count)
+			{
+				colorSequence[..count].CopyTo(colors[i..]);
+				if (direction != EffectDirection1D.Forward) rowOffset = count;
+				break;
+			}
+			else
+			{
+				colorSequence.CopyTo(colors[i..]);
+				if ((i += colorSequence.Length) >= colors.Length) break;
+			}
+		}
+		frames[0] = new() { RgbRaw = lastBuffer, Duration = delay };
+		for (int i = 1; i < frames.Length; i++)
+		{
+			var buffer = new byte[ledCount * 3];
+			if (direction == EffectDirection1D.Forward)
+			{
+				lastBuffer.AsSpan(0, lastBuffer.Length - 3).CopyTo(buffer.AsSpan(3));
+				Unsafe.As<byte, RgbColor>(ref buffer[0]) = colorSequence[rowOffset];
+				if ((uint)--rowOffset >= colorSequence.Length) rowOffset = colorSequence.Length - 1;
+			}
+			else
+			{
+				lastBuffer.AsSpan(3, lastBuffer.Length).CopyTo(buffer);
+				Unsafe.As<byte, RgbColor>(ref buffer[^3]) = colorSequence[rowOffset];
+				if (++rowOffset >= colorSequence.Length) rowOffset = 0;
+			}
+			frames[i] = new() { RgbRaw = buffer, Duration = delay };
+			lastBuffer = buffer;
+		}
+		return frames;
+	}
+
 	private static bool SequenceEquals(in FixedList10<RgbColor> a, in FixedList10<RgbColor> b)
 	{
 		if (a.Count != b.Count) return false;
@@ -902,7 +989,7 @@ internal sealed class ElgatoLedStripProDriver :
 		ILightingZoneEffect<ReversibleVariableColorWaveEffect>,
 		ILightingZoneEffect<ReversibleVariableMultiColorWaveEffect>
 	{
-		// Values are scaled up in the same ways as in HsvColor in order to preserve an accurate representation of colors and direct compatbility with HsvColor.
+		// Values are scaled up in the same ways as in HsvColor in order to preserve an accurate representation of colors and direct compatibility with HsvColor.
 		private ushort _hue;
 		private byte _brightness;
 		private byte _saturation;
@@ -1019,7 +1106,6 @@ internal sealed class ElgatoLedStripProDriver :
 
 		ValueTask ILightSaturation.SetSaturationAsync(byte saturation, CancellationToken cancellationToken)
 			=> saturation != _saturation ? new(SetSaturationAsync(saturation, cancellationToken)) : ValueTask.CompletedTask;
-
 
 		event EffectChangeHandler ILightingDynamicChanges.EffectChanged
 		{
@@ -1223,6 +1309,7 @@ internal readonly struct MultiColorWaveMetaData
 	public required PredeterminedEffectSpeed Speed { get; init; }
 	public required EffectDirection1D Direction { get; init; }
 	public required byte Size { get; init; }
+	public bool Interpolate { get; init; }
 }
 
 internal readonly struct SpectrumWaveMetaData
