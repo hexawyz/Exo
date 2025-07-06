@@ -26,6 +26,6 @@ public readonly partial struct ReversibleVariableMultiColorWaveEffect(in FixedLi
 
 	[Display(Name = "Size")]
 	[DefaultValue(10)]
-	[Range(1, 10)]
+	[Range(1, 20)]
 	public byte Size { get; } = size;
 }

@@ -69,6 +69,17 @@ public interface ILight<TState> : ILight
 public interface ILightBrightness : ILight
 {
 	byte Minimum => 0;
+	/// <summary>Gets the maximum value used to represent saturation on the light.</summary>
+	/// <remarks>
+	/// <para>
+	/// Brightness is typically represented from 0 to 100, however the minimum precision required to support
+	/// lossless conversion to and from RGB is a maximum of 255.
+	/// </para>
+	/// <para>
+	/// Lights supporting dynamic colors would generally benefit from using a maximum value of 255 instead the default of 100,
+	/// however it will depend on what the hardware actually allows.
+	/// </para>
+	/// </remarks>
 	byte Maximum => 100;
 	/// <summary>Gets the last known value for the brightness.</summary>
 	byte Value { get; }
@@ -78,6 +89,18 @@ public interface ILightBrightness : ILight
 /// <summary>Allows controlling the hue of the light directly.</summary>
 public interface ILightHue : ILight
 {
+	/// <summary>Gets the maximum value used to represent hue on the light.</summary>
+	/// <remarks>
+	/// <para>
+	/// Hue is typically represented from 0 to 360 excluded, however the minimum precision required to support
+	/// lossless conversion to and from RGB is a maximum of 1530.
+	/// </para>
+	/// <para>
+	/// It is up to the device to override this value to what more accurately represents the capabilities of the device.
+	/// If the device accepts hue as a floating point value, the maximum can be kept at 1529 or any multiple of 1530 minus one.
+	/// </para>
+	/// </remarks>
+	ushort Maximum => 1529;
 	/// <summary>Gets the last known value for the hue.</summary>
 	ushort Value { get; }
 	ValueTask SetHueAsync(ushort hue, CancellationToken cancellationToken);
@@ -86,6 +109,17 @@ public interface ILightHue : ILight
 /// <summary>Allows controlling the saturation of the light directly.</summary>
 public interface ILightSaturation : ILight
 {
+	/// <summary>Gets the maximum value used to represent saturation on the light.</summary>
+	/// <remarks>
+	/// <para>
+	/// Saturation is typically represented from 0 to 100, however the minimum precision required to support lossless conversion to and from RGB is a maximum of 255.
+	/// </para>
+	/// <para>
+	/// It is typically expected that most devices supporting dynamic colors will allow numeric precision on-par with 24bit RGB.
+	/// However, drivers should indicate the proper value to use by changing from the default of 255 here.
+	/// </para>
+	/// </remarks>
+	byte Maximum => 255;
 	/// <summary>Gets the last known value for the saturation.</summary>
 	byte Value { get; }
 	ValueTask SetSaturationAsync(byte saturation, CancellationToken cancellationToken);

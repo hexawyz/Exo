@@ -108,6 +108,33 @@ public interface ILightingBrightnessFeature : ILightingDeviceFeature
 /// </remarks>
 public interface ILightingDynamicChanges : ILightingDeviceFeature
 {
+	/// <summary>Indicates whether the effects persistence is managed on device side.</summary>
+	/// <remarks>
+	/// <para>
+	/// Most devices will have their effects managed on the software side, but devices having readable external lighting changes
+	/// may benefit from being left alone managing their state.
+	/// In particular, letting the device manage its own state will help reduce the wear and tear experienced by the device, by
+	/// avoiding overriding the current effect with one stored in the software.
+	/// </para>
+	/// <para>
+	/// This is somewhat strongly associated with <see cref="HasDynamicPresence"/>, as the combination of both flags will indicate to the software
+	/// if the lighting effects are to be stored on disk whenever they change.
+	/// </para>
+	/// </remarks>
+	bool HasDeviceManagedLighting { get; }
+	/// <summary>Indicates whether the device presence should be managed dynamically.</summary>
+	/// <remarks>
+	/// <para>
+	/// By default, lighting devices are considered permanent and their effects can be adjusted even when the device is offline.
+	/// Devices whose presence is more situational, especially devices that are external to the computer, can benefit from not being treated this way.
+	/// In particular, this can alleviate the software from being required to store lighting effects on disk everytime they are changed.
+	/// </para>
+	/// <para>
+	/// This is somewhat strongly associated with <see cref="HasDeviceManagedLighting"/>, as the combination of both flags will indicate to the software
+	/// if the lighting effects are to be stored on disk whenever they change.
+	/// </para>
+	/// </remarks>
+	bool HasDynamicPresence { get; }
 	/// <summary>Notifies that the effect has changed on a specific lighting zone.</summary>
 	/// <remarks>This event does not indicate whether the change was externally triggered.</remarks>
 	event EffectChangeHandler EffectChanged;

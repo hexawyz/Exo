@@ -919,6 +919,9 @@ internal sealed class ElgatoLedStripProDriver :
 
 		private new ElgatoLedStripProDriver Driver => Unsafe.As<ElgatoLedStripProDriver>(base.Driver);
 
+		bool ILightingDynamicChanges.HasDeviceManagedLighting => true;
+		bool ILightingDynamicChanges.HasDynamicPresence => true;
+
 		byte ILightingBrightnessFeature.MaximumBrightness => 255;
 		byte ILightingBrightnessFeature.CurrentBrightness
 		{
@@ -976,6 +979,7 @@ internal sealed class ElgatoLedStripProDriver :
 			}
 		}
 
+		byte ILightBrightness.Maximum => 255;
 		byte ILightBrightness.Value => _brightness;
 		ushort ILightHue.Value => _hue;
 		byte ILightSaturation.Value => _saturation;
