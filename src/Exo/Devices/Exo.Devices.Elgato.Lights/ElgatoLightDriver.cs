@@ -1140,7 +1140,8 @@ internal sealed class ElgatoLedStripProDriver :
 				SequenceEquals(oldEffect.Colors, effect.Colors) &&
 				oldEffect.Speed == effect.Speed &&
 				oldEffect.Direction == effect.Direction &&
-				oldEffect.Size == effect.Size) return;
+				oldEffect.Size == effect.Size &&
+				oldEffect.Interpolate == effect.Interpolate) return;
 			ApplyEffect(effect);
 		}
 
