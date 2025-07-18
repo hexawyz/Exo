@@ -69,6 +69,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection
 		var powerDeviceWatchTask = WatchPowerDevicesAsync(cancellationToken);
 		var mouseDeviceWatchTask = WatchMouseDevicesAsync(cancellationToken);
 		var lightingDeviceWatchTask = WatchLightingDevicesAsync(cancellationToken);
+		var lightingDeviceDisconnectWatchTask = WatchDisconnectedLightingDevicesAsync(cancellationToken);
 		var embeddedMonitorDeviceWatchTask = WatchEmbeddedMonitorDevicesAsync(cancellationToken);
 		var monitorDeviceWatchTask = WatchMonitorDevicesAsync(cancellationToken);
 		var lightDeviceWatchTask = WatchLightDevicesAsync(cancellationToken);
@@ -119,6 +120,7 @@ internal sealed partial class UiPipeServerConnection : PipeServerConnection
 				mouseDpiPresetWatchTask,
 				mousePollingFrequencyWatchTask,
 				lightingDeviceWatchTask,
+				lightingDeviceDisconnectWatchTask,
 				lightingDeviceConfigurationWatchTask,
 				lightingConfigurationWatchTask,
 				embeddedMonitorDeviceWatchTask,

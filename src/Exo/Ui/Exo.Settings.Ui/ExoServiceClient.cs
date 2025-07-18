@@ -112,6 +112,9 @@ internal class ExoServiceClient : IServiceClient
 	void IServiceClient.OnLightingDeviceUpdate(LightingDeviceInformation lightingDevice)
 		=> _settingsViewModel.Lighting.OnLightingDevice(lightingDevice);
 
+	void IServiceClient.OnLightingDeviceRemove(Guid deviceId)
+		=> _settingsViewModel.Lighting.OnLightingDeviceRemove(deviceId);
+
 	void IServiceClient.OnLightingSupportedCentralizedEffectsUpdate(ImmutableArray<Guid> effectIds)
 		=> _settingsViewModel.Lighting.OnLightingSupportedCentralizedEffectsUpdate(effectIds);
 

@@ -33,6 +33,7 @@ public partial class KrakenDriver :
 	IDeviceIdFeature,
 	IDeviceSerialNumberFeature,
 	ILightingControllerFeature,
+	ILightingPersistenceMode,
 	ILightingDeferredChangesFeature,
 	ISensorsFeature,
 	ISensorsGroupedQueryFeature,
@@ -364,7 +365,7 @@ public partial class KrakenDriver :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
 			FeatureSet.Create<IGenericDeviceFeature, KrakenDriver, IDeviceIdFeature>(this);
 		_lightingFeatures = _lightingZones.Length > 0 ?
-			FeatureSet.Create<ILightingDeviceFeature, KrakenDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this) :
+			FeatureSet.Create<ILightingDeviceFeature, KrakenDriver, ILightingControllerFeature, ILightingPersistenceMode, ILightingDeferredChangesFeature>(this) :
 			FeatureSet.Empty<ILightingDeviceFeature>();
 		_sensorFeatures = FeatureSet.Create<ISensorDeviceFeature, KrakenDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this);
 		_coolingFeatures = FeatureSet.Create<ICoolingDeviceFeature, KrakenDriver, ICoolingControllerFeature>(this);
@@ -391,7 +392,7 @@ public partial class KrakenDriver :
 	}
 
 	IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => _lightingZones;
-	LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.NeverPersisted;
+	LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.NeverPersisted;
 
 	async ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist)
 	{

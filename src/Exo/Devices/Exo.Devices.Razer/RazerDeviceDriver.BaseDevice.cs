@@ -21,6 +21,7 @@ public abstract partial class RazerDeviceDriver
 		IDeviceDriver<IPowerManagementDeviceFeature>,
 		IDeviceDriver<ILightingDeviceFeature>,
 		ILightingControllerFeature,
+		ILightingPersistenceMode,
 		ILightingDeferredChangesFeature,
 		ILightingBrightnessFeature,
 		IBatteryStateDeviceFeature,
@@ -510,6 +511,7 @@ public abstract partial class RazerDeviceDriver
 
 					return type == typeof(ILightingControllerFeature) && _device.HasLightingZones ||
 						type == typeof(ILightingBrightnessFeature) && _device.HasUnifiedLighting ||
+						type == typeof(ILightingPersistenceMode) ||
 						type == typeof(ILightingDeferredChangesFeature) ?
 							_device :
 							null;
@@ -527,6 +529,7 @@ public abstract partial class RazerDeviceDriver
 
 				return typeof(T) == typeof(ILightingControllerFeature) && _device.HasLightingZones ||
 					typeof(T) == typeof(ILightingBrightnessFeature) && _device.HasUnifiedLighting ||
+					typeof(T) == typeof(ILightingPersistenceMode) ||
 					typeof(T) == typeof(ILightingDeferredChangesFeature) ?
 						_device :
 						null;
@@ -538,7 +541,7 @@ public abstract partial class RazerDeviceDriver
 			{
 				get
 				{
-					int count = 1;
+					int count = 2;
 
 					if (_device.HasUnifiedLighting) count += 2;
 					if (_device.HasLightingZones) count++;
@@ -558,6 +561,7 @@ public abstract partial class RazerDeviceDriver
 				{
 					yield return new(typeof(ILightingControllerFeature), _device);
 				}
+				yield return new(typeof(ILightingPersistenceMode), _device);
 				yield return new(typeof(ILightingDeferredChangesFeature), _device);
 			}
 
@@ -790,7 +794,7 @@ public abstract partial class RazerDeviceDriver
 
 		IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => ImmutableCollectionsMarshal.AsArray(_lightingZones)!;
 
-		LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.CanPersist;
+		LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.CanPersist;
 		ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist) => ApplyChangesAsync(shouldPersist, default);
 
 		byte ILightingBrightnessFeature.MaximumBrightness => 255;

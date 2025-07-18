@@ -259,6 +259,18 @@ internal sealed partial class LightingViewModel : ChangeableBindableObject, IAsy
 		}
 	}
 
+	internal void OnLightingDeviceRemove(Guid deviceId)
+	{
+		if (_lightingDeviceById.Remove(deviceId, out var vm))
+		{
+			_lightingDevices.Remove(vm);
+		}
+		else
+		{
+			_pendingDeviceInformations.Remove(deviceId);
+		}
+	}
+
 	// This method is only supposed to be called once shortly after the connection is established.
 	internal void OnLightingSupportedCentralizedEffectsUpdate(ImmutableArray<Guid> effectIds)
 	{

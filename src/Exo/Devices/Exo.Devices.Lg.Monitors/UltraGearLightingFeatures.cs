@@ -134,7 +134,7 @@ internal sealed class UltraGearLightingFeatures :
 	}
 
 
-	LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.AlwaysPersisted;
+	LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.AlwaysPersisted;
 
 	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist)
 	{

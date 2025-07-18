@@ -26,6 +26,7 @@ public partial class NVidiaGpuDriver :
 	IDeviceDriver<ICoolingDeviceFeature>,
 	IDisplayAdapterI2cBusProviderFeature,
 	ILightingControllerFeature,
+	ILightingPersistenceMode,
 	ILightingDeferredChangesFeature,
 	ISensorsFeature,
 	ISensorsGroupedQueryFeature
@@ -440,7 +441,7 @@ public partial class NVidiaGpuDriver :
 		_displayAdapterFeatures = FeatureSet.Create<IDisplayAdapterDeviceFeature, NVidiaGpuDriver, IDisplayAdapterI2cBusProviderFeature>(this);
 		_lightingZoneCollection = ImmutableCollectionsMarshal.AsArray(lightingZones)!.AsReadOnly();
 		_lightingFeatures = lightingZones.Length > 0 ?
-			FeatureSet.Create<ILightingDeviceFeature, NVidiaGpuDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this) :
+			FeatureSet.Create<ILightingDeviceFeature, NVidiaGpuDriver, ILightingControllerFeature, ILightingPersistenceMode, ILightingDeferredChangesFeature>(this) :
 			FeatureSet.Empty<ILightingDeviceFeature>();
 		_sensorFeatures = _thermalTargetSensors.Length > 0 ?
 			FeatureSet.Create<ISensorDeviceFeature, NVidiaGpuDriver, ISensorsFeature, ISensorsGroupedQueryFeature>(this) :
@@ -472,7 +473,7 @@ public partial class NVidiaGpuDriver :
 		}
 	}
 
-	LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.NeverPersisted;
+	LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.NeverPersisted;
 
 	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist)
 	{

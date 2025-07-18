@@ -18,6 +18,7 @@ public partial class AuraRamDriver :
 	Driver,
 	IDeviceDriver<ILightingDeviceFeature>,
 	ILightingControllerFeature,
+	ILightingPersistenceMode,
 	ILightingDeferredChangesFeature
 {
 	// A list of common addresses where the SMBus devices RAM sticks can be assigned.
@@ -384,12 +385,12 @@ public partial class AuraRamDriver :
 		_lightingZones = ImmutableCollectionsMarshal.AsImmutableArray(lightingZones);
 		_deferredChangesBuffer = new FinalPendingChanges[lightingZones.Length];
 		_lightingZoneCollection = new ReadOnlyCollection<ILightingZone>(lightingZones);
-		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, AuraRamDriver, ILightingControllerFeature, ILightingDeferredChangesFeature>(this);
+		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, AuraRamDriver, ILightingControllerFeature, ILightingPersistenceMode, ILightingDeferredChangesFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-	LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.CanPersist;
+	LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.CanPersist;
 
 	async ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist)
 	{

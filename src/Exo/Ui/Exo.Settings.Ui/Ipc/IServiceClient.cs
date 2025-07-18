@@ -35,6 +35,7 @@ internal interface IServiceClient
 	void OnLightingSupportedCentralizedEffectsUpdate(ImmutableArray<Guid> effectIds);
 	void OnLightingConfigurationUpdate(LightingConfiguration configuration);
 	void OnLightingDeviceUpdate(LightingDeviceInformation lightingDevice);
+	void OnLightingDeviceRemove(Guid deviceId);
 	void OnLightingDeviceConfigurationUpdate(LightingDeviceConfiguration configuration);
 
 	void OnEmbeddedMonitorDeviceUpdate(EmbeddedMonitorDeviceInformation embeddedMonitorDevice);

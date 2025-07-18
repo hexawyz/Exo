@@ -16,6 +16,13 @@ public interface ILightingControllerFeature : ILightingDeviceFeature
 	IReadOnlyCollection<ILightingZone> LightingZones { get; }
 }
 
+public interface ILightingPersistenceMode : ILightingDeviceFeature
+{
+	/// <summary>Indicates how the device will persist the lighting changes.</summary>
+	/// <remarks>Availability of on-demand lighting persistence is not guaranteed. This property will indicate the capabilities of the device regarding this.</remarks>
+	LightingPersistenceMode PersistenceMode { get; }
+}
+
 /// <summary>A feature allowing to apply deferred lighting changes to a device.</summary>
 /// <remarks>
 /// <para>
@@ -24,12 +31,8 @@ public interface ILightingControllerFeature : ILightingDeviceFeature
 /// </para>
 /// <para>In the absence of this feature, it is assumed that lighting changes are applied immediately.</para>
 /// </remarks>
-public interface ILightingDeferredChangesFeature : ILightingDeviceFeature
+public interface ILightingDeferredChangesFeature : ILightingDeviceFeature, ILightingPersistenceMode
 {
-	/// <summary>Indicates how the device will persist the lighting changes.</summary>
-	/// <remarks>Availability of on-demand lighting persistence is not guaranteed. This property will indicate the capabilities of the device regarding this.</remarks>
-	LightingPersistenceMode PersistenceMode { get; }
-
 	/// <summary>Applies changes to the current lighting effects.</summary>
 	/// <remarks>
 	/// This can optionally persist the applied lighting settings on the device.

@@ -982,6 +982,7 @@ internal sealed class ElgatoLedStripProDriver :
 		ILightHue,
 		ILightSaturation,
 		IUnifiedLightingFeature,
+		ILightingPersistenceMode,
 		ILightingBrightnessFeature,
 		ILightingDynamicChanges,
 		ILightingZoneEffect<StaticColorEffect>,
@@ -1006,6 +1007,7 @@ internal sealed class ElgatoLedStripProDriver :
 
 		private new ElgatoLedStripProDriver Driver => Unsafe.As<ElgatoLedStripProDriver>(base.Driver);
 
+		LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.AlwaysPersisted;
 		bool ILightingDynamicChanges.HasDeviceManagedLighting => true;
 		bool ILightingDynamicChanges.HasDynamicPresence => true;
 
@@ -1118,19 +1120,34 @@ internal sealed class ElgatoLedStripProDriver :
 
 		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect)
 		{
-			if (_effect is StaticColorEffect oldEffect && oldEffect.Color == effect.Color) return;
+			if (_effect is StaticColorEffect oldEffect &&
+				oldEffect.Color == effect.Color)
+			{
+				return;
+			}
 			ApplyEffect(effect);
 		}
 
 		void ILightingZoneEffect<ReversibleVariableColorWaveEffect>.ApplyEffect(in ReversibleVariableColorWaveEffect effect)
 		{
-			if (_effect is ReversibleVariableColorWaveEffect oldEffect && oldEffect.Color == effect.Color && oldEffect.Speed == effect.Speed && oldEffect.Direction == effect.Direction) return;
+			if (_effect is ReversibleVariableColorWaveEffect oldEffect &&
+				oldEffect.Color == effect.Color &&
+				oldEffect.Speed == effect.Speed &&
+				oldEffect.Direction == effect.Direction)
+			{
+				return;
+			}
 			ApplyEffect(effect);
 		}
 
 		void ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.ApplyEffect(in ReversibleVariableSpectrumWaveEffect effect)
 		{
-			if (_effect is ReversibleVariableSpectrumWaveEffect oldEffect && oldEffect.Speed == effect.Speed && oldEffect.Direction == effect.Direction) return;
+			if (_effect is ReversibleVariableSpectrumWaveEffect oldEffect &&
+				oldEffect.Speed == effect.Speed &&
+				oldEffect.Direction == effect.Direction)
+			{
+				return;
+			}
 			ApplyEffect(effect);
 		}
 
@@ -1141,7 +1158,10 @@ internal sealed class ElgatoLedStripProDriver :
 				oldEffect.Speed == effect.Speed &&
 				oldEffect.Direction == effect.Direction &&
 				oldEffect.Size == effect.Size &&
-				oldEffect.Interpolate == effect.Interpolate) return;
+				oldEffect.Interpolate == effect.Interpolate)
+			{
+				return;
+			}
 			ApplyEffect(effect);
 		}
 

@@ -382,6 +382,7 @@ public class LgMonitorDriver :
 				ILightingDeviceFeature,
 				UltraGearLightingFeatures,
 				IUnifiedLightingFeature,
+				ILightingPersistenceMode,
 				ILightingDeferredChangesFeature,
 				ILightingBrightnessFeature>(ultraGearLightingFeatures) :
 				FeatureSet.Empty<ILightingDeviceFeature>();

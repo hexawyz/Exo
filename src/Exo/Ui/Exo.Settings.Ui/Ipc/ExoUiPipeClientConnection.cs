@@ -298,6 +298,9 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IService
 		case ExoUiProtocolServerMessage.LightingDevice:
 			ProcessLightingDevice(data);
 			goto Success;
+		case ExoUiProtocolServerMessage.LightingDeviceRemove:
+			ProcessLightingDeviceRemove(data);
+			goto Success;
 		case ExoUiProtocolServerMessage.LightingSupportedCentralizedEffects:
 			ProcessLightingSupportedCentralizedEffects(data);
 			goto Success;
@@ -1013,6 +1016,15 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IService
 			}
 			return new LightingZoneInformation(zoneId, ImmutableCollectionsMarshal.AsImmutableArray(effectIds));
 		}
+	}
+
+	private void ProcessLightingDeviceRemove(ReadOnlySpan<byte> data)
+	{
+		var reader = new BufferReader(data);
+
+		var deviceId = reader.ReadGuid();
+
+		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightingDeviceRemove(deviceId));
 	}
 
 	private void ProcessLightingSupportedCentralizedEffects(ReadOnlySpan<byte> data)

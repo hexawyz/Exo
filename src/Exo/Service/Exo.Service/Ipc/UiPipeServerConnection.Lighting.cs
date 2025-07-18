@@ -117,6 +117,46 @@ partial class UiPipeServerConnection
 		}
 	}
 
+	private async Task WatchDisconnectedLightingDevicesAsync(CancellationToken cancellationToken)
+	{
+		using (var watcher = await BroadcastedChangeWatcher<DisconnectedLightingDeviceInformation>.CreateAsync(_server.LightingService, cancellationToken))
+		{
+			try
+			{
+				await WriteConsumedDataAsync(watcher, cancellationToken).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+			{
+			}
+		}
+
+		async Task WriteConsumedDataAsync(BroadcastedChangeWatcher<DisconnectedLightingDeviceInformation> watcher, CancellationToken cancellationToken)
+		{
+			while (await watcher.Reader.WaitToReadAsync().ConfigureAwait(false) && !cancellationToken.IsCancellationRequested)
+			{
+				using (await WriteLock.WaitAsync(cancellationToken).ConfigureAwait(false))
+				{
+					var buffer = WriteBuffer;
+					while (watcher.Reader.TryRead(out var deviceInformation))
+					{
+						int length = Write(buffer.Span, deviceInformation);
+						if (cancellationToken.IsCancellationRequested) return;
+						await WriteAsync(buffer[..length], cancellationToken).ConfigureAwait(false);
+					}
+				}
+			}
+		}
+
+		static int Write(Span<byte> buffer, in DisconnectedLightingDeviceInformation device)
+		{
+			var writer = new BufferWriter(buffer);
+			writer.Write((byte)ExoUiProtocolServerMessage.LightingDeviceRemove);
+			writer.Write(device.DeviceId);
+
+			return (int)writer.Length;
+		}
+	}
+
 	private async Task WatchLightingDeviceConfigurationAsync(CancellationToken cancellationToken)
 	{
 		using (var watcher = await BroadcastedChangeWatcher<LightingDeviceConfiguration>.CreateAsync(_server.LightingService, cancellationToken).ConfigureAwait(false))

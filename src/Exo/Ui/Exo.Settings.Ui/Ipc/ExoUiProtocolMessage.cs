@@ -145,6 +145,9 @@ internal enum ExoUiProtocolServerMessage : byte
 	LightingSupportedCentralizedEffects,
 	LightingConfiguration,
 	LightingDevice,
+	/// <summary>Used to notify removal of a lighting device.</summary>
+	/// <remarks>Only useful for lighting devices that need dynamic presence, such as network lights.</remarks>
+	LightingDeviceRemove,
 	LightingDeviceConfiguration,
 	/// <summary>Acknowledges a lighting update.</summary>
 	LightingDeviceOperationStatus,

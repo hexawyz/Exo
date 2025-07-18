@@ -24,6 +24,7 @@ public sealed partial class RgbFusionIT5702Driver :
 	Driver,
 	IDeviceIdFeature,
 	ILightingControllerFeature,
+	ILightingPersistenceMode,
 	ILightingDeferredChangesFeature,
 	IUnifiedLightingFeature,
 	ILightingBrightnessFeature,
@@ -561,6 +562,7 @@ public sealed partial class RgbFusionIT5702Driver :
 			ILightingControllerFeature,
 			ILightingBrightnessFeature,
 			IUnifiedLightingFeature,
+			ILightingPersistenceMode,
 			ILightingDeferredChangesFeature>(this);
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, RgbFusionIT5702Driver, IDeviceIdFeature>(this);
 
@@ -621,7 +623,7 @@ public sealed partial class RgbFusionIT5702Driver :
 
 	private Memory<byte> Buffer => MemoryMarshal.CreateFromPinnedArray(_buffer, 0, ReportLength);
 
-	LightingPersistenceMode ILightingDeferredChangesFeature.PersistenceMode => LightingPersistenceMode.CanPersist;
+	LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.CanPersist;
 
 	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist) => ApplyChangesAsync(shouldPersist, default);
 
