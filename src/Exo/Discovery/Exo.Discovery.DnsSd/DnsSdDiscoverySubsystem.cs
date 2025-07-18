@@ -153,15 +153,28 @@ public sealed class DnsSdDiscoverySubsystem :
 					{
 					// From my observations, it seems that there are actually no removal notifications but update notifications are sent when a device is back up ?
 					// Processing updates as add notifications can generate multiple add notifications in a row. It works because the orchestrator will deduplicate, but it is unclean.
-					// TODO: Make this a bit better. Either without DevQuery if it is any better or by propagating device disconnects from the drivers back to the service discovery subsystem.
 					case WatchNotificationKind.Enumeration:
 					case WatchNotificationKind.Add:
-						_logger.DnsSdInstanceArrival(notification.Object.Id);
-						HandleArrival(notification.Object);
+						if (notification.Object.Properties.TryGetValue(Properties.System.Devices.IpAddress.Key, out string[]? ipAddresses) && ipAddresses is { Length: > 0 })
+						{
+							_logger.DnsSdInstanceArrival(notification.Object.Id);
+							HandleArrival(notification.Object);
+						}
+						else
+						{
+							_logger.DnsSdInstanceArrivalMissingIpAddresses(notification.Object.Id);
+						}
 						break;
 					case WatchNotificationKind.Update:
-						_logger.DnsSdInstanceUpdate(notification.Object.Id);
-						HandleUpdate(notification.Object);
+						if (notification.Object.Properties.TryGetValue(Properties.System.Devices.IpAddress.Key, out ipAddresses) && ipAddresses is { Length: > 0 })
+						{
+							_logger.DnsSdInstanceUpdate(notification.Object.Id);
+							HandleUpdate(notification.Object);
+						}
+						else
+						{
+							_logger.DnsSdInstanceUpdateMissingIpAddresses(notification.Object.Id);
+						}
 						break;
 					case WatchNotificationKind.Remove:
 						_logger.DnsSdInstanceRemoval(notification.Object.Id);

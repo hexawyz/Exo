@@ -13,8 +13,14 @@ internal static partial class LoggerExtensions
 	[LoggerMessage(Level = LogLevel.Debug, Message = "Arrival of DNS-SD instance: \"{InstanceName}\".")]
 	public static partial void DnsSdInstanceArrival(this ILogger logger, string instanceName);
 
+	[LoggerMessage(Level = LogLevel.Warning, Message = "Missing IP address for arrival of DNS-SD instance: \"{InstanceName}\". The arrival will be ignored.")]
+	public static partial void DnsSdInstanceArrivalMissingIpAddresses(this ILogger logger, string instanceName);
+
 	[LoggerMessage(Level = LogLevel.Debug, Message = "Update of DNS-SD instance: \"{InstanceName}\".")]
 	public static partial void DnsSdInstanceUpdate(this ILogger logger, string instanceName);
+
+	[LoggerMessage(Level = LogLevel.Warning, Message = "Missing IP address for update of DNS-SD instance: \"{InstanceName}\". The update will be ignored.")]
+	public static partial void DnsSdInstanceUpdateMissingIpAddresses(this ILogger logger, string instanceName);
 
 	[LoggerMessage(Level = LogLevel.Debug, Message = "Removal of DNS-SD instance: \"{InstanceName}\".")]
 	public static partial void DnsSdInstanceRemoval(this ILogger logger, string instanceName);
