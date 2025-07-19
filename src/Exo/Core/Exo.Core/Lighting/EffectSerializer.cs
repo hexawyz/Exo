@@ -110,6 +110,11 @@ public static class EffectSerializer
 	public static LightingEffect GetEffect(ILightingZone lightingZone)
 	{
 		var effect = lightingZone.GetCurrentEffect();
+		return GetEffect(effect);
+	}
+
+	public static LightingEffect GetEffect(ILightingEffect effect)
+	{
 		if (effect.TryGetSize(out uint size) || size > 0)
 		{
 			var effectId = effect.GetEffectId();

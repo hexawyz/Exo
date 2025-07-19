@@ -135,7 +135,7 @@ internal sealed partial class LightingService :
 		ILogger<LightingService> logger,
 		IConfigurationContainer lightingConfigurationContainer,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
-		IDeviceWatcher deviceWatcher,
+		DeviceRegistry deviceWatcher,
 		IPowerNotificationService powerNotificationService,
 		CancellationToken cancellationToken
 	)
@@ -273,7 +273,7 @@ internal sealed partial class LightingService :
 		);
 	}
 
-	private readonly IDeviceWatcher _deviceWatcher;
+	private readonly DeviceRegistry _deviceWatcher;
 	private readonly ConcurrentDictionary<Guid, DeviceState> _lightingDeviceStates;
 	private readonly IConfigurationContainer _lightingConfigurationContainer;
 	private readonly IConfigurationContainer<Guid> _devicesConfigurationContainer;
@@ -284,6 +284,7 @@ internal sealed partial class LightingService :
 	private ChangeBroadcaster<LightingDeviceConfiguration> _deviceConfigurationBroadcaster;
 	private ChangeBroadcaster<LightingConfiguration> _configurationBroadcaster;
 	private ChangeBroadcaster<DisconnectedLightingDeviceInformation> _disconnectedDeviceBroadcaster;
+	private readonly EffectChangeHandler _effectChangeHandler;
 
 	// Setting a global effect will involve fallbacks in order to cover all devices.
 	// The fallbacks can always be programmatically computed from the first effect, but it is easier to just store all of them here.
@@ -302,7 +303,7 @@ internal sealed partial class LightingService :
 		ILogger<LightingService> logger,
 		IConfigurationContainer lightingConfigurationContainer,
 		IConfigurationContainer<Guid> devicesConfigurationContainer,
-		IDeviceWatcher deviceWatcher,
+		DeviceRegistry deviceWatcher,
 		IPowerNotificationService powerNotificationService,
 		bool useCentralizedLighting,
 		LightingEffect[] centralizedEffects,
@@ -320,6 +321,7 @@ internal sealed partial class LightingService :
 		_centralizedEffects = centralizedEffects;
 		_restoreTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		_cancellationTokenSource = new();
+		_effectChangeHandler = new(OnEffectChanged);
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
 		_watchSuspendResumeTask = WatchSuspendResumeAsync(_cancellationTokenSource.Token);
 		_powerNotificationsRegistration = powerNotificationService.Register(this, PowerSettings.None);
@@ -570,6 +572,7 @@ internal sealed partial class LightingService :
 		{
 			if (dynamicChangesFeature.HasDeviceManagedLighting) capabilities |= LightingCapabilities.DeviceManagedLighting;
 			if (dynamicChangesFeature.HasDynamicPresence) capabilities |= LightingCapabilities.DynamicPresence;
+			dynamicChangesFeature.EffectChanged += _effectChangeHandler;
 		}
 
 		var changedLightingZones = new HashSet<Guid>();
@@ -998,11 +1001,19 @@ internal sealed partial class LightingService :
 		{
 			lock (deviceState.Lock)
 			{
+				// Try to unregister the effect change handler first so as to avoid processing notifications while we are clearing up the state.
+				// The 100% correct thing to do is to also not restore lighting for self-managed devices. (see the TODO below)
+				if ((deviceState.Capabilities & LightingCapabilities.DynamicChanges) != 0 &&
+					deviceState.Driver!.GetFeatureSet<ILightingDeviceFeature>().GetFeature<ILightingDynamicChanges>() is { } dynamicChangesFeature)
+				{
+					dynamicChangesFeature.EffectChanged -= _effectChangeHandler;
+				}
 				foreach (var lightingZoneState in deviceState.LightingZones.Values)
 				{
 					Volatile.Write(ref lightingZoneState.LightingZone, null);
 					// Clearing up the in-memory persisted effect if a quick way to avoid it being restored.
 					// The more correct thing to do would be to handle this in the device arrival, but it will do for now.
+					// TODO: The above.
 					if ((deviceState.Capabilities & LightingCapabilities.DeviceManagedLighting) != 0)
 					{
 						lightingZoneState.SerializedCurrentEffect = null;
@@ -1012,6 +1023,21 @@ internal sealed partial class LightingService :
 				{
 					_disconnectedDeviceBroadcaster.Push(new(notification.DeviceInformation.Id));
 				}
+			}
+		}
+	}
+
+	private void OnEffectChanged(Driver driver, ILightingZone zone, ILightingEffect effect)
+	{
+		if (zone is not null &&
+			_deviceWatcher.TryGetDeviceId(driver, out var deviceId) &&
+			_lightingDeviceStates.TryGetValue(deviceId, out var deviceState) &&
+			deviceState.LightingZones.TryGetValue(zone.ZoneId, out var lightingZoneState))
+		{
+			lock (deviceState.Lock)
+			{
+				lightingZoneState.SerializedCurrentEffect = EffectSerializer.GetEffect(effect);
+				UnsafeNotifyDeviceConfiguration(deviceId, deviceState);
 			}
 		}
 	}
@@ -1195,12 +1221,22 @@ internal sealed partial class LightingService :
 			throw new DeviceNotFoundException();
 		}
 
+		NotifyDeviceConfiguration(deviceId, deviceState);
+	}
+
+	private void NotifyDeviceConfiguration(Guid deviceId, DeviceState deviceState)
+	{
 		lock (deviceState.Lock)
 		{
-			var configurationBroadcaster = _deviceConfigurationBroadcaster.GetSnapshot();
-			if (configurationBroadcaster.IsEmpty) return;
-			configurationBroadcaster.Push(deviceState.CreateConfiguration(deviceId));
+			UnsafeNotifyDeviceConfiguration(deviceId, deviceState);
 		}
+	}
+
+	private void UnsafeNotifyDeviceConfiguration(Guid deviceId, DeviceState deviceState)
+	{
+		var configurationBroadcaster = _deviceConfigurationBroadcaster.GetSnapshot();
+		if (configurationBroadcaster.IsEmpty) return;
+		configurationBroadcaster.Push(deviceState.CreateConfiguration(deviceId));
 	}
 
 	public void SetBrightness(Guid deviceId, byte brightness) => SetBrightness(deviceId, brightness, false);

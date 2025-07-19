@@ -123,8 +123,8 @@ public struct HsvColor : IEquatable<HsvColor>
 
 	public static ushort GetScaledHue(float hue)
 	{
-		if (hue >= 1) hue = hue % 1;
-		return (ushort)(hue * 1530);
+		if (hue >= 360) hue = hue % 360;
+		return (ushort)(hue * (1530f / 360));
 	}
 
 	public static float GetStandardHue(ushort scaledHue)

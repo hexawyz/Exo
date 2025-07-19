@@ -6,6 +6,7 @@ public enum LightingCapabilities : byte
 {
 	None = 0b00000000,
 	Brightness = 0b00000001,
-	DeviceManagedLighting = 0b00000010,
-	DynamicPresence = 0b00000100,
+	DynamicChanges = 0b00000010,
+	DeviceManagedLighting = 0b00000100,
+	DynamicPresence = 0b00001000,
 }

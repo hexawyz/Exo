@@ -143,4 +143,4 @@ public interface ILightingDynamicChanges : ILightingDeviceFeature
 	event EffectChangeHandler EffectChanged;
 }
 
-public delegate void EffectChangeHandler(ILightingZone zone, ILightingEffect effect);
+public delegate void EffectChangeHandler(Driver driver, ILightingZone zone, ILightingEffect effect);

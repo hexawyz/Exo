@@ -1,4 +1,4 @@
-﻿namespace Exo.Lighting.Effects;
+namespace Exo.Lighting.Effects;
 
 /// <summary>Effects that expose a brightness setting.</summary>
 /// <remarks>

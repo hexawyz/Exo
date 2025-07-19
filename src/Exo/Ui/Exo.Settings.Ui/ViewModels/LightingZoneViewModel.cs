@@ -201,6 +201,12 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 
 			return true;
 		}
+		else if (isInitialEffectUpdate)
+		{
+			_isNewEffect = false;
+			OnChangeStateChange(wasChanged);
+			AssignPropertyInitialValues(false);
+		}
 
 		return false;
 	}

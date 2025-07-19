@@ -985,6 +985,7 @@ internal sealed class ElgatoLedStripProDriver :
 		ILightingPersistenceMode,
 		ILightingBrightnessFeature,
 		ILightingDynamicChanges,
+		ILightingZoneEffect<DisabledEffect>,
 		ILightingZoneEffect<StaticColorEffect>,
 		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
 		ILightingZoneEffect<ReversibleVariableColorWaveEffect>,
@@ -1028,43 +1029,59 @@ internal sealed class ElgatoLedStripProDriver :
 		internal override void Update(ElgatoLedStripProLight light)
 		{
 			bool isOn = light.On != 0;
-			bool isChanged = isOn ^ IsOn;
+			bool wasOn = IsOn;
+			bool isBrightnessChanged = false;
+			bool isEffectChanged = false;
 			IsOn = isOn;
-			if (_hue != light.Hue)
+			var hue = HsvColor.GetScaledHue(light.Hue);
+			var saturation = HsvColor.GetScaledSaturation(light.Saturation);
+			var brightness = HsvColor.GetScaledValue(light.Brightness);
+			if (_hue != hue)
 			{
-				_hue = HsvColor.GetScaledHue(light.Hue);
-				isChanged = true;
+				_hue = hue;
+				isEffectChanged = true;
 			}
-			if (_saturation != light.Saturation)
+			if (_saturation != saturation)
 			{
-				_saturation = HsvColor.GetScaledSaturation(light.Saturation);
-				isChanged = true;
+				_saturation = saturation;
+				isEffectChanged = true;
 			}
-			if (_brightness != light.Brightness)
+			if (_brightness != brightness)
 			{
-				_brightness = HsvColor.GetScaledValue(light.Brightness);
-				isChanged = true;
+				_brightness = brightness;
+				isBrightnessChanged = true;
 			}
 			// Effect and Color are mutually exclusive, but we don't need to make the code more complicated here.
 			// If effect ID is specified, then hue and saturation won't be. Same in the opposed way.
 			if (_effectId != light.Id)
 			{
 				_effectId = light.Id;
+				isEffectChanged = true;
 				if (light.Id is not null)
 				{
 					_effect = ParseEffect(light.Id, light.MetaData);
+					goto NotifyChanges;
 				}
-				else
-				{
-					_effect = new StaticColorEffect(new HsvColor(_hue, _saturation, _brightness).ToRgb());
-				}
-				isChanged = true;
 			}
-			if (isChanged && Changed is { } changed)
+			else if (!(isEffectChanged || isBrightnessChanged))
+			{
+				return;
+			}
+			else if (_effectId is not null)
+			{
+				goto NotifyChanges;
+			}
+			_effect = new StaticColorEffect(new HsvColor(hue, saturation, brightness).ToRgb());
+		NotifyChanges:;
+			if (Changed is { } changed)
 			{
 				// NB: This will be called inside the device lock. Just to keep in mind in case this cause problems.
 				// Probably another reason to migrate from events to event queues :(
 				changed.Invoke(Driver, CurrentState);
+			}
+			if (isOn ^ wasOn || isOn && (isEffectChanged || isBrightnessChanged))
+			{
+				NotifyEffectChanged(this, IsOn ? _effect : DisabledEffect.SharedInstance);
 			}
 		}
 
@@ -1115,14 +1132,29 @@ internal sealed class ElgatoLedStripProDriver :
 			remove => EffectChanged -= value;
 		}
 
+		private void NotifyEffectChanged(ILightingZone zone, ILightingEffect effect)
+			=> EffectChanged?.Invoke(Driver, zone, effect);
+
 		private void ApplyEffect(ILightingEffect effect)
 			=> Driver.SendUpdateAsync(Index, GenerateEffectUpdate(_effect = effect, Driver._ledCount, _brightness), default).GetAwaiter().GetResult();
+
+		private void Switch(bool isOn)
+			=> SwitchAsync(isOn, default).GetAwaiter().GetResult();
+
+		void ILightingZoneEffect<DisabledEffect>.ApplyEffect(in DisabledEffect effect)
+		{
+			if (IsOn)
+			{
+				Switch(false);
+			}
+		}
 
 		void ILightingZoneEffect<StaticColorEffect>.ApplyEffect(in StaticColorEffect effect)
 		{
 			if (_effect is StaticColorEffect oldEffect &&
 				oldEffect.Color == effect.Color)
 			{
+				if (!IsOn) Switch(true);
 				return;
 			}
 			ApplyEffect(effect);
@@ -1135,6 +1167,7 @@ internal sealed class ElgatoLedStripProDriver :
 				oldEffect.Speed == effect.Speed &&
 				oldEffect.Direction == effect.Direction)
 			{
+				if (!IsOn) Switch(true);
 				return;
 			}
 			ApplyEffect(effect);
@@ -1146,6 +1179,7 @@ internal sealed class ElgatoLedStripProDriver :
 				oldEffect.Speed == effect.Speed &&
 				oldEffect.Direction == effect.Direction)
 			{
+				if (!IsOn) Switch(true);
 				return;
 			}
 			ApplyEffect(effect);
@@ -1160,11 +1194,13 @@ internal sealed class ElgatoLedStripProDriver :
 				oldEffect.Size == effect.Size &&
 				oldEffect.Interpolate == effect.Interpolate)
 			{
+				if (!IsOn) Switch(true);
 				return;
 			}
 			ApplyEffect(effect);
 		}
 
+		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => _effect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => _effect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.TryGetCurrentEffect(out ReversibleVariableSpectrumWaveEffect effect) => _effect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<ReversibleVariableColorWaveEffect>.TryGetCurrentEffect(out ReversibleVariableColorWaveEffect effect) => _effect.TryGetEffect(out effect);
