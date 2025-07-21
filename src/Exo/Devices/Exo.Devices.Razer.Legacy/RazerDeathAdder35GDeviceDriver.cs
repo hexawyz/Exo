@@ -25,7 +25,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 	IDeviceIdFeature,
 	IMouseConfigurablePollingFrequencyFeature,
 	ILightingControllerFeature,
-	ILightingPersistenceMode,
+	ILightingPersistenceFeature,
 	ILightingDeferredChangesFeature,
 	IMouseDpiPresetsFeature
 {
@@ -209,7 +209,7 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 		_lightingZones = Array.AsReadOnly<ILightingZone>([new WheelLightingZone(this), new LogoLightingZone(this)]);
 		_genericFeatures = FeatureSet.Create<IGenericDeviceFeature, RazerDeathAdder35GDeviceDriver, IDeviceIdFeature>(this);
 		_mouseFeatures = FeatureSet.Create<IMouseDeviceFeature, RazerDeathAdder35GDeviceDriver, IMouseConfigurablePollingFrequencyFeature, IMouseDpiPresetsFeature>(this);
-		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, RazerDeathAdder35GDeviceDriver, ILightingControllerFeature, ILightingPersistenceMode, ILightingDeferredChangesFeature>(this);
+		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, RazerDeathAdder35GDeviceDriver, ILightingControllerFeature, ILightingPersistenceFeature, ILightingDeferredChangesFeature>(this);
 	}
 
 	public override ValueTask DisposeAsync() => _transport.DisposeAsync();
@@ -287,7 +287,9 @@ public sealed partial class RazerDeathAdder35GDeviceDriver :
 	private Task ApplySettingsAsync(byte pollingRate, byte dpiIndex, byte lightingState, CancellationToken cancellationToken)
 		=> _transport.UpdateSettingsAsync(pollingRate, dpiIndex, 1, lightingState, cancellationToken);
 
-	LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.NeverPersisted;
+	LightingPersistenceMode ILightingPersistenceFeature.PersistenceMode => LightingPersistenceMode.NeverPersisted;
+	bool ILightingPersistenceFeature.HasDeviceManagedLighting => false;
+	bool ILightingPersistenceFeature.HasDynamicPresence => false;
 
 	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist) => ApplyChangesAsync(default);
 

@@ -21,7 +21,7 @@ public abstract partial class RazerDeviceDriver
 		IDeviceDriver<IPowerManagementDeviceFeature>,
 		IDeviceDriver<ILightingDeviceFeature>,
 		ILightingControllerFeature,
-		ILightingPersistenceMode,
+		ILightingPersistenceFeature,
 		ILightingDeferredChangesFeature,
 		ILightingBrightnessFeature,
 		IBatteryStateDeviceFeature,
@@ -511,7 +511,7 @@ public abstract partial class RazerDeviceDriver
 
 					return type == typeof(ILightingControllerFeature) && _device.HasLightingZones ||
 						type == typeof(ILightingBrightnessFeature) && _device.HasUnifiedLighting ||
-						type == typeof(ILightingPersistenceMode) ||
+						type == typeof(ILightingPersistenceFeature) ||
 						type == typeof(ILightingDeferredChangesFeature) ?
 							_device :
 							null;
@@ -529,7 +529,7 @@ public abstract partial class RazerDeviceDriver
 
 				return typeof(T) == typeof(ILightingControllerFeature) && _device.HasLightingZones ||
 					typeof(T) == typeof(ILightingBrightnessFeature) && _device.HasUnifiedLighting ||
-					typeof(T) == typeof(ILightingPersistenceMode) ||
+					typeof(T) == typeof(ILightingPersistenceFeature) ||
 					typeof(T) == typeof(ILightingDeferredChangesFeature) ?
 						_device :
 						null;
@@ -561,7 +561,7 @@ public abstract partial class RazerDeviceDriver
 				{
 					yield return new(typeof(ILightingControllerFeature), _device);
 				}
-				yield return new(typeof(ILightingPersistenceMode), _device);
+				yield return new(typeof(ILightingPersistenceFeature), _device);
 				yield return new(typeof(ILightingDeferredChangesFeature), _device);
 			}
 
@@ -794,7 +794,10 @@ public abstract partial class RazerDeviceDriver
 
 		IReadOnlyCollection<ILightingZone> ILightingControllerFeature.LightingZones => ImmutableCollectionsMarshal.AsArray(_lightingZones)!;
 
-		LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.CanPersist;
+		LightingPersistenceMode ILightingPersistenceFeature.PersistenceMode => LightingPersistenceMode.CanPersist;
+		bool ILightingPersistenceFeature.HasDeviceManagedLighting => false;
+		bool ILightingPersistenceFeature.HasDynamicPresence => false;
+
 		ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist) => ApplyChangesAsync(shouldPersist, default);
 
 		byte ILightingBrightnessFeature.MaximumBrightness => 255;

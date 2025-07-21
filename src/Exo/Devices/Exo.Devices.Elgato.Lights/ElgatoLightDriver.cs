@@ -349,7 +349,7 @@ internal abstract class ElgatoLightDriver<TLight, TLightUpdate, TLightState> : E
 	{
 		var lights = new TLightUpdate[index + 1];
 		lights[index] = update;
-		return SendUpdateAsync(new ElgatoLightsUpdate<TLightUpdate> { Lights = ImmutableCollectionsMarshal.AsImmutableArray(lights) }, cancellationToken);
+		return SendUpdateAsync(new ElgatoLightsUpdate<TLightUpdate> { Lights = ImmutableCollectionsMarshal.AsImmutableArray(lights), NumberOfLights = (int)(index + 1) }, cancellationToken);
 	}
 
 	private async Task SendUpdateAsync(ElgatoLightsUpdate<TLightUpdate> update, CancellationToken cancellationToken)
@@ -724,7 +724,14 @@ internal sealed class ElgatoLedStripProDriver :
 	) : base(lifetime, httpClient, false, lights, friendlyName, configurationKey)
 	{
 		_ledCount = ledCount;
-		_lightingFeatures = FeatureSet.Create<ILightingDeviceFeature, LedStripProLightState, IUnifiedLightingFeature, ILightingBrightnessFeature, ILightingDynamicChanges>(Lights[0]);
+		_lightingFeatures = FeatureSet.Create<
+			ILightingDeviceFeature,
+			LedStripProLightState,
+			IUnifiedLightingFeature,
+			ILightingPersistenceFeature,
+			ILightingBrightnessFeature,
+			ILightingDynamicBrightnessChanges,
+			ILightingDynamicEffectChanges>(Lights[0]);
 	}
 
 	IDeviceFeatureSet<ILightingDeviceFeature> IDeviceDriver<ILightingDeviceFeature>.Features => _lightingFeatures;
@@ -783,13 +790,14 @@ internal sealed class ElgatoLedStripProDriver :
 			return new() { On = 0 };
 		case StaticColorEffect staticColorEffect:
 			var hsv = HsvColor.FromRgb(staticColorEffect.Color);
-			return new() { On = 1, Brightness = HsvColor.GetStandardValue(hsv.V), Hue = HsvColor.GetStandardHue(hsv.H), Saturation = HsvColor.GetStandardSaturation(hsv.S) };
+			return new() { On = 1, Brightness = HsvColor.GetStandardValueByte(hsv.V), Hue = HsvColor.GetStandardHueUInt16(hsv.H), Saturation = HsvColor.GetStandardSaturationByte(hsv.S) };
 		case ReversibleVariableColorWaveEffect colorWaveEffect:
 			return new()
 			{
 				On = 1,
-				Brightness = HsvColor.GetStandardValue(brightness),
+				Brightness = brightness,
 				Id = "com.exo.wave.color",
+				Name = "Color Wave",
 				SceneSet = GenerateSlidingSceneFrames([colorWaveEffect.Color, default, default, default], colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, 10),
 				MetaData = (JsonObject?)JsonSerializer.SerializeToNode
 				(
@@ -806,8 +814,9 @@ internal sealed class ElgatoLedStripProDriver :
 			return new()
 			{
 				On = 1,
-				Brightness = HsvColor.GetStandardValue(brightness),
+				Brightness = brightness,
 				Id = "com.exo.wave.multicolor",
+				Name = "Multicolor Wave",
 				SceneSet = colorWaveEffect.Interpolate ?
 					GenerateInterpolatedSlidingSceneFrames(colorWaveEffect.Colors, colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, colorWaveEffect.Size) :
 					GenerateSlidingSceneFrames(colorWaveEffect.Colors, colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, colorWaveEffect.Size),
@@ -828,8 +837,9 @@ internal sealed class ElgatoLedStripProDriver :
 			return new()
 			{
 				On = 1,
-				Brightness = HsvColor.GetStandardValue(brightness),
+				Brightness = brightness,
 				Id = "com.exo.wave.spectrum",
+				Name = "Spectrum Wave",
 				SceneSet = GenerateSpectrumWaveSceneFrames(spectrumWaveEffect.Speed, spectrumWaveEffect.Direction, ledCount, 10),
 				MetaData = (JsonObject?)JsonSerializer.SerializeToNode
 				(
@@ -982,9 +992,10 @@ internal sealed class ElgatoLedStripProDriver :
 		ILightHue,
 		ILightSaturation,
 		IUnifiedLightingFeature,
-		ILightingPersistenceMode,
+		ILightingPersistenceFeature,
 		ILightingBrightnessFeature,
-		ILightingDynamicChanges,
+		ILightingDynamicBrightnessChanges,
+		ILightingDynamicEffectChanges,
 		ILightingZoneEffect<DisabledEffect>,
 		ILightingZoneEffect<StaticColorEffect>,
 		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
@@ -998,6 +1009,7 @@ internal sealed class ElgatoLedStripProDriver :
 		private string? _effectId;
 		private ILightingEffect _effect;
 		private event EffectChangeHandler? EffectChanged;
+		private event BrightnessChangeHandler? BrightnessChanged;
 
 		public LedStripProLightState(ElgatoLedStripProDriver driver, ElgatoLedStripProLight light, uint index)
 			: base(driver, light, index)
@@ -1008,16 +1020,32 @@ internal sealed class ElgatoLedStripProDriver :
 
 		private new ElgatoLedStripProDriver Driver => Unsafe.As<ElgatoLedStripProDriver>(base.Driver);
 
-		LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.AlwaysPersisted;
-		bool ILightingDynamicChanges.HasDeviceManagedLighting => true;
-		bool ILightingDynamicChanges.HasDynamicPresence => true;
+		LightingPersistenceMode ILightingPersistenceFeature.PersistenceMode => LightingPersistenceMode.AlwaysPersisted;
+		bool ILightingPersistenceFeature.HasDeviceManagedLighting => true;
+		bool ILightingPersistenceFeature.HasDynamicPresence => true;
 
-		byte ILightingBrightnessFeature.MaximumBrightness => 255;
+		// NB: Despite internally storing the HSV components as expanded values, we will only expose them as integers outside.
+		// This could change in the future if necessary, but it should not be a problem excepted for the few extra conversions.
+
+		byte ILightingBrightnessFeature.MaximumBrightness => 100;
 		byte ILightingBrightnessFeature.CurrentBrightness
 		{
-			get => _brightness;
-			set => _brightness = value;
+			get => HsvColor.GetStandardValueByte(_brightness);
+			set
+			{
+				_brightness = HsvColor.GetScaledValue(value);
+				SetBrightnessAsync(value, default).GetAwaiter().GetResult();
+			}
 		}
+
+		byte ILightBrightness.Maximum => 100;
+		byte ILightBrightness.Value => HsvColor.GetStandardValueByte(_brightness);
+
+		ushort ILightHue.Maximum => 359;
+		ushort ILightHue.Value => HsvColor.GetStandardHueUInt16(_hue);
+
+		byte ILightSaturation.Maximum => 100;
+		byte ILightSaturation.Value => HsvColor.GetStandardSaturationByte(_saturation);
 
 		bool IUnifiedLightingFeature.IsUnifiedLightingEnabled => true;
 
@@ -1063,6 +1091,21 @@ internal sealed class ElgatoLedStripProDriver :
 					goto NotifyChanges;
 				}
 			}
+			else if (light.Id is not null)
+			{
+				var newEffect = ParseEffect(light.Id, light.MetaData);
+				// TODO: Implement equality comparison for effects. For now the code below will not work as expected.
+				if (newEffect != _effect)
+				{
+					_effect = newEffect;
+					goto NotifyChanges;
+				}
+				else if (isBrightnessChanged)
+				{
+					goto NotifyChanges;
+				}
+				return;
+			}
 			else if (!(isEffectChanged || isBrightnessChanged))
 			{
 				return;
@@ -1079,16 +1122,15 @@ internal sealed class ElgatoLedStripProDriver :
 				// Probably another reason to migrate from events to event queues :(
 				changed.Invoke(Driver, CurrentState);
 			}
+			if (isBrightnessChanged)
+			{
+				NotifyBrightnessChanged(brightness);
+			}
 			if (isOn ^ wasOn || isOn && (isEffectChanged || isBrightnessChanged))
 			{
 				NotifyEffectChanged(this, IsOn ? _effect : DisabledEffect.SharedInstance);
 			}
 		}
-
-		byte ILightBrightness.Maximum => 255;
-		byte ILightBrightness.Value => _brightness;
-		ushort ILightHue.Value => _hue;
-		byte ILightSaturation.Value => _saturation;
 
 		// The active effect ID *MUST* be sent when switching the light on, otherwise, any active effect will be reverted to a default color.
 		protected override ValueTask SwitchAsync(bool isOn, CancellationToken cancellationToken)
@@ -1097,18 +1139,41 @@ internal sealed class ElgatoLedStripProDriver :
 		private async Task SetBrightnessAsync(byte brightness, CancellationToken cancellationToken)
 		{
 			ArgumentOutOfRangeException.ThrowIfGreaterThan(brightness, 100);
-			await Driver.SendUpdateAsync(Index, new() { Brightness = brightness, Id = _effectId }, cancellationToken);
+			// TODO: Enable these updates but make sure we don't forget sending any update events.
+			//_brightness = HsvColor.GetScaledValue(brightness);
+			await Driver.SendUpdateAsync
+			(
+				Index,
+				_effectId is not null ?
+					new() { Brightness = brightness, Id = _effectId } :
+					new() { Brightness = brightness, Hue = HsvColor.GetStandardHueUInt16(_hue), Saturation = HsvColor.GetStandardSaturationByte(_saturation) },
+				cancellationToken
+			);
 		}
 
 		private async Task SetHueAsync(ushort hue, CancellationToken cancellationToken)
 		{
 			ArgumentOutOfRangeException.ThrowIfGreaterThan(hue, 360);
-			await Driver.SendUpdateAsync(Index, new() { Hue = hue }, cancellationToken);
+			// TODO: Enable these updates but make sure we don't forget sending any update events.
+			//_hue = HsvColor.GetScaledHue(hue);
+			await Driver.SendUpdateAsync
+			(
+				Index,
+				new() { On = IsOn ? (byte)1 : (byte)0, Brightness = HsvColor.GetStandardValueByte(_brightness), Hue = hue, Saturation = HsvColor.GetStandardSaturationByte(_saturation) },
+				cancellationToken
+			);
 		}
 		private async Task SetSaturationAsync(byte saturation, CancellationToken cancellationToken)
 		{
 			ArgumentOutOfRangeException.ThrowIfGreaterThan(saturation, 100);
-			await Driver.SendUpdateAsync(Index, new() { Saturation = saturation }, cancellationToken);
+			// TODO: Enable these updates but make sure we don't forget sending any update events.
+			//_saturation = HsvColor.GetScaledSaturation(saturation);
+			await Driver.SendUpdateAsync
+			(
+				Index,
+				new() { On = IsOn ? (byte)1 : (byte)0, Brightness = HsvColor.GetStandardValueByte(_brightness), Hue = HsvColor.GetStandardHueUInt16(_hue), Saturation = saturation },
+				cancellationToken
+			);
 		}
 
 		protected override HsbColorLightState CurrentState => new(IsOn, _hue, _saturation, _brightness);
@@ -1126,17 +1191,26 @@ internal sealed class ElgatoLedStripProDriver :
 		ValueTask ILightSaturation.SetSaturationAsync(byte saturation, CancellationToken cancellationToken)
 			=> saturation != _saturation ? new(SetSaturationAsync(saturation, cancellationToken)) : ValueTask.CompletedTask;
 
-		event EffectChangeHandler ILightingDynamicChanges.EffectChanged
+		event BrightnessChangeHandler ILightingDynamicBrightnessChanges.BrightnessChanged
+		{
+			add => BrightnessChanged += value;
+			remove => BrightnessChanged -= value;
+		}
+
+		event EffectChangeHandler ILightingDynamicEffectChanges.EffectChanged
 		{
 			add => EffectChanged += value;
 			remove => EffectChanged -= value;
 		}
 
+		private void NotifyBrightnessChanged(byte brightness)
+			=> BrightnessChanged?.Invoke(Driver, brightness);
+
 		private void NotifyEffectChanged(ILightingZone zone, ILightingEffect effect)
 			=> EffectChanged?.Invoke(Driver, zone, effect);
 
 		private void ApplyEffect(ILightingEffect effect)
-			=> Driver.SendUpdateAsync(Index, GenerateEffectUpdate(_effect = effect, Driver._ledCount, _brightness), default).GetAwaiter().GetResult();
+			=> Driver.SendUpdateAsync(Index, GenerateEffectUpdate(_effect = effect, Driver._ledCount, HsvColor.GetStandardValueByte(_brightness)), default).GetAwaiter().GetResult();
 
 		private void Switch(bool isOn)
 			=> SwitchAsync(isOn, default).GetAwaiter().GetResult();
@@ -1338,9 +1412,10 @@ internal readonly struct ElgatoColorLightUpdate
 internal readonly struct ElgatoLedStripProLightUpdate
 {
 	public byte? On { get; init; }
-	public float? Brightness { get; init; }
-	public float? Hue { get; init; }
-	public float? Saturation { get; init; }
+	// NB: It seems that start parameters would take floating point values, but somehow, the actual light parameters are coerced to integers ?
+	public byte? Brightness { get; init; }
+	public ushort? Hue { get; init; }
+	public byte? Saturation { get; init; }
 	public string? Id { get; init; }
 	public string? Name { get; init; }
 	public JsonObject? MetaData { get; init; }

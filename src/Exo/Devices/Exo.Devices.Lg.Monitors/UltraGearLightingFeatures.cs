@@ -10,6 +10,7 @@ namespace Exo.Devices.Lg.Monitors;
 internal sealed class UltraGearLightingFeatures :
 	IAsyncDisposable,
 	IUnifiedLightingFeature,
+	ILightingPersistenceFeature,
 	ILightingDeferredChangesFeature,
 	ILightingBrightnessFeature,
 	IAddressableLightingZone<RgbColor>,
@@ -134,7 +135,9 @@ internal sealed class UltraGearLightingFeatures :
 	}
 
 
-	LightingPersistenceMode ILightingPersistenceMode.PersistenceMode => LightingPersistenceMode.AlwaysPersisted;
+	LightingPersistenceMode ILightingPersistenceFeature.PersistenceMode => LightingPersistenceMode.AlwaysPersisted;
+	bool ILightingPersistenceFeature.HasDeviceManagedLighting => false;
+	bool ILightingPersistenceFeature.HasDynamicPresence => false;
 
 	ValueTask ILightingDeferredChangesFeature.ApplyChangesAsync(bool shouldPersist)
 	{

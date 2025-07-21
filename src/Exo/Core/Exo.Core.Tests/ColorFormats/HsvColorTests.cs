@@ -38,4 +38,40 @@ public class HsvColorTests
 	{
 		Assert.Equal(new HsvColor(hue, saturation, brightness), HsvColor.FromRgb(new RgbColor(red, green, blue)));
 	}
+
+	[Fact]
+	public void ShouldRoundTripValueFrom255()
+	{
+		for (int i = 0; i < 255; i++)
+		{
+			Assert.Equal((byte)i, HsvColor.GetScaledValue(HsvColor.GetStandardValueSingle((byte)i)));
+		}
+	}
+
+	[Fact]
+	public void ShouldRoundTripSaturationFrom255()
+	{
+		for (int i = 0; i < 255; i++)
+		{
+			Assert.Equal((byte)i, HsvColor.GetScaledSaturation(HsvColor.GetStandardSaturationSingle((byte)i)));
+		}
+	}
+
+	[Fact]
+	public void ShouldRoundTripValueFrom100()
+	{
+		for (int i = 0; i < 100; i++)
+		{
+			Assert.Equal((byte)i, HsvColor.GetStandardValueByte(HsvColor.GetScaledValue((byte)i)));
+		}
+	}
+
+	[Fact]
+	public void ShouldRoundTripSaturationFrom100()
+	{
+		for (int i = 0; i < 100; i++)
+		{
+			Assert.Equal((byte)i, HsvColor.GetStandardSaturationByte(HsvColor.GetScaledSaturation((byte)i)));
+		}
+	}
 }

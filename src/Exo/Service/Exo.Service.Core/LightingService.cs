@@ -285,6 +285,7 @@ internal sealed partial class LightingService :
 	private ChangeBroadcaster<LightingConfiguration> _configurationBroadcaster;
 	private ChangeBroadcaster<DisconnectedLightingDeviceInformation> _disconnectedDeviceBroadcaster;
 	private readonly EffectChangeHandler _effectChangeHandler;
+	private readonly BrightnessChangeHandler _brightnessChangeHandler;
 
 	// Setting a global effect will involve fallbacks in order to cover all devices.
 	// The fallbacks can always be programmatically computed from the first effect, but it is easier to just store all of them here.
@@ -322,6 +323,7 @@ internal sealed partial class LightingService :
 		_restoreTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 		_cancellationTokenSource = new();
 		_effectChangeHandler = new(OnEffectChanged);
+		_brightnessChangeHandler = new(OnBrightnessChanged);
 		_watchTask = WatchAsync(_cancellationTokenSource.Token);
 		_watchSuspendResumeTask = WatchSuspendResumeAsync(_cancellationTokenSource.Token);
 		_powerNotificationsRegistration = powerNotificationService.Register(this, PowerSettings.None);
@@ -532,7 +534,7 @@ internal sealed partial class LightingService :
 		Tuple<Type[], Guid[]>? supportedEffectsAndIds = null;
 		byte? brightness = null;
 		bool isUnifiedLightingEnabled = false;
-		LightingPersistenceMode persistenceMode;
+		LightingPersistenceMode persistenceMode = LightingPersistenceMode.NeverPersisted;
 		LightingCapabilities capabilities = LightingCapabilities.None;
 
 		var lightingFeatures = (IDeviceFeatureSet<ILightingDeviceFeature>)notification.FeatureSet!;
@@ -555,9 +557,13 @@ internal sealed partial class LightingService :
 			return;
 		}
 
-		persistenceMode = lightingFeatures.GetFeature<ILightingDeferredChangesFeature>()?.PersistenceMode ??
-			lightingFeatures.GetFeature<ILightingPersistenceMode>()?.PersistenceMode ??
-			LightingPersistenceMode.NeverPersisted;
+		var persistenceFeature = lightingFeatures.GetFeature<ILightingPersistenceFeature>();
+		if (persistenceFeature is not null)
+		{
+			persistenceMode = persistenceFeature.PersistenceMode;
+			if (persistenceFeature.HasDeviceManagedLighting) capabilities |= LightingCapabilities.DeviceManagedLighting;
+			if (persistenceFeature.HasDynamicPresence) capabilities |= LightingCapabilities.DynamicPresence;
+		}
 
 		var brightnessFeature = lightingFeatures.GetFeature<ILightingBrightnessFeature>();
 		if (brightnessFeature is not null)
@@ -567,12 +573,18 @@ internal sealed partial class LightingService :
 			capabilities |= LightingCapabilities.Brightness;
 		}
 
-		var dynamicChangesFeature = lightingFeatures.GetFeature<ILightingDynamicChanges>();
-		if (dynamicChangesFeature is not null)
+		var dynamicEffectChangesFeature = lightingFeatures.GetFeature<ILightingDynamicEffectChanges>();
+		if (dynamicEffectChangesFeature is not null)
 		{
-			if (dynamicChangesFeature.HasDeviceManagedLighting) capabilities |= LightingCapabilities.DeviceManagedLighting;
-			if (dynamicChangesFeature.HasDynamicPresence) capabilities |= LightingCapabilities.DynamicPresence;
-			dynamicChangesFeature.EffectChanged += _effectChangeHandler;
+			dynamicEffectChangesFeature.EffectChanged += _effectChangeHandler;
+			capabilities |= LightingCapabilities.DynamicEffectChanges;
+		}
+
+		var dynamicBrightnessChangesFeature = lightingFeatures.GetFeature<ILightingDynamicBrightnessChanges>();
+		if (dynamicBrightnessChangesFeature is not null)
+		{
+			dynamicBrightnessChangesFeature.BrightnessChanged += _brightnessChangeHandler;
+			capabilities |= LightingCapabilities.DynamicBrightnessChanges;
 		}
 
 		var changedLightingZones = new HashSet<Guid>();
@@ -759,14 +771,30 @@ internal sealed partial class LightingService :
 				await deviceState.LightingZonesConfigurationContainer.DeleteValuesAsync(oldLightingZoneId).ConfigureAwait(false);
 			}
 
+
 			lock (_changeLock)
 			{
+				bool shouldRestore = (capabilities & LightingCapabilities.DeviceManagedLighting) == 0;
+
 				lock (deviceState.Lock)
 				{
 					// Within the lock, remove old lighting zones.
 					foreach (var oldLightingZoneId in oldLightingZones)
 					{
 						deviceState.LightingZones.Remove(oldLightingZoneId);
+					}
+
+					if (brightnessFeature is not null && deviceState.Brightness is { } oldBrightness)
+					{
+						if (shouldRestore && deviceState.Brightness is not null)
+						{
+							brightnessFeature.CurrentBrightness = oldBrightness;
+							shouldApplyChanges = true;
+						}
+						else
+						{
+							deviceState.Brightness = brightness;
+						}
 					}
 
 					if (unifiedLightingFeature is not null)
@@ -780,30 +808,38 @@ internal sealed partial class LightingService :
 							lightingZoneState.LightingZone = unifiedLightingFeature;
 							UpdateSupportedEffects(unifiedLightingZoneId, lightingZoneState, unifiedLightingFeature.GetType(), changedLightingZones);
 							var currentEffect = EffectSerializer.GetEffect(unifiedLightingFeature);
-							// We restore the effect from the saved state if available.
-							if (lightingZoneState.SerializedCurrentEffect is { } effect)
+							if (shouldRestore)
 							{
-								if (isUnifiedLightingEnabled)
+								// We restore the effect from the saved state if available.
+								if (lightingZoneState.SerializedCurrentEffect is { } effect)
 								{
+									if (isUnifiedLightingEnabled)
+									{
+										if (_useCentralizedLighting)
+										{
+											shouldApplyChanges |= EffectSerializer.TrySetEffect(unifiedLightingFeature, _centralizedEffects);
+										}
+										else if (effect != currentEffect)
+										{
+											shouldApplyChanges |= EffectSerializer.TrySetEffect(unifiedLightingFeature, effect);
+										}
+									}
+								}
+								else
+								{
+									lightingZoneState.SerializedCurrentEffect = currentEffect;
+									changedLightingZones.Add(unifiedLightingZoneId);
+
 									if (_useCentralizedLighting)
 									{
 										shouldApplyChanges |= EffectSerializer.TrySetEffect(unifiedLightingFeature, _centralizedEffects);
 									}
-									else if (effect != currentEffect)
-									{
-										shouldApplyChanges |= EffectSerializer.TrySetEffect(unifiedLightingFeature, effect);
-									}
 								}
 							}
-							else
+							else if (currentEffect != lightingZoneState.SerializedCurrentEffect)
 							{
 								lightingZoneState.SerializedCurrentEffect = currentEffect;
 								changedLightingZones.Add(unifiedLightingZoneId);
-
-								if (_useCentralizedLighting)
-								{
-									shouldApplyChanges |= EffectSerializer.TrySetEffect(unifiedLightingFeature, _centralizedEffects);
-								}
 							}
 						}
 						else
@@ -836,31 +872,39 @@ internal sealed partial class LightingService :
 							lightingZoneState.LightingZone = lightingZone;
 							UpdateSupportedEffects(lightingZone.ZoneId, lightingZoneState, lightingZone.GetType(), changedLightingZones);
 							var currentEffect = EffectSerializer.GetEffect(lightingZone);
-							// We restore the effect from the saved state if available.
-							if (lightingZoneState.SerializedCurrentEffect is { } effect)
+							if (shouldRestore)
 							{
-								if (!isUnifiedLightingEnabled)
+								// We restore the effect from the saved state if available.
+								if (lightingZoneState.SerializedCurrentEffect is { } effect)
 								{
+									if (!isUnifiedLightingEnabled)
+									{
+										if (_useCentralizedLighting)
+										{
+											shouldApplyChanges |= EffectSerializer.TrySetEffect(lightingZone, _centralizedEffects);
+										}
+										else if (effect != currentEffect)
+										{
+											EffectSerializer.TrySetEffect(lightingZone, effect);
+											shouldApplyChanges = true;
+										}
+									}
+								}
+								else
+								{
+									lightingZoneState.SerializedCurrentEffect = EffectSerializer.GetEffect(lightingZone);
+									changedLightingZones.Add(lightingZoneId);
+
 									if (_useCentralizedLighting)
 									{
 										shouldApplyChanges |= EffectSerializer.TrySetEffect(lightingZone, _centralizedEffects);
 									}
-									else if (effect != currentEffect)
-									{
-										EffectSerializer.TrySetEffect(lightingZone, effect);
-										shouldApplyChanges = true;
-									}
 								}
 							}
-							else
+							else if (currentEffect != lightingZoneState.SerializedCurrentEffect)
 							{
-								lightingZoneState.SerializedCurrentEffect = EffectSerializer.GetEffect(lightingZone);
-								changedLightingZones.Add(lightingZoneId);
-
-								if (_useCentralizedLighting)
-								{
-									shouldApplyChanges |= EffectSerializer.TrySetEffect(lightingZone, _centralizedEffects);
-								}
+								lightingZoneState.SerializedCurrentEffect = currentEffect;
+								changedLightingZones.Add(unifiedLightingZoneId);
 							}
 						}
 						else
@@ -1002,22 +1046,20 @@ internal sealed partial class LightingService :
 			lock (deviceState.Lock)
 			{
 				// Try to unregister the effect change handler first so as to avoid processing notifications while we are clearing up the state.
-				// The 100% correct thing to do is to also not restore lighting for self-managed devices. (see the TODO below)
-				if ((deviceState.Capabilities & LightingCapabilities.DynamicChanges) != 0 &&
-					deviceState.Driver!.GetFeatureSet<ILightingDeviceFeature>().GetFeature<ILightingDynamicChanges>() is { } dynamicChangesFeature)
+				// As long as the device signals that it manages its own lighting, we won't restore the state if it reconnects later on.
+				if ((deviceState.Capabilities & LightingCapabilities.DynamicEffectChanges) != 0 &&
+					deviceState.Driver!.GetFeatureSet<ILightingDeviceFeature>().GetFeature<ILightingDynamicEffectChanges>() is { } dynamicEffectChangesFeature)
 				{
-					dynamicChangesFeature.EffectChanged -= _effectChangeHandler;
+					dynamicEffectChangesFeature.EffectChanged -= _effectChangeHandler;
+				}
+				if ((deviceState.Capabilities & LightingCapabilities.DynamicBrightnessChanges) != 0 &&
+					deviceState.Driver!.GetFeatureSet<ILightingDeviceFeature>().GetFeature<ILightingDynamicBrightnessChanges>() is { } dynamicBrightnessChangesFeature)
+				{
+					dynamicBrightnessChangesFeature.BrightnessChanged -= _brightnessChangeHandler;
 				}
 				foreach (var lightingZoneState in deviceState.LightingZones.Values)
 				{
 					Volatile.Write(ref lightingZoneState.LightingZone, null);
-					// Clearing up the in-memory persisted effect if a quick way to avoid it being restored.
-					// The more correct thing to do would be to handle this in the device arrival, but it will do for now.
-					// TODO: The above.
-					if ((deviceState.Capabilities & LightingCapabilities.DeviceManagedLighting) != 0)
-					{
-						lightingZoneState.SerializedCurrentEffect = null;
-					}
 				}
 				if ((deviceState.Capabilities & LightingCapabilities.DynamicPresence) != 0)
 				{
@@ -1037,6 +1079,19 @@ internal sealed partial class LightingService :
 			lock (deviceState.Lock)
 			{
 				lightingZoneState.SerializedCurrentEffect = EffectSerializer.GetEffect(effect);
+				UnsafeNotifyDeviceConfiguration(deviceId, deviceState);
+			}
+		}
+	}
+
+	private void OnBrightnessChanged(Driver driver, byte brightness)
+	{
+		if (_deviceWatcher.TryGetDeviceId(driver, out var deviceId) &&
+			_lightingDeviceStates.TryGetValue(deviceId, out var deviceState))
+		{
+			lock (deviceState.Lock)
+			{
+				deviceState.Brightness = brightness;
 				UnsafeNotifyDeviceConfiguration(deviceId, deviceState);
 			}
 		}

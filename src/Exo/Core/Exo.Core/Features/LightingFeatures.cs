@@ -16,8 +16,39 @@ public interface ILightingControllerFeature : ILightingDeviceFeature
 	IReadOnlyCollection<ILightingZone> LightingZones { get; }
 }
 
-public interface ILightingPersistenceMode : ILightingDeviceFeature
+/// <summary>This feature allows a lighting controller to expose which persistence features are supported.</summary>
+/// <remarks>
+/// While none of there informations are strictly necessary, they allow the software to work more gracefully with the device.
+/// </remarks>
+public interface ILightingPersistenceFeature : ILightingDeviceFeature
 {
+	/// <summary>Indicates whether the effects persistence is managed on device side.</summary>
+	/// <remarks>
+	/// <para>
+	/// Most devices will have their effects managed on the software side, but devices having readable external lighting changes
+	/// may benefit from being left alone managing their state.
+	/// In particular, letting the device manage its own state will help reduce the wear and tear experienced by the device, by
+	/// avoiding overriding the current effect with one stored in the software.
+	/// </para>
+	/// <para>
+	/// This is somewhat strongly associated with <see cref="HasDynamicPresence"/>, as the combination of both flags will indicate to the software
+	/// if the lighting effects are to be stored on disk whenever they change.
+	/// </para>
+	/// </remarks>
+	bool HasDeviceManagedLighting { get; }
+	/// <summary>Indicates whether the device presence should be managed dynamically.</summary>
+	/// <remarks>
+	/// <para>
+	/// By default, lighting devices are considered permanent and their effects can be adjusted even when the device is offline.
+	/// Devices whose presence is more situational, especially devices that are external to the computer, can benefit from not being treated this way.
+	/// In particular, this can alleviate the software from being required to store lighting effects on disk everytime they are changed.
+	/// </para>
+	/// <para>
+	/// This is somewhat strongly associated with <see cref="HasDeviceManagedLighting"/>, as the combination of both flags will indicate to the software
+	/// if the lighting effects are to be stored on disk whenever they change.
+	/// </para>
+	/// </remarks>
+	bool HasDynamicPresence { get; }
 	/// <summary>Indicates how the device will persist the lighting changes.</summary>
 	/// <remarks>Availability of on-demand lighting persistence is not guaranteed. This property will indicate the capabilities of the device regarding this.</remarks>
 	LightingPersistenceMode PersistenceMode { get; }
@@ -31,7 +62,7 @@ public interface ILightingPersistenceMode : ILightingDeviceFeature
 /// </para>
 /// <para>In the absence of this feature, it is assumed that lighting changes are applied immediately.</para>
 /// </remarks>
-public interface ILightingDeferredChangesFeature : ILightingDeviceFeature, ILightingPersistenceMode
+public interface ILightingDeferredChangesFeature : ILightingDeviceFeature
 {
 	/// <summary>Applies changes to the current lighting effects.</summary>
 	/// <remarks>
@@ -109,38 +140,23 @@ public interface ILightingBrightnessFeature : ILightingDeviceFeature
 /// This will be the case of devices supporting physical controls or devices that are commonly accessed through multiple services or devices, which is the case of Elgato lights.
 /// Most drivers <em>should not</em> implement this feature, especially as it will make the logic more complex for no benefit at all.
 /// </remarks>
-public interface ILightingDynamicChanges : ILightingDeviceFeature
+public interface ILightingDynamicEffectChanges : ILightingDeviceFeature
 {
-	/// <summary>Indicates whether the effects persistence is managed on device side.</summary>
-	/// <remarks>
-	/// <para>
-	/// Most devices will have their effects managed on the software side, but devices having readable external lighting changes
-	/// may benefit from being left alone managing their state.
-	/// In particular, letting the device manage its own state will help reduce the wear and tear experienced by the device, by
-	/// avoiding overriding the current effect with one stored in the software.
-	/// </para>
-	/// <para>
-	/// This is somewhat strongly associated with <see cref="HasDynamicPresence"/>, as the combination of both flags will indicate to the software
-	/// if the lighting effects are to be stored on disk whenever they change.
-	/// </para>
-	/// </remarks>
-	bool HasDeviceManagedLighting { get; }
-	/// <summary>Indicates whether the device presence should be managed dynamically.</summary>
-	/// <remarks>
-	/// <para>
-	/// By default, lighting devices are considered permanent and their effects can be adjusted even when the device is offline.
-	/// Devices whose presence is more situational, especially devices that are external to the computer, can benefit from not being treated this way.
-	/// In particular, this can alleviate the software from being required to store lighting effects on disk everytime they are changed.
-	/// </para>
-	/// <para>
-	/// This is somewhat strongly associated with <see cref="HasDeviceManagedLighting"/>, as the combination of both flags will indicate to the software
-	/// if the lighting effects are to be stored on disk whenever they change.
-	/// </para>
-	/// </remarks>
-	bool HasDynamicPresence { get; }
 	/// <summary>Notifies that the effect has changed on a specific lighting zone.</summary>
 	/// <remarks>This event does not indicate whether the change was externally triggered.</remarks>
 	event EffectChangeHandler EffectChanged;
 }
 
+/// <summary>A feature allowing to notify brightness changes.</summary>
+/// <remarks>
+/// Like <see cref="ILightingDynamicEffectChanges"/>, this features is intended for lighting controllers who are expected to change outside of the control of the service.
+/// </remarks>
+public interface ILightingDynamicBrightnessChanges : ILightingDeviceFeature
+{
+	/// <summary>Notifies that the brightness has changed.</summary>
+	/// <remarks>This event does not indicate whether the change was externally triggered.</remarks>
+	event BrightnessChangeHandler BrightnessChanged;
+}
+
+public delegate void BrightnessChangeHandler(Driver driver, byte brightness);
 public delegate void EffectChangeHandler(Driver driver, ILightingZone zone, ILightingEffect effect);

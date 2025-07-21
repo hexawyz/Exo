@@ -127,24 +127,41 @@ public struct HsvColor : IEquatable<HsvColor>
 		return (ushort)(hue * (1530f / 360));
 	}
 
-	public static float GetStandardHue(ushort scaledHue)
+	public static float GetStandardHueSingle(ushort scaledHue)
 	{
 		if (scaledHue >= 1530) scaledHue = (ushort)(scaledHue % 1530);
 		return 360U * scaledHue / 1530f;
 	}
 
+	public static ushort GetStandardHueUInt16(ushort scaledHue)
+	{
+		if (scaledHue >= 1530) scaledHue = (ushort)(scaledHue % 1530);
+		return (ushort)(360U * scaledHue / 1530f);
+	}
+
+	public static byte GetScaledSaturation(byte saturation)
+	{
+		if (saturation < 0) return 0;
+		if (saturation > 100) return 255;
+		return (byte)(saturation * 255U / 100);
+	}
+
 	public static byte GetScaledSaturation(float saturation)
 	{
-		if (saturation > 100) saturation = saturation % 100;
+		if (saturation < 0) return 0;
+		if (saturation > 100) return 255;
 		return (byte)(saturation * 255 / 100);
 	}
 
-	public static float GetStandardSaturation(byte scaledSaturation)
-	{
-		return 100U * scaledSaturation / 255f;
-	}
+	public static float GetStandardSaturationSingle(byte scaledSaturation)
+		=> 100U * scaledSaturation / 255f;
 
+	public static byte GetStandardSaturationByte(byte scaledSaturation)
+		=> (byte)((100U * scaledSaturation + 128) / 255);
+
+	public static byte GetScaledValue(byte value) => GetScaledSaturation(value);
 	public static byte GetScaledValue(float value) => GetScaledSaturation(value);
 
-	public static float GetStandardValue(byte scaledValue) => GetStandardSaturation(scaledValue);
+	public static float GetStandardValueSingle(byte scaledValue) => GetStandardSaturationSingle(scaledValue);
+	public static byte GetStandardValueByte(byte scaledValue) => GetStandardSaturationByte(scaledValue);
 }
