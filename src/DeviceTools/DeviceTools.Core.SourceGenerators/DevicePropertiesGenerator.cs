@@ -93,7 +93,14 @@ public class DevicePropertiesGenerator : IIncrementalGenerator
 		foreach (var kvp in data)
 		{
 			var guid = kvp.Key;
+			// Unless I'm mistaken, the array expressions should be more efficient on all .NET Core versions.
+			// Only .NET Standard 2.0 not having span would not benefit from that.
+			// Basically, the GUID(s) will be stored as raw data in the assembly, and directly referenced in the Guid constructor, instead of somewhat less efficient codegen using the regular constructor.
+			sb.AppendLine("#if NETSTANDARD2_0");
 			sb.AppendLine($"\t\t\tguid = new({guid.ToString("X").Replace("{", "").Replace("}", "")});");
+			sb.AppendLine("#else");
+			sb.AppendLine($"\t\t\tguid = new([{string.Join(", ", Array.ConvertAll(guid.ToByteArray(), b => $"0x{b:X2}"))}]);");
+			sb.AppendLine("#endif");
 
 			kvp.Value.Sort((x, y) => Comparer<int>.Default.Compare(x.PropertyIndex, y.PropertyIndex));
 
@@ -150,7 +157,10 @@ public class DevicePropertiesGenerator : IIncrementalGenerator
 			}
 			foreach (var p in ns.Properties)
 			{
-				sb.AppendLine($"{indent}\tpublic static readonly {p.Type}Property {p.Name} = Unsafe.As<{p.Type}Property>(Data.AllProperties[{p.ArrayIndex}]);");
+				string name = p.Name;
+				// Arbitrary way to handle overlap between property and namespace. There is no perfect way around it as C# doesn't allow that. (for good reasons)
+				if (ns.Namespaces.Any(n => n.Name == name)) name += "_";
+				sb.AppendLine($"{indent}\tpublic static readonly {p.Type}Property {name} = Unsafe.As<{p.Type}Property>(Data.AllProperties[{p.ArrayIndex}]);");
 			}
 			sb.AppendLine($"{indent}}}");
 		}

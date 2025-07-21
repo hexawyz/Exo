@@ -175,8 +175,8 @@ System.Devices.BaseContainerId,{a45c254e-df1c-4efd-8020-67d146a850e0},38,Guid,Fa
 System.Devices.DevObjectType,{13673f42-a3d6-49f6-b4da-ae46e0c5237c},2,UInt32,True
 System.Devices.Aep.Bluetooth.Le.Appearance,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},1,UInt16,True
 System.Devices.Aep.Bluetooth.Le.AddressType,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},4,Byte,True
-System.Devices.Aep.Bluetooth.Le.Category,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},5,UInt16,True
-System.Devices.Aep.Bluetooth.Le.Subcategory,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},6,UInt16,True
+System.Devices.Aep.Bluetooth.Le.Appearance.Category,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},5,UInt16,True
+System.Devices.Aep.Bluetooth.Le.Appearance.Subcategory,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},6,UInt16,True
 System.Devices.Aep.Bluetooth.Le.IsConnectable,{995EF0B0-7EB3-4A8B-B9CE-068BB3F4AF69},8,Boolean,True
 System.Devices.AepService.FriendlyName,{71724756-3e74-4432-9b59-e7b2f668a593},2,String,True
 System.Devices.AepService.ServiceClassId,{71724756-3e74-4432-9b59-e7b2f668a593},3,Guid,True

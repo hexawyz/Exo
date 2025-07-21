@@ -12,7 +12,7 @@ public class PropertiesTest
 				t => t.GetFields().Where(f => typeof(Property).IsAssignableFrom(f.FieldType)),
 				(t, f) =>
 				(
-					Name: t.FullName!.Substring(t.Namespace!.Length + ".Properties.".Length).Replace("+", ".") + "." + f.Name,
+					Name: t.FullName!.Substring(t.Namespace!.Length + ".Properties.".Length).Replace("+", ".") + "." + f.Name.TrimEnd('_'),
 					Property: (Property)f.GetValue(null)!
 				)
 			);
