@@ -87,4 +87,14 @@ internal static partial class LoggerExtensions
 		KeyboardReprogrammableKeysAndMouseButtonsV5.ControlFlags flags,
 		KeyboardReprogrammableKeysAndMouseButtonsV5.ControlReportingCapabilities reportingCapabilities
 	);
+
+	[LoggerMessage(
+		Level = LogLevel.Debug,
+		Message = "Device {DeviceSerialNumber} can disable keys {Keys}.")]
+	public static partial void FeatureAccessDevice4521AvailableKeys
+	(
+		this ILogger logger,
+		string? deviceSerialNumber,
+		DisableKeys.Keys keys
+	);
 }

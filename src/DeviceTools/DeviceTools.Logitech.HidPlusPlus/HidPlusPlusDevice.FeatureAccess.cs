@@ -23,6 +23,7 @@ public abstract partial class HidPlusPlusDevice
 		private ColorLedEffectFeatureHandler? _colorLedEffectState;
 		private LockKeyFeatureHandler? _lockKeyFeatureHandler;
 		private KeyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler? _keyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler;
+		private DisabledKeysFeatureHandler? _disabledKeysFeatureHandler;
 		private OnboardProfileFeatureHandler? _onBoardProfileState;
 		private FeatureAccessProtocol.DeviceType _deviceType;
 
@@ -119,6 +120,13 @@ public abstract partial class HidPlusPlusDevice
 				var lockKeyFeatureHandler = new LockKeyFeatureHandler(this, index);
 				Volatile.Write(ref _lockKeyFeatureHandler, lockKeyFeatureHandler);
 				Volatile.Write(ref _featureHandlers![index], lockKeyFeatureHandler);
+			}
+
+			if (features.TryGetIndex(HidPlusPlusFeature.DisableKeys, out index))
+			{
+				var disableKeysFeatureHandler = new DisabledKeysFeatureHandler(this, index);
+				Volatile.Write(ref _disabledKeysFeatureHandler, disableKeysFeatureHandler);
+				Volatile.Write(ref _featureHandlers![index], disableKeysFeatureHandler);
 			}
 
 			if (features.TryGetIndex(HidPlusPlusFeature.OnboardProfiles, out index))
