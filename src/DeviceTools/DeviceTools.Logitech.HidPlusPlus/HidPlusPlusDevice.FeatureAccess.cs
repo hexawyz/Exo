@@ -24,6 +24,7 @@ public abstract partial class HidPlusPlusDevice
 		private LockKeyFeatureHandler? _lockKeyFeatureHandler;
 		private KeyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler? _keyboardReprogrammableKeysAndMouseButtonsV5FeatureHandler;
 		private DisabledKeysFeatureHandler? _disabledKeysFeatureHandler;
+		private MultiPlatformFeatureHandler? _multiPlatformFeatureHandler;
 		private OnboardProfileFeatureHandler? _onBoardProfileState;
 		private FeatureAccessProtocol.DeviceType _deviceType;
 
@@ -127,6 +128,13 @@ public abstract partial class HidPlusPlusDevice
 				var disableKeysFeatureHandler = new DisabledKeysFeatureHandler(this, index);
 				Volatile.Write(ref _disabledKeysFeatureHandler, disableKeysFeatureHandler);
 				Volatile.Write(ref _featureHandlers![index], disableKeysFeatureHandler);
+			}
+
+			if (features.TryGetIndex(HidPlusPlusFeature.MultiPlatform, out index))
+			{
+				var multiPlatformFeatureHandler = new MultiPlatformFeatureHandler(this, index);
+				Volatile.Write(ref _multiPlatformFeatureHandler, multiPlatformFeatureHandler);
+				Volatile.Write(ref _featureHandlers![index], multiPlatformFeatureHandler);
 			}
 
 			if (features.TryGetIndex(HidPlusPlusFeature.OnboardProfiles, out index))

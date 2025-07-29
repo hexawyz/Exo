@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
 
 namespace DeviceTools.Logitech.HidPlusPlus.FeatureAccessProtocol.Features;
-#pragma warning restore IDE0044 // Add readonly modifier
 
 #pragma warning disable IDE0044 // Add readonly modifier
 public static class DisableKeys
