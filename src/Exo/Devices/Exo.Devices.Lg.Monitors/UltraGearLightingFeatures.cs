@@ -108,9 +108,9 @@ internal sealed class UltraGearLightingFeatures :
 	AddressableLightingZoneCapabilities IAddressableLightingZone.Capabilities => AddressableLightingZoneCapabilities.Dynamic | AddressableLightingZoneCapabilities.AllowPartialUpdates;
 	Type IAddressableLightingZone.ColorType => typeof(RgbColor);
 
-	ValueTask IDynamicAddressableLightingZone<RgbColor>.SetColorsAsync(int index, ReadOnlySpan<RgbColor> colors)
+	ValueTask IDynamicAddressableLightingZone<RgbColor>.SetColorsAsync(ReadOnlySpan<RgbColor> colors, int changedRangeIndex, int changedRangeLength)
 	{
-		if (index != 0) throw new ArgumentOutOfRangeException(nameof(index));
+		if (changedRangeIndex != 0) throw new ArgumentOutOfRangeException(nameof(changedRangeIndex));
 		if (colors.Length != _ledCount) throw new ArgumentException("The number of colors received is incorrect.");
 
 		return new ValueTask(_lightingTransport.SetVideoSyncColors(colors, default));
@@ -237,7 +237,7 @@ internal sealed class UltraGearLightingFeatures :
 		int k = 0;
 		while (true)
 		{
-			await this.SetColorsAsync(colors.AsSpan(k, 36));
+			await (this as IDynamicAddressableLightingZone<RgbColor>).SetColorsAsync(colors.AsSpan(k, 36), 0, 36);
 			k = (k + 1) & 3;
 			await Task.Delay(150);
 		}
