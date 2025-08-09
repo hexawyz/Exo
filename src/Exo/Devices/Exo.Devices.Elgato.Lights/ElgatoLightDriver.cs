@@ -966,7 +966,7 @@ internal sealed class ElgatoLedStripProDriver :
 			}
 			else
 			{
-				lastBuffer.AsSpan(3, lastBuffer.Length).CopyTo(buffer);
+				lastBuffer.AsSpan(3).CopyTo(buffer);
 				Unsafe.As<byte, RgbColor>(ref buffer[^3]) = colorSequence[rowOffset];
 				if (++rowOffset >= colorSequence.Length) rowOffset = 0;
 			}

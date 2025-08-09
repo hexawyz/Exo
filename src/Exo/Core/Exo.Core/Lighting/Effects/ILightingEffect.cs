@@ -1,4 +1,6 @@
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using Exo.ColorFormats;
 
 namespace Exo.Lighting.Effects;
 
@@ -28,6 +30,18 @@ public interface ISingletonLightingEffect : ILightingEffect
 {
 	/// <summary>Gets a boxed instance of the effect.</summary>
 	static abstract ISingletonLightingEffect SharedInstance { get; }
+}
+
+/// <summary>Represents a lighting effect that can be used for addressable lighting.</summary>
+/// <typeparam name="TColor">The type of color items supported by the lighting effect.</typeparam>
+public interface IProgrammableLightingEffect<TColor> : ILightingEffect
+	where TColor : unmanaged
+{
+	/// <summary>Gets the frames that can be used to configure the effect on a device.</summary>
+	/// <param name="ledCount">The number of LEDs to include.</param>
+	/// <param name="capacity">The maximum number of frames expected.</param>
+	/// <returns>Frames to be used to configure or run the effect on a device.</returns>
+	ImmutableArray<LightingEffectFrame<TColor>> GetEffectFrames(int ledCount, int capacity);
 }
 
 /// <summary>An interface indicating availability of a conversion from an other effect type.</summary>

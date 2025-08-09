@@ -13,7 +13,7 @@ internal sealed class UltraGearLightingFeatures :
 	ILightingPersistenceFeature,
 	ILightingDeferredChangesFeature,
 	ILightingBrightnessFeature,
-	IAddressableLightingZone<RgbColor>,
+	IDynamicAddressableLightingZone<RgbColor>,
 	ILightingZoneEffect<DisabledEffect>,
 	//ILightingZoneEffect<StaticColorEffect>,
 	ILightingZoneEffect<StaticColorPreset1Effect>,
@@ -92,7 +92,7 @@ internal sealed class UltraGearLightingFeatures :
 	void ILightingZoneEffect<StaticColorPreset4Effect>.ApplyEffect(in StaticColorPreset4Effect effect) => CurrentEffect = StaticColorPreset4Effect.SharedInstance;
 	void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => CurrentEffect = SpectrumCycleEffect.SharedInstance;
 	void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => CurrentEffect = SpectrumWaveEffect.SharedInstance;
-	void ILightingZoneEffect<AddressableColorEffect>.ApplyEffect(in AddressableColorEffect effect) => CurrentEffect = AddressableColorEffect.SharedInstance;
+	void ILightingZoneEffect<AddressableEffect>.ApplyEffect(in AddressableEffect effect) => CurrentEffect = AddressableEffect.SharedInstance;
 
 	bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	//bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
@@ -102,12 +102,13 @@ internal sealed class UltraGearLightingFeatures :
 	bool ILightingZoneEffect<StaticColorPreset2Effect>.TryGetCurrentEffect(out StaticColorPreset2Effect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset3Effect>.TryGetCurrentEffect(out StaticColorPreset3Effect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset4Effect>.TryGetCurrentEffect(out StaticColorPreset4Effect effect) => CurrentEffect.TryGetEffect(out effect);
-	bool ILightingZoneEffect<AddressableColorEffect>.TryGetCurrentEffect(out AddressableColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
+	bool ILightingZoneEffect<AddressableEffect>.TryGetCurrentEffect(out AddressableEffect effect) => CurrentEffect.TryGetEffect(out effect);
 
 	int IAddressableLightingZone.AddressableLightCount => _ledCount;
-	bool IAddressableLightingZone.AllowsRandomAccesses => false;
+	AddressableLightingZoneCapabilities IAddressableLightingZone.Capabilities => AddressableLightingZoneCapabilities.Dynamic | AddressableLightingZoneCapabilities.AllowPartialUpdates;
+	Type IAddressableLightingZone.ColorType => typeof(RgbColor);
 
-	ValueTask IAddressableLightingZone<RgbColor>.SetColorsAsync(int index, ReadOnlySpan<RgbColor> colors)
+	ValueTask IDynamicAddressableLightingZone<RgbColor>.SetColorsAsync(int index, ReadOnlySpan<RgbColor> colors)
 	{
 		if (index != 0) throw new ArgumentOutOfRangeException(nameof(index));
 		if (colors.Length != _ledCount) throw new ArgumentException("The number of colors received is incorrect.");
@@ -204,7 +205,7 @@ internal sealed class UltraGearLightingFeatures :
 				await _lightingTransport.SetActiveEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
 				await _lightingTransport.EnableLightingEffectAsync(LightingEffect.Dynamic, default).ConfigureAwait(false);
 				break;
-			case AddressableColorEffect:
+			case AddressableEffect:
 				// NB: It seems that the dynamic effect will self-disable after a while if not updated. (10s)
 				// TODO: Find an acceptable way to manage this. Either force keep-alive the effect or track long delays between updates to re-enable the effect.
 				await _lightingTransport.SetActiveEffectAsync(LightingEffect.VideoSync, default).ConfigureAwait(false);
