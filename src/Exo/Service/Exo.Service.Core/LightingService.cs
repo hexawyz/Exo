@@ -230,8 +230,13 @@ internal sealed partial class LightingService :
 					{
 						state.SerializedCurrentEffect = result.Value;
 					}
+
+					if (!state.SupportedEffectTypeIds.IsDefaultOrEmpty && state.SerializedCurrentEffect is not null)
+					{
+						lightingZones.Add(lightingZoneId, state);
+					}
 				}
-				if (!state.SupportedEffectTypeIds.IsDefaultOrEmpty && state.SerializedCurrentEffect is not null)
+				else if (!state.SupportedEffectTypeIds.IsDefaultOrEmpty)
 				{
 					lightingZones.Add(lightingZoneId, state);
 				}
@@ -828,7 +833,10 @@ internal sealed partial class LightingService :
 								else
 								{
 									lightingZoneState.SerializedCurrentEffect = currentEffect;
-									changedLightingZones.Add(unifiedLightingZoneId);
+									if ((capabilities & LightingCapabilities.DeviceManagedLighting) == 0)
+									{
+										changedLightingZones.Add(unifiedLightingZoneId);
+									}
 
 									if (_useCentralizedLighting)
 									{
@@ -839,7 +847,10 @@ internal sealed partial class LightingService :
 							else if (currentEffect != lightingZoneState.SerializedCurrentEffect)
 							{
 								lightingZoneState.SerializedCurrentEffect = currentEffect;
-								changedLightingZones.Add(unifiedLightingZoneId);
+								if ((capabilities & LightingCapabilities.DeviceManagedLighting) == 0)
+								{
+									changedLightingZones.Add(unifiedLightingZoneId);
+								}
 							}
 						}
 						else
@@ -893,7 +904,10 @@ internal sealed partial class LightingService :
 								else
 								{
 									lightingZoneState.SerializedCurrentEffect = EffectSerializer.GetEffect(lightingZone);
-									changedLightingZones.Add(lightingZoneId);
+									if ((capabilities & LightingCapabilities.DeviceManagedLighting) == 0)
+									{
+										changedLightingZones.Add(unifiedLightingZoneId);
+									}
 
 									if (_useCentralizedLighting)
 									{
@@ -904,7 +918,10 @@ internal sealed partial class LightingService :
 							else if (currentEffect != lightingZoneState.SerializedCurrentEffect)
 							{
 								lightingZoneState.SerializedCurrentEffect = currentEffect;
-								changedLightingZones.Add(unifiedLightingZoneId);
+								if ((capabilities & LightingCapabilities.DeviceManagedLighting) == 0)
+								{
+									changedLightingZones.Add(unifiedLightingZoneId);
+								}
 							}
 						}
 						else
