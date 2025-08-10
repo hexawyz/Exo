@@ -108,6 +108,9 @@ internal sealed class UltraGearLightingFeatures :
 	AddressableLightingZoneCapabilities IAddressableLightingZone.Capabilities => AddressableLightingZoneCapabilities.Dynamic | AddressableLightingZoneCapabilities.AllowPartialUpdates;
 	Type IAddressableLightingZone.ColorType => typeof(RgbColor);
 
+	// IIRC the timeout is about 10s? Anyway we want to refresh quicker than that.
+	ushort? IDynamicAddressableLightingZone.MaximumRefreshInterval => 5_000;
+
 	ValueTask IDynamicAddressableLightingZone<RgbColor>.SetColorsAsync(ReadOnlySpan<RgbColor> colors, int changedRangeIndex, int changedRangeLength)
 	{
 		if (changedRangeIndex != 0) throw new ArgumentOutOfRangeException(nameof(changedRangeIndex));

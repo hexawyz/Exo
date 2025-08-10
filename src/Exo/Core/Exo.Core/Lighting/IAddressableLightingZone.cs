@@ -91,6 +91,19 @@ public interface IProgrammableAddressableLightingZone<TColor> : IProgrammableAdd
 	void ApplyEffect(in IProgrammableLightingEffect<TColor> effect);
 }
 
+public interface IDynamicAddressableLightingZone : IAddressableLightingZone
+{
+	/// <summary>Indicate the minimum frequency at which updates should be pushed to the device, if necessary.</summary>
+	/// <remarks>
+	/// <para>
+	/// Some devices will disable dynamic lighting if updates have not ben pushed for some amount of time.
+	/// By indicating a refresh deadline, it allows the lighting engine to push colors regularly to the device, so that dynamic lighting is kept alive.
+	/// </para>
+	/// <para>The refresh will be done by calling <see cref="IDynamicAddressableLightingZone{TColor}.SetColorsAsync(ReadOnlySpan{TColor}, int, int)"/> by indicating no updated colors.</para>
+	/// </remarks>
+	ushort? MaximumRefreshInterval { get; }
+}
+
 /// <summary>Defines a lighting zone that is addressable with the specified color type.</summary>
 /// <remarks>
 /// <para>
@@ -103,7 +116,7 @@ public interface IProgrammableAddressableLightingZone<TColor> : IProgrammableAdd
 /// </para>
 /// </remarks>
 /// <typeparam name="TColor">The type of color items supported by the lighting zone.</typeparam>
-public interface IDynamicAddressableLightingZone<TColor> : IAddressableLightingZone<TColor>
+public interface IDynamicAddressableLightingZone<TColor> : IDynamicAddressableLightingZone, IAddressableLightingZone<TColor>
 	where TColor : unmanaged
 {
 	/// <summary>Sets the colors of the zone.</summary>
