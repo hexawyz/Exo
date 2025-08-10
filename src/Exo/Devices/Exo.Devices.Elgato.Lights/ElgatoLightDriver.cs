@@ -752,33 +752,39 @@ internal sealed class ElgatoLedStripProDriver :
 	// Parses the current effect into one of ours if possible.
 	private static ILightingEffect ParseEffect(string effectId, JsonObject? metaData)
 	{
-		try
+		if (effectId == "com.exo.effect")
 		{
-			switch (effectId)
+			ExoEffectMetaData exoEffectMetaData;
+			try
 			{
-			case "com.exo.wave.color":
-				return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.ColorWaveMetaData));
-			case "com.exo.wave.multicolor":
-				return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.MultiColorWaveMetaData));
-			case "com.exo.wave.spectrum":
-				return ParseEffect(JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.SpectrumWaveMetaData));
+				exoEffectMetaData = JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.ExoEffectMetaData);
+			}
+			catch
+			{
+				// TODO: Log ?
+				goto EffectNotRecognized;
+			}
+			try
+			{
+				var effect = EffectSerializer.UnsafeDeserialize(exoEffectMetaData.EffectId, exoEffectMetaData.EffectData);
+				if (effect is not null) return effect;
+			}
+			catch
+			{
+				// TODO: Log ?
+				goto EffectNotRecognized;
 			}
 		}
-		catch (Exception ex)
-		{
-			// TODO: Log
-		}
+	EffectNotRecognized:;
 		return NotApplicableEffect.SharedInstance;
 	}
 
-	private static ReversibleVariableColorWaveEffect ParseEffect(ColorWaveMetaData metaData)
-		=> new ReversibleVariableColorWaveEffect(metaData.Color, metaData.Speed, metaData.Direction);
-
-	private static ReversibleVariableMultiColorWaveEffect ParseEffect(MultiColorWaveMetaData metaData)
-		=> new ReversibleVariableMultiColorWaveEffect(new FixedList10<RgbColor>(metaData.Colors), metaData.Speed, metaData.Direction, metaData.Size, metaData.Interpolate);
-
-	private static ReversibleVariableSpectrumWaveEffect ParseEffect(SpectrumWaveMetaData metaData)
-		=> new ReversibleVariableSpectrumWaveEffect(metaData.Speed, metaData.Direction);
+	private static ExoEffectMetaData SerializeEffect(ILightingEffect effect)
+	{
+		// Probably could just use the LightingEffect class for serialization, but it depends on whether it will be kept at all.
+		var serializedEffect = EffectSerializer.GetEffect(effect);
+		return new() { EffectId = serializedEffect.EffectId, EffectData = serializedEffect.EffectData };
+	}
 
 	// The Light Strip Pro does not support any native effects.
 	// All effects are a prerendered sequence of LEDs, which is a very flexible way of implementing effects, but 
@@ -796,60 +802,32 @@ internal sealed class ElgatoLedStripProDriver :
 			{
 				On = 1,
 				Brightness = brightness,
-				Id = "com.exo.wave.color",
+				Id = "com.exo.effect",
 				Name = "Color Wave",
 				SceneSet = GenerateSlidingSceneFrames([colorWaveEffect.Color, default, default, default], colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, 10),
-				MetaData = (JsonObject?)JsonSerializer.SerializeToNode
-				(
-					new ColorWaveMetaData()
-					{
-						Color = colorWaveEffect.Color,
-						Speed = colorWaveEffect.Speed,
-						Direction = colorWaveEffect.Direction
-					},
-					SourceGenerationContext.Default.ColorWaveMetaData
-				),
+				MetaData = SerializeEffect(colorWaveEffect),
 			};
 		case ReversibleVariableMultiColorWaveEffect colorWaveEffect:
 			return new()
 			{
 				On = 1,
 				Brightness = brightness,
-				Id = "com.exo.wave.multicolor",
+				Id = "com.exo.effect",
 				Name = "Multicolor Wave",
 				SceneSet = colorWaveEffect.Interpolate ?
 					GenerateInterpolatedSlidingSceneFrames(colorWaveEffect.Colors, colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, colorWaveEffect.Size) :
 					GenerateSlidingSceneFrames(colorWaveEffect.Colors, colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, colorWaveEffect.Size),
-				MetaData = (JsonObject?)JsonSerializer.SerializeToNode
-				(
-					new MultiColorWaveMetaData()
-					{
-						Colors = ((ReadOnlySpan<RgbColor>)colorWaveEffect.Colors).ToArray(),
-						Speed = colorWaveEffect.Speed,
-						Direction = colorWaveEffect.Direction,
-						Size = colorWaveEffect.Size,
-						Interpolate = colorWaveEffect.Interpolate,
-					},
-					SourceGenerationContext.Default.MultiColorWaveMetaData
-				),
+				MetaData = SerializeEffect(colorWaveEffect),
 			};
 		case ReversibleVariableSpectrumWaveEffect spectrumWaveEffect:
 			return new()
 			{
 				On = 1,
 				Brightness = brightness,
-				Id = "com.exo.wave.spectrum",
+				Id = "com.exo.effect",
 				Name = "Spectrum Wave",
 				SceneSet = GenerateSpectrumWaveSceneFrames(spectrumWaveEffect.Speed, spectrumWaveEffect.Direction, ledCount, 10),
-				MetaData = (JsonObject?)JsonSerializer.SerializeToNode
-				(
-					new SpectrumWaveMetaData()
-					{
-						Speed = spectrumWaveEffect.Speed,
-						Direction = spectrumWaveEffect.Direction
-					},
-					SourceGenerationContext.Default.SpectrumWaveMetaData
-				),
+				MetaData = SerializeEffect(spectrumWaveEffect),
 			};
 		default:
 			throw new InvalidOperationException($"Effects of type {effect.GetType()} are not supported.");
@@ -1418,7 +1396,7 @@ internal readonly struct ElgatoLedStripProLightUpdate
 	public byte? Saturation { get; init; }
 	public string? Id { get; init; }
 	public string? Name { get; init; }
-	public JsonObject? MetaData { get; init; }
+	public ExoEffectMetaData? MetaData { get; init; }
 	public ElgatoLedStripFrame[]? SceneSet { get; init; }
 }
 
@@ -1428,26 +1406,15 @@ internal readonly struct ElgatoLedStripFrame
 	public required ushort Duration { get; init; }
 }
 
-internal readonly struct ColorWaveMetaData
+// This will be used as the internal format for effects.
+// In order to fully support dynamic effects, we can proceed in a few different ways.
+// Either we update the whole effect system to serialize to JsonObject and provide custom string IDs in order to have a more "compatible" implementation of effects.
+// Or we set all effects using the same ID and store the raw effect data as serialized bytes using the default effect serializer.
+// The second approach is less "native" regarding as to how the device is supposed to work, but it will be much easier to work with on our side.
+internal readonly struct ExoEffectMetaData
 {
-	public required RgbColor Color { get; init; }
-	public required PredeterminedEffectSpeed Speed { get; init; }
-	public required EffectDirection1D Direction { get; init; }
-}
-
-internal readonly struct MultiColorWaveMetaData
-{
-	public required RgbColor[] Colors { get; init; }
-	public required PredeterminedEffectSpeed Speed { get; init; }
-	public required EffectDirection1D Direction { get; init; }
-	public required byte Size { get; init; }
-	public bool Interpolate { get; init; }
-}
-
-internal readonly struct SpectrumWaveMetaData
-{
-	public required PredeterminedEffectSpeed Speed { get; init; }
-	public required EffectDirection1D Direction { get; init; }
+	public required Guid EffectId { get; init; }
+	public required byte[] EffectData { get; init; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, NumberHandling = JsonNumberHandling.AllowReadingFromString)]
@@ -1458,9 +1425,7 @@ internal readonly struct SpectrumWaveMetaData
 [JsonSerializable(typeof(ElgatoLightsUpdate<ElgatoLightUpdate>), GenerationMode = JsonSourceGenerationMode.Serialization)]
 [JsonSerializable(typeof(ElgatoLightsUpdate<ElgatoColorLightUpdate>), GenerationMode = JsonSourceGenerationMode.Serialization)]
 [JsonSerializable(typeof(ElgatoLightsUpdate<ElgatoLedStripProLightUpdate>), GenerationMode = JsonSourceGenerationMode.Serialization)]
-[JsonSerializable(typeof(ColorWaveMetaData))]
-[JsonSerializable(typeof(MultiColorWaveMetaData))]
-[JsonSerializable(typeof(SpectrumWaveMetaData))]
+[JsonSerializable(typeof(ElgatoLightsUpdate<ExoEffectMetaData>), GenerationMode = JsonSourceGenerationMode.Metadata | JsonSourceGenerationMode.Serialization)]
 internal partial class SourceGenerationContext : JsonSerializerContext
 {
 }

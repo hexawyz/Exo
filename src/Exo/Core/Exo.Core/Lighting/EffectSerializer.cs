@@ -12,6 +12,7 @@ namespace Exo.Lighting;
 
 public static class EffectSerializer
 {
+	private delegate ILightingEffect DeserializeDelegate(ref BufferReader reader);
 	private delegate bool TrySetEffectDelegate(ILightingZone lightingZone, ReadOnlySpan<byte> data);
 	private delegate bool TrySetEffectDelegate<TEffect>(ILightingZone lightingZone, in TEffect effect)
 		where TEffect : struct, ILightingEffect<TEffect>;
@@ -251,6 +252,18 @@ public static class EffectSerializer
 		return effect;
 	}
 
+	[EditorBrowsable(EditorBrowsableState.Advanced)]
+	[SkipLocalsInit]
+	public static ILightingEffect? UnsafeDeserialize(Guid effectId, ReadOnlySpan<byte> data)
+	{
+		if (EffectStates.TryGetValue(effectId, out var state))
+		{
+			var reader = new BufferReader(data);
+			return state.TryDeserialize(ref reader);
+		}
+		return null;
+	}
+
 	public static async IAsyncEnumerable<LightingEffectInformation> WatchEffectsAsync([EnumeratorCancellation] CancellationToken cancellationToken)
 	{
 		cancellationToken.ThrowIfCancellationRequested();
@@ -292,7 +305,8 @@ public static class EffectSerializer
 	{
 		// TODO: ConditionalWeakTable< Type, SetConvertedEffect >
 		public LightingEffectInformation Metadata;
-		private DependentHandle _dependentHandle;
+		private DependentHandle _setEffectDependentHandle;
+		private DependentHandle _deserializeDependentHandle;
 		private ConditionalWeakTable<Type, Delegate>? _converters;
 
 		public RegisteredEffectState(LightingEffectInformation information)
@@ -310,20 +324,28 @@ public static class EffectSerializer
 
 		private void Dispose(bool disposing)
 		{
-			_dependentHandle.Dispose();
+			_setEffectDependentHandle.Dispose();
 			_converters?.Clear();
 		}
 
 		public void RegisterDeserializer<TEffect>()
 			where TEffect : struct, ILightingEffect<TEffect>
 		{
-			if (_dependentHandle.IsAllocated)
+			if (_setEffectDependentHandle.IsAllocated)
 			{
-				_dependentHandle.Dependent = new TrySetEffectDelegate(TrySetEffect<TEffect>);
+				_setEffectDependentHandle.Dependent = new TrySetEffectDelegate(TrySetEffect<TEffect>);
 			}
 			else
 			{
-				_dependentHandle = new(typeof(TEffect), new TrySetEffectDelegate(TrySetEffect<TEffect>));
+				_setEffectDependentHandle = new(typeof(TEffect), new TrySetEffectDelegate(TrySetEffect<TEffect>));
+			}
+			if (_deserializeDependentHandle.IsAllocated)
+			{
+				_deserializeDependentHandle.Dependent = new DeserializeDelegate(Deserialize<TEffect>);
+			}
+			else
+			{
+				_deserializeDependentHandle = new(typeof(TEffect), new DeserializeDelegate(Deserialize<TEffect>));
 			}
 		}
 
@@ -336,11 +358,11 @@ public static class EffectSerializer
 
 		public bool SetEffect(ILightingZone lightingZone, ReadOnlySpan<byte> data)
 		{
-			if (_dependentHandle.Dependent is TrySetEffectDelegate d)
+			if (_setEffectDependentHandle.Dependent is TrySetEffectDelegate d)
 			{
 				if (!d.Invoke(lightingZone, data))
 				{
-					throw _dependentHandle.Target is Type effectType ?
+					throw _setEffectDependentHandle.Target is Type effectType ?
 						new InvalidOperationException($"The specified zone does not support effects of type {effectType}.") :
 						new InvalidOperationException($"The specified zone does not support effects of the specified type.");
 				}
@@ -350,7 +372,7 @@ public static class EffectSerializer
 		}
 
 		public bool TrySetEffect(ILightingZone lightingZone, ReadOnlySpan<byte> data)
-			=> (_dependentHandle.Dependent as TrySetEffectDelegate)?.Invoke(lightingZone, data) ?? false;
+			=> (_setEffectDependentHandle.Dependent as TrySetEffectDelegate)?.Invoke(lightingZone, data) ?? false;
 
 		private bool TrySetEffect<TEffect>(ILightingZone lightingZone, ReadOnlySpan<byte> data)
 			where TEffect : struct, ILightingEffect<TEffect>
@@ -375,6 +397,16 @@ public static class EffectSerializer
 			}
 
 			return false;
+		}
+
+		public ILightingEffect? TryDeserialize(ref BufferReader reader)
+			=> (_deserializeDependentHandle.Dependent as DeserializeDelegate)?.Invoke(ref reader) ?? null;
+
+		private ILightingEffect Deserialize<TEffect>(ref BufferReader reader)
+			where TEffect : struct, ILightingEffect<TEffect>
+		{
+			TEffect.Deserialize(ref reader, out var effect);
+			return effect;
 		}
 
 		private bool TrySetConvertedEffect<TSourceEffect, TDestinationEffect>(ILightingZone lightingZone, in TSourceEffect effect)
