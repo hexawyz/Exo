@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Exo.ColorFormats;
 using Exo.Lighting.Effects;
 using Exo.Primitives;
 
@@ -42,6 +43,40 @@ public static class EffectSerializer
 				state.Metadata = metadata;
 			}
 			state.RegisterDeserializer<TEffect>();
+			if (isUpdated)
+			{
+				_effectBroadcaster.Push(metadata);
+			}
+		}
+	}
+
+	// After pondering quite some time, I didn't find a better way to handle programmable effect registrations.
+	// I know it is not perfect, and it will become more complex with fully dynamic effects, but the other alternatives I thought of were worse.
+	// Idea here will be to register everything within the lock so that we avoid weird things happening.
+	// We will need to add overloads if effects support more than one color type, but that is not needed for now.
+	[EditorBrowsable(EditorBrowsableState.Never)]
+	public static void RegisterProgrammableEffect<TEffect, TColor>()
+		where TEffect : struct, ILightingEffect<TEffect>, IProgrammableLightingEffect<TColor>
+		where TColor : unmanaged, IColor
+	{
+		var metadata = TEffect.GetEffectMetadata();
+
+		// Work around the fact that GetOrAdd is not atomic…
+		lock (EffectAddLock)
+		{
+			bool isUpdated;
+			if (!EffectStates.TryGetValue(metadata.EffectId, out var state))
+			{
+				isUpdated = true;
+				state = new(metadata);
+				EffectStates.TryAdd(metadata.EffectId, state);
+			}
+			else if (isUpdated = state.Metadata != metadata)
+			{
+				state.Metadata = metadata;
+			}
+			state.RegisterDeserializer<TEffect>();
+			state.RegisterProgrammable<TEffect, TColor>();
 			if (isUpdated)
 			{
 				_effectBroadcaster.Push(metadata);
@@ -306,6 +341,7 @@ public static class EffectSerializer
 		// TODO: ConditionalWeakTable< Type, SetConvertedEffect >
 		public LightingEffectInformation Metadata;
 		private DependentHandle _setEffectDependentHandle;
+		private DependentHandle _setProgrammableEffectDependentHandle;
 		private DependentHandle _deserializeDependentHandle;
 		private ConditionalWeakTable<Type, Delegate>? _converters;
 
@@ -349,6 +385,23 @@ public static class EffectSerializer
 			}
 		}
 
+		public void RegisterProgrammable<TEffect, TColor>()
+			where TEffect : struct, ILightingEffect<TEffect>, IProgrammableLightingEffect<TColor>
+			where TColor : unmanaged, IColor
+		{
+			var @delegate = new TrySetEffectDelegate<TEffect>(TrySetEffect<TEffect, TColor>);
+
+			if (_setProgrammableEffectDependentHandle.IsAllocated)
+			{
+				// TODO: Manage an array of different colors. (We don't support that at the moment)
+				_setProgrammableEffectDependentHandle.Dependent = @delegate;
+			}
+			else
+			{
+				_setProgrammableEffectDependentHandle = new(typeof(TEffect), @delegate);
+			}
+		}
+
 		public void RegisterConverter<TSourceEffect, TDestinationEffect>()
 			where TSourceEffect : struct, ILightingEffect<TSourceEffect>
 			where TDestinationEffect : struct, IConvertibleLightingEffect<TSourceEffect, TDestinationEffect>
@@ -385,6 +438,12 @@ public static class EffectSerializer
 				return true;
 			}
 
+			if (_setProgrammableEffectDependentHandle.IsAllocated &&
+				((_setProgrammableEffectDependentHandle.Dependent as TrySetEffectDelegate<TEffect>)?.Invoke(lightingZone, in effect) ?? false))
+			{
+				return true;
+			}
+
 			// TODO: Enumerating ConditionalWeakTable is probably far from efficient but we can rework that part later.
 			// We do want to allow unloading assemblies so we can't keep strong references, but we also don't want to double register anything.
 			// As we know the list of converters is unlikely to change frequently, it would probably work it to do the job of ConditionalWeakTable manually in a lighter way.
@@ -394,6 +453,19 @@ public static class EffectSerializer
 				{
 					if (Unsafe.As<TrySetEffectDelegate<TEffect>>(kvp.Value)(lightingZone, in effect)) return true;
 				}
+			}
+
+			return false;
+		}
+
+		private bool TrySetEffect<TEffect, TColor>(ILightingZone lightingZone, in TEffect effect)
+			where TEffect : struct, ILightingEffect<TEffect>, IProgrammableLightingEffect<TColor>
+			where TColor : unmanaged, IColor
+		{
+			if (lightingZone is IProgrammableAddressableLightingZone<TColor> typedLightingZone)
+			{
+				typedLightingZone.ApplyEffect(effect);
+				return true;
 			}
 
 			return false;
@@ -409,6 +481,8 @@ public static class EffectSerializer
 			return effect;
 		}
 
+		// TODO: Refactor so that this can handle programmable effects.
+		// (i.e. although kinda stupid, a non-programmable effect could convert into a programmable effect)
 		private bool TrySetConvertedEffect<TSourceEffect, TDestinationEffect>(ILightingZone lightingZone, in TSourceEffect effect)
 			where TSourceEffect : struct, ILightingEffect<TSourceEffect>
 			where TDestinationEffect : struct, IConvertibleLightingEffect<TSourceEffect, TDestinationEffect>

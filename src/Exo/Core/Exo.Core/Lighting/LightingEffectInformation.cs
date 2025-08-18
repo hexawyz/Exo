@@ -11,6 +11,10 @@ public sealed class LightingEffectInformation : IEquatable<LightingEffectInforma
 	/// </remarks>
 	public required Guid EffectId { get; init; }
 
+	/// <summary>Capabilities of the effect.</summary>
+	/// <remarks>Knowing in which situations the effect can be assigned to a device is important for proepr effect management.</remarks>
+	public required EffectCapabilities Capabilities { get; init; }
+
 	private readonly ImmutableArray<ConfigurablePropertyInformation> _properties = [];
 
 	/// <summary>Gets the properties of the lighting effect.</summary>
@@ -35,9 +39,10 @@ public sealed class LightingEffectInformation : IEquatable<LightingEffectInforma
 	public bool Equals(LightingEffectInformation? other)
 		=> other is not null &&
 			EffectId == other.EffectId &&
+			Capabilities == other.Capabilities &&
 			Properties.SequenceEqual(other.Properties);
 
-	public override int GetHashCode() => HashCode.Combine(EffectId, Properties.Length);
+	public override int GetHashCode() => HashCode.Combine(EffectId, Capabilities, Properties.Length);
 
 	public static bool operator ==(LightingEffectInformation? left, LightingEffectInformation? right) => EqualityComparer<LightingEffectInformation>.Default.Equals(left, right);
 	public static bool operator !=(LightingEffectInformation? left, LightingEffectInformation? right) => !(left == right);

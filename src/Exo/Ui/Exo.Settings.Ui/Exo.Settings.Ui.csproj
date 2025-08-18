@@ -68,6 +68,7 @@
 		<Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSource.cs" Link="Definitions\VendorIdSource.cs" />
 		<Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSourceExtensions.cs" Link="Definitions\VendorIdSourceExtensions.cs" />
 		<Compile Include="..\..\Core\Exo.Core\ColorFormats\ArgbColor.cs" Link="Definitions\ArgbColor.cs" />
+		<Compile Include="..\..\Core\Exo.Core\ColorFormats\IColor.cs" Link="Definitions\IColor.cs" />
 		<Compile Include="..\..\Core\Exo.Core\ColorFormats\RgbColor.cs" Link="Definitions\RgbColor.cs" />
 		<Compile Include="..\..\Core\Exo.Core\ColorFormats\RgbwColor.cs" Link="Definitions\RgbwColor.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Cooling\Configuration\CoolerConfiguration.cs" Link="Definitions\CoolerConfiguration.cs" />
@@ -90,6 +91,7 @@
 		<Compile Include="..\..\Core\Exo.Core\Images\Rectangle.cs" Link="Definitions\Rectangle.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Images\Size.cs" Link="Definitions\Size.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Lighting\ConfigurablePropertyInformation.cs" Link="Definitions\ConfigurablePropertyInformation.cs" />
+		<Compile Include="..\..\Core\Exo.Core\Lighting\EffectCapabilities.cs" Link="Definitions\EffectCapabilities.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Lighting\Effects\EffectDirection1D.cs" Link="Definitions\EffectDirection1D.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Lighting\EnumerationValue.cs" Link="Definitions\EnumerationValue.cs" />
 		<Compile Include="..\..\Core\Exo.Core\Lighting\LightingDataType.cs" Link="Definitions\LightingDataType.cs" />

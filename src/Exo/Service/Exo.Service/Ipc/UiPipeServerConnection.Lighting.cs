@@ -361,6 +361,7 @@ partial class UiPipeServerConnection
 			var writer = new BufferWriter(buffer);
 			writer.Write((byte)ExoUiProtocolServerMessage.LightingEffect);
 			writer.Write(effect.EffectId);
+			writer.Write((byte)effect.Capabilities);
 			if (effect.Properties.IsDefaultOrEmpty)
 			{
 				writer.Write((byte)0);

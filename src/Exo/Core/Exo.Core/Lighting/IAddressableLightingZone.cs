@@ -88,7 +88,7 @@ public interface IProgrammableAddressableLightingZone<TColor> : IProgrammableAdd
 	/// </para>
 	/// </remarks>
 	/// <param name="effect">The effect  to apply.</param>
-	void ApplyEffect(in IProgrammableLightingEffect<TColor> effect);
+	void ApplyEffect(IProgrammableLightingEffect<TColor> effect);
 }
 
 public interface IDynamicAddressableLightingZone : IAddressableLightingZone

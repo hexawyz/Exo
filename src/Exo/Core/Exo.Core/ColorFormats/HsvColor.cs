@@ -25,7 +25,7 @@ namespace Exo.ColorFormats;
 /// </remarks>
 [DebuggerDisplay("H = {H}, S = {S}, V = {V}")]
 [StructLayout(LayoutKind.Sequential, Size = 4)]
-public struct HsvColor : IEquatable<HsvColor>
+public struct HsvColor : IColor, IEquatable<HsvColor>
 {
 	public ushort H;
 	public byte S;

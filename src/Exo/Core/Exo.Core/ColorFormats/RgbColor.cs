@@ -13,7 +13,7 @@ namespace Exo.ColorFormats;
 [DebuggerDisplay("R = {R}, G = {G}, B = {B}")]
 [StructLayout(LayoutKind.Sequential, Size = 3)]
 [JsonConverter(typeof(JsonConverter))]
-public struct RgbColor : IEquatable<RgbColor>, IParsable<RgbColor>
+public struct RgbColor : IColor, IEquatable<RgbColor>, IParsable<RgbColor>
 {
 	public sealed class JsonConverter : JsonConverter<RgbColor>
 	{

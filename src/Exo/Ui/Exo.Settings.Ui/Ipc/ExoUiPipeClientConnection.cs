@@ -505,6 +505,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IService
 	{
 		var reader = new BufferReader(data);
 		var effectId = reader.ReadGuid();
+		var capabilities = (EffectCapabilities)reader.ReadByte();
 		uint propertyCount = reader.ReadVariableUInt32();
 		ConfigurablePropertyInformation[] properties;
 		if (propertyCount == 0)
@@ -582,6 +583,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IService
 		var effect = new LightingEffectInformation()
 		{
 			EffectId = effectId,
+			Capabilities = capabilities,
 			Properties = ImmutableCollectionsMarshal.AsImmutableArray(properties),
 		};
 		_dispatcherQueue.TryEnqueue(() => _serviceClient.OnLightingEffectUpdate(effect));

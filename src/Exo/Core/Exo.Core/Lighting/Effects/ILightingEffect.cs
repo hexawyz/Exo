@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Exo.ColorFormats;
 
 namespace Exo.Lighting.Effects;
 
@@ -18,6 +18,8 @@ public interface ILightingEffect
 	static virtual LightingEffectInformation GetEffectMetadata() => throw new NotImplementedException();
 }
 
+// Effect infrastructure support.
+[EditorBrowsable(EditorBrowsableState.Never)]
 public interface ILightingEffect<TSelf> : ILightingEffect, ISerializer<TSelf>
 	where TSelf : struct, ILightingEffect<TSelf>
 {
@@ -32,9 +34,32 @@ public interface ISingletonLightingEffect : ILightingEffect
 	static abstract ISingletonLightingEffect SharedInstance { get; }
 }
 
+// TODO: Dynamic effect API.
+/// <summary>Represents a lighting effect that supports addressable lighting zones.</summary>
+/// <remarks>
+/// <para>
+/// Addressable effects are either programmed or dynamic and must provide at least one of those implementations.
+/// </para>
+/// <para>
+/// Programmed effects can always be automatically interpreted as dynamic effects, but the opposite is not true.
+/// However, some effects will benefit from providing both implementations as their dynamic implementation will be cheaper.
+/// </para>
+/// </remarks>
+public interface IAddressableLightingEffect : ILightingEffect
+{
+	/// <summary>Indicates if frames generated for a large size can be used for any smaller size.</summary>
+	/// <remarks>
+	/// <para>
+	/// The rendering of many effects will be relatively independent of the frame size.
+	/// In that case, the same set of frames could be reused for multiple zones, avoiding unnecessary allocations.
+	/// </para>
+	/// </remarks>
+	static abstract bool CanUseLargerFramesForSmallerSizes { get; }
+}
+
 /// <summary>Represents a lighting effect that can be used for addressable lighting.</summary>
 /// <typeparam name="TColor">The type of color items supported by the lighting effect.</typeparam>
-public interface IProgrammableLightingEffect<TColor> : ILightingEffect
+public interface IProgrammableLightingEffect<TColor> : IAddressableLightingEffect
 	where TColor : unmanaged
 {
 	/// <summary>Gets the frames that can be used to configure the effect on a device.</summary>

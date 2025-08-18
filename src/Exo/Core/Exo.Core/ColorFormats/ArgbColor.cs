@@ -6,7 +6,7 @@ namespace Exo.ColorFormats;
 
 [DebuggerDisplay("A = {A}, R = {R}, G = {G}, B = {B}")]
 [StructLayout(LayoutKind.Sequential, Size = 3)]
-public struct ArgbColor : IEquatable<ArgbColor>
+public struct ArgbColor : IColor, IEquatable<ArgbColor>
 {
 	public byte A;
 	public byte R;

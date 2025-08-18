@@ -5,7 +5,7 @@ namespace Exo.ColorFormats;
 
 [DebuggerDisplay("R = {R}, G = {G}, B = {B}, W = {W}")]
 [StructLayout(LayoutKind.Sequential, Size = 4)]
-public struct RgbwColor : IEquatable<RgbwColor>
+public struct RgbwColor : IColor, IEquatable<RgbwColor>
 {
 	public byte W;
 	public byte R;

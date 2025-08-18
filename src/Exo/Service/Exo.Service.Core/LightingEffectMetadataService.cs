@@ -29,7 +29,7 @@ internal sealed class LightingEffectMetadataService : IChangeSource<LightingEffe
 				continue;
 			}
 			var effectInformation = result.Value;
-			effectMetadataCache.TryAdd(effectId, new() { EffectId = effectId, Properties = effectInformation.Properties });
+			effectMetadataCache.TryAdd(effectId, new() { EffectId = effectId, Capabilities = effectInformation.Capabilities, Properties = effectInformation.Properties });
 		}
 
 		return new(logger, lightingEffectConfigurationContainer, effectMetadataCache);
@@ -131,7 +131,7 @@ internal sealed class LightingEffectMetadataService : IChangeSource<LightingEffe
 		=> _lightingEffectConfigurationContainer.WriteValueAsync
 		(
 			info.EffectId,
-			new PersistedLightingEffectInformation() { Properties = info.Properties },
+			new PersistedLightingEffectInformation() { Capabilities = info.Capabilities, Properties = info.Properties },
 			SourceGenerationContext.Default.PersistedLightingEffectInformation,
 			cancellationToken
 		);

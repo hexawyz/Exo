@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Exo.MonitorDatabaseCompiler": {
+      "commandName": "Project",
+      "commandLineArgs": "\"Definitions\" \"obj\\Debug\\net9.0\\Definitions.xoa\"",
+      "workingDirectory": "..\\Exo.Devices.Monitors"
+    }
+  }
+}

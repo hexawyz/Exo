@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Immutable;
-using System.Data;
 using System.Globalization;
 using System.Text;
 using Exo.Lighting;
@@ -26,10 +25,12 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		new("ESG0008", "Invalid array default value", "The member {1} of type {0} has an invalid number of default values.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
 		new("ESG0009", "Invalid minimum value", "The member {1} of type {0} has an invalid value specified for its minimum value.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
 		new("ESG0010", "Invalid maximum value", "The member {1} of type {0} has an invalid value specified for its maximum value.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
+		new("ESG0011", "Unsupported color configuration", "The type {0} has more than one programmable color, which is unsupported yet.", "EffectSerializationGenerator", DiagnosticSeverity.Error, true),
 	];
 
 	private const string LightingEffectsNamespace = "Exo.Lighting.Effects";
 	private const string EffectInterfaceTypeName = "ILightingEffect";
+	private const string ProgrammableEffectInterfaceTypeName = "IProgrammableLightingEffect";
 	private const string ConvertibleEffectInterfaceTypeName = "IConvertibleLightingEffect";
 
 	private static bool IsTypeId(SimpleNameSyntax nameSyntax) => nameSyntax.Identifier.Text == "TypeId" || nameSyntax.Identifier.Text == "TypeIdAttribute";
@@ -108,10 +109,22 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 
 		foreach (var effect in effects)
 		{
-			sb.Append("\t\t")
-				.Append("EffectSerializer.RegisterEffect<global::")
-				.Append(effect.FullName)
-				.AppendLine(">();");
+			if (effect.IsProgrammable)
+			{
+				sb.Append("\t\t")
+					.Append("EffectSerializer.RegisterProgrammableEffect<global::")
+					.Append(effect.FullName)
+					.Append(", global::")
+					.Append(effect.ProgrammableColors[0])
+					.AppendLine(">();");
+			}
+			else
+			{
+				sb.Append("\t\t")
+					.Append("EffectSerializer.RegisterEffect<global::")
+					.Append(effect.FullName)
+					.AppendLine(">();");
+			}
 		}
 
 		foreach (var effect in effects)
@@ -162,6 +175,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		sb.AppendLine("\t\t\treturn new()")
 			.AppendLine("\t\t\t{")
 			.AppendLine("\t\t\t\tEffectId = new Guid(TypeIdGuidBytes),")
+			.Append("\t\t\t\tCapabilities = ").Append(effect.IsProgrammable ? "EffectCapabilities.Programmable" : "EffectCapabilities.None").AppendLine(",")
 			.AppendLine("\t\t\t\tProperties =")
 			.AppendLine("\t\t\t\t[");
 		foreach (var member in effect.Members)
@@ -1028,13 +1042,35 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			);
 		}
 
+		bool isProgrammable = false;
+
 		var effectConversions = new List<string>();
+		var programmableColors = new List<string>();
 		foreach (var interfaceType in effectType.AllInterfaces)
 		{
-			if (interfaceType.Name == ConvertibleEffectInterfaceTypeName && interfaceType.ContainingNamespace.ToDisplayString() == LightingEffectsNamespace)
+			// For now, we are only interested in interfaces that are generic, so we can quickly avoid all non-generic interfaces.
+			if (!interfaceType.IsGenericType) continue;
+
+			if (interfaceType.Name == ConvertibleEffectInterfaceTypeName)
 			{
-				effectConversions.Add(interfaceType.TypeArguments[0].ToDisplayString());
+				if (interfaceType.ContainingNamespace.ToDisplayString() == LightingEffectsNamespace)
+				{
+					effectConversions.Add(interfaceType.TypeArguments[0].ToDisplayString());
+				}
 			}
+			else if (interfaceType.Name == ProgrammableEffectInterfaceTypeName)
+			{
+				if (interfaceType.ContainingNamespace.ToDisplayString() == LightingEffectsNamespace)
+				{
+					programmableColors.Add(interfaceType.TypeArguments[0].ToDisplayString());
+					isProgrammable = true;
+				}
+			}
+		}
+
+		if (programmableColors.Count > 1)
+		{
+			problems.Add(new(ProblemKind.MoreThanOneColorType, ""));
 		}
 
 		// Empty structs would still have a minimum size of 1, so we'd better resort to implementing an empty serializer for them in all cases.
@@ -1043,7 +1079,19 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			isEligibleForSerializationBypass = false;
 		}
 
-		return new(typeId, effectType.ContainingNamespace.ToDisplayString(), effectType.Name, effectType.ToDisplayString(), !isEligibleForSerializationBypass, new([.. members]), new([.. effectConversions]), new([.. problems]));
+		return new
+		(
+			typeId,
+			effectType.ContainingNamespace.ToDisplayString(),
+			effectType.Name,
+			effectType.ToDisplayString(),
+			!isEligibleForSerializationBypass,
+			isProgrammable,
+			new([.. members]),
+			new([.. programmableColors]),
+			new([.. effectConversions]),
+			new([.. problems])
+		);
 	}
 
 	private static object? ParseValue(ISymbol member, LightingDataType? dataType, int minimumElementCount, int maximumElementCount, object value, List<ProblemInfo> problems, ValueKind kind)
@@ -1260,6 +1308,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		InvalidArrayDefaultValue = 8,
 		InvalidMinimumValue = 9,
 		InvalidMaximumValue = 10,
+		MoreThanOneColorType = 11,
 	}
 
 	private enum ValueKind
@@ -1290,7 +1339,9 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			string typeName,
 			string fullName,
 			bool requiresExplicitSerialization,
+			bool isProgrammable,
 			EquatableReadOnlyList<SerializedMemberInfo> members,
+			EquatableReadOnlyList<string> programmableColors,
 			EquatableReadOnlyList<string> effectConversions,
 			EquatableReadOnlyList<ProblemInfo> problems
 		)
@@ -1300,6 +1351,8 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 			TypeName = typeName;
 			FullName = fullName;
 			RequiresExplicitSerialization = requiresExplicitSerialization;
+			ProgrammableColors = programmableColors;
+			IsProgrammable = isProgrammable;
 			Members = members;
 			EffectConversions = effectConversions;
 			Problems = problems;
@@ -1310,7 +1363,9 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 		public string TypeName { get; }
 		public string FullName { get; }
 		public bool RequiresExplicitSerialization { get; }
+		public bool IsProgrammable { get; }
 		public EquatableReadOnlyList<SerializedMemberInfo> Members { get; }
+		public EquatableReadOnlyList<string> ProgrammableColors { get; }
 		public EquatableReadOnlyList<string> EffectConversions { get; }
 		public EquatableReadOnlyList<ProblemInfo> Problems { get; }
 	}
