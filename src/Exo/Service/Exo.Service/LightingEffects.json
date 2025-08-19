@@ -189,6 +189,11 @@
 		"nameStringId": "c1dc1388-3864-4db9-bffb-40bc78b34442",
 		"displayOrder": 83
 	},
+	// Exo.Lighting.Effects.ReversibleVariableMultiColorWaveEffect
+	"fa123622-8b93-4862-a124-96b6adf08489": {
+		"nameStringId": "61e232a0-8b43-45eb-9eee-fb9b8e9ce668",
+		"displayOrder": 84
+	},
 	// Exo.Lighting.Effects.SpectrumCycleEffect
 	"2818d561-15fb-43b0-9c2e-9ff508822b7a": {
 		"nameStringId": "5ba5b8c5-3fd9-40c5-830a-68f775a9f27b",
