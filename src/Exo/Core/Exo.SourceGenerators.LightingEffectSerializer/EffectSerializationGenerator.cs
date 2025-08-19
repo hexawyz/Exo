@@ -536,7 +536,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 						sb.Append("reader.ReadGuid()");
 						break;
 					case LightingDataType.EffectDirection1D:
-						sb.Append("(global::Exo.Lighting.Effects.EffectDirection1D)reader.ReadByte()");
+						sb.Append("(global::Exo.Lighting.EffectDirection1D)reader.ReadByte()");
 						break;
 					case LightingDataType.ColorGrayscale8:
 						sb.Append(typeCast).Append("reader.ReadByte()");
@@ -619,7 +619,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 				LightingDataType.TimeSpan => "global::System.TimeSpan",
 				LightingDataType.DateTime => "global::System.DateTime",
 				LightingDataType.String => "global::System.String",
-				LightingDataType.EffectDirection1D => "global::Exo.Lighting.Effects.EffectDirection1D",
+				LightingDataType.EffectDirection1D => "global::Exo.Lighting.EffectDirection1D",
 				LightingDataType.ColorRgb24 => "global::Exo.ColorFormats.RgbColor",
 				LightingDataType.ColorRgbw32 => "global::Exo.ColorFormats.RgbwColor",
 				LightingDataType.ColorArgb32 => "global::Exo.ColorFormats.ArgbColor",
@@ -1241,7 +1241,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 
 	private bool IsBuiltInEnumType(INamedTypeSymbol memberType)
 	{
-		if (memberType.ContainingNamespace.ToDisplayString() == "Exo.Lighting.Effects")
+		if (memberType.ContainingNamespace.ToDisplayString() == "Exo.Lighting")
 		{
 			if (memberType.MetadataName == "EffectDirection1D") return true;
 		}
@@ -1284,7 +1284,7 @@ public class EffectSerializationGenerator : IIncrementalGenerator
 				_ => LightingDataType.Other,
 			};
 		}
-		else if (memberType.ContainingNamespace.ToDisplayString() == "Exo.Lighting.Effects")
+		else if (memberType.ContainingNamespace.ToDisplayString() == "Exo.Lighting")
 		{
 			return memberType.MetadataName switch
 			{
