@@ -19,6 +19,8 @@ internal sealed partial class LightingEffectViewModel : IOrderable
 
 	public Guid EffectId => _effectInformation.EffectId;
 
+	public EffectCapabilities Capabilities => _effectInformation.Capabilities;
+
 	public string DisplayName => _displayName;
 
 	public uint DisplayOrder => _displayOrder;

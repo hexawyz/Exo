@@ -78,10 +78,20 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 		_resetCommand = new(this);
 		Id = lightingZoneInformation.ZoneId;
 		_supportedEffects = new();
+		var supportedEffectIds = new HashSet<Guid>();
 		foreach (var effectId in ImmutableCollectionsMarshal.AsArray(lightingZoneInformation.SupportedEffectTypeIds)!)
 		{
+			if (!supportedEffectIds.Add(effectId)) continue;
 			var effect = _lightingViewModel.GetEffect(effectId);
 			_supportedEffects.Insert(IOrderable.FindInsertPosition(_supportedEffects, effect.DisplayOrder), effect);
+		}
+		if ((lightingZoneInformation.Capabilities & LightingZoneCapabilities.Programmable) != 0)
+		{
+			foreach (var effect in lightingViewModel.GetProgrammableEffects())
+			{
+				if (!supportedEffectIds.Add(effect.EffectId)) continue;
+				_supportedEffects.Insert(IOrderable.FindInsertPosition(_supportedEffects, effect.DisplayOrder), effect);
+			}
 		}
 		_readOnlySupportedEffects = new(_supportedEffects);
 		Name = displayName;
@@ -96,7 +106,7 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 		bool shouldResetCurrentEffect = false;
 		// Similar logic to the one used for lighting zones. We do the diff while making sure to remove and insert in the proper spots.
 		var effectByIndex = new Dictionary<Guid, int>();
-		var newEffectIds = new List<Guid>();
+		var newEffects = new List<LightingEffectViewModel>();
 		for (int i = 0; i < _supportedEffects.Count; i++)
 		{
 			effectByIndex.Add(_supportedEffects[i].EffectId, i);
@@ -104,7 +114,15 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 
 		foreach (var effectId in information.SupportedEffectTypeIds)
 		{
-			if (!effectByIndex.Remove(effectId)) newEffectIds.Add(effectId);
+			if (!effectByIndex.Remove(effectId)) newEffects.Add(_lightingViewModel.GetEffect(effectId));
+		}
+
+		if ((information.Capabilities & LightingZoneCapabilities.Programmable) != 0)
+		{
+			foreach (var effect in _lightingViewModel.GetProgrammableEffects())
+			{
+				if (!effectByIndex.Remove(effect.EffectId)) newEffects.Add(effect);
+			}
 		}
 
 		if (effectByIndex.Count > 0)
@@ -121,9 +139,8 @@ internal sealed partial class LightingZoneViewModel : ChangeableBindableObject, 
 			}
 		}
 
-		foreach (var effectId in newEffectIds)
+		foreach (var effect in newEffects)
 		{
-			var effect = _lightingViewModel.GetEffect(effectId);
 			_supportedEffects.Insert(IOrderable.FindInsertPosition(_supportedEffects, effect.DisplayOrder), effect);
 		}
 

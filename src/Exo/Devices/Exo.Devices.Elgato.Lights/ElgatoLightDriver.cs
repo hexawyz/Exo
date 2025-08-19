@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Collections.Immutable;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -11,7 +10,6 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Exo.ColorFormats;
-using Exo.Devices.Elgato.Lights.Effects;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.Features.Lighting;
@@ -666,50 +664,9 @@ internal sealed class ElgatoLedStripProDriver :
 	ElgatoLightDriver<ElgatoLedStripProLight, ElgatoLedStripProLightUpdate, ElgatoLedStripProDriver.LedStripProLightState>,
 	IDeviceDriver<ILightingDeviceFeature>
 {
+	private const string ExoEffectId = "com.exo.effect";
 	// From the Elgato docs.
 	private const int MaximumFrameCount = 900;
-
-	private static ReadOnlySpan<ushort> StandardFrameDelays => [300, 200, 100, 50, 25, 10];
-
-	// These are the same colors used by the Elgato software. (ScenesCommon.RAINBOW_COLORS)
-	// Honestly, they are not that good. Keeping them here in case they can be useful.
-	private static ReadOnlySpan<byte> ElgatoRainbowColorBytes =>
-	[
-		255, 0, 0, // red
-		255, 165, 0, // orange
-		255, 255, 0, // yellow
-		0, 128, 0, // green
-		0, 0, 255, // blue
-		75, 0, 130, // indigo
-		238, 130, 238  // violet
-	];
-
-	// These rainbow colors are the one from RGB Fusion. They do look better, so we'll use them for now.
-	private static ReadOnlySpan<byte> GigabyteRainbowColorBytes =>
-	[
-		255, 0, 0,
-		255, 127, 0,
-		255, 255, 0,
-		0, 255, 0,
-		0, 0, 255,
-		75, 0, 130,
-		148, 0, 211,
-	];
-
-	// More standard rainbow colors. (Ignoring any gamma curve. No idea how LEDs are calibrated anyway)
-	private static ReadOnlySpan<byte> RainbowColorBytes =>
-	[
-		255, 0, 0,
-		255, 128, 0,
-		255, 255, 0,
-		0, 255, 0,
-		0, 0, 255,
-		128, 0, 255,
-		255, 0, 255,
-	];
-
-	private static ReadOnlySpan<RgbColor> RainbowColors => MemoryMarshal.Cast<byte, RgbColor>(RainbowColorBytes);
-
 	private readonly IDeviceFeatureSet<ILightingDeviceFeature> _lightingFeatures;
 	private readonly ushort _ledCount;
 
@@ -749,25 +706,30 @@ internal sealed class ElgatoLedStripProDriver :
 		return lightStates;
 	}
 
-	// Parses the current effect into one of ours if possible.
-	private static ILightingEffect ParseEffect(string effectId, JsonObject? metaData)
+	private static ILightingEffect ParseEffect(ExoEffectMetaData metaData)
 	{
-		if (effectId == "com.exo.effect")
+		if (metaData.EffectId != default)
 		{
-			ExoEffectMetaData exoEffectMetaData;
 			try
 			{
-				exoEffectMetaData = JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.ExoEffectMetaData);
+				var effect = EffectSerializer.UnsafeDeserialize(metaData.EffectId, metaData.EffectData);
+				if (effect is not null) return effect;
 			}
 			catch
 			{
 				// TODO: Log ?
-				goto EffectNotRecognized;
 			}
+		}
+		return NotApplicableEffect.SharedInstance;
+	}
+
+	private static ExoEffectMetaData ParseEffectMetadata(string effectId, JsonObject? metaData)
+	{
+		if (effectId == ExoEffectId)
+		{
 			try
 			{
-				var effect = EffectSerializer.UnsafeDeserialize(exoEffectMetaData.EffectId, exoEffectMetaData.EffectData);
-				if (effect is not null) return effect;
+				return JsonSerializer.Deserialize(metaData, SourceGenerationContext.Default.ExoEffectMetaData);
 			}
 			catch
 			{
@@ -776,7 +738,7 @@ internal sealed class ElgatoLedStripProDriver :
 			}
 		}
 	EffectNotRecognized:;
-		return NotApplicableEffect.SharedInstance;
+		return new ExoEffectMetaData() { EffectId = default, EffectData = [] };
 	}
 
 	private static ExoEffectMetaData SerializeEffect(ILightingEffect effect)
@@ -797,171 +759,23 @@ internal sealed class ElgatoLedStripProDriver :
 		case StaticColorEffect staticColorEffect:
 			var hsv = HsvColor.FromRgb(staticColorEffect.Color);
 			return new() { On = 1, Brightness = HsvColor.GetStandardValueByte(hsv.V), Hue = HsvColor.GetStandardHueUInt16(hsv.H), Saturation = HsvColor.GetStandardSaturationByte(hsv.S) };
-		case ReversibleVariableColorWaveEffect colorWaveEffect:
+		case IProgrammableLightingEffect<RgbColor> programmableEffect:
 			return new()
 			{
 				On = 1,
 				Brightness = brightness,
-				Id = "com.exo.effect",
-				Name = "Color Wave",
-				SceneSet = GenerateSlidingSceneFrames([colorWaveEffect.Color, default, default, default], colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, 10),
-				MetaData = SerializeEffect(colorWaveEffect),
-			};
-		case ReversibleVariableMultiColorWaveEffect colorWaveEffect:
-			return new()
-			{
-				On = 1,
-				Brightness = brightness,
-				Id = "com.exo.effect",
-				Name = "Multicolor Wave",
-				SceneSet = colorWaveEffect.Interpolate ?
-					GenerateInterpolatedSlidingSceneFrames(colorWaveEffect.Colors, colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, colorWaveEffect.Size) :
-					GenerateSlidingSceneFrames(colorWaveEffect.Colors, colorWaveEffect.Speed, colorWaveEffect.Direction, ledCount, colorWaveEffect.Size),
-				MetaData = SerializeEffect(colorWaveEffect),
-			};
-		case ReversibleVariableSpectrumWaveEffect spectrumWaveEffect:
-			return new()
-			{
-				On = 1,
-				Brightness = brightness,
-				Id = "com.exo.effect",
-				Name = "Spectrum Wave",
-				SceneSet = GenerateSpectrumWaveSceneFrames(spectrumWaveEffect.Speed, spectrumWaveEffect.Direction, ledCount, 10),
-				MetaData = SerializeEffect(spectrumWaveEffect),
+				Id = ExoEffectId,
+				Name = "Exo Effect",
+				SceneSet = Array.ConvertAll
+				(
+					ImmutableCollectionsMarshal.AsArray(programmableEffect.GetEffectFrames(ledCount, MaximumFrameCount))!,
+					x => new ElgatoLedStripFrame(x)
+				),
+				MetaData = SerializeEffect(programmableEffect),
 			};
 		default:
 			throw new InvalidOperationException($"Effects of type {effect.GetType()} are not supported.");
 		}
-	}
-
-	private static ElgatoLedStripFrame[] GenerateSpectrumWaveSceneFrames(PredeterminedEffectSpeed speed, EffectDirection1D direction, int ledCount, int size)
-		=> GenerateInterpolatedSlidingSceneFrames(RainbowColors, speed, direction, ledCount, size);
-
-	private static ElgatoLedStripFrame[] GenerateSlidingSceneFrames(ReadOnlySpan<RgbColor> colorSequence, PredeterminedEffectSpeed speed, EffectDirection1D direction, int ledCount, int size)
-	{
-		int frameCount = size * colorSequence.Length;
-		if (frameCount > MaximumFrameCount) throw new InvalidOperationException("Cannot generate the requested effect because of the frame limit.");
-		ushort delay = StandardFrameDelays[(byte)speed];
-		var frames = new ElgatoLedStripFrame[frameCount];
-		int startingColorIndex = 0;
-		int startingDuplicateIndex = 0;
-		for (int i = 0; i < frames.Length; i++)
-		{
-			var buffer = GC.AllocateUninitializedArray<byte>(ledCount * 3);
-			var colors = MemoryMarshal.Cast<byte, RgbColor>(buffer);
-			int colorIndex = startingColorIndex;
-			int duplicateIndex = startingDuplicateIndex;
-			for (int j = 0; j < colors.Length; j++)
-			{
-				colors[j] = colorSequence[colorIndex];
-				if (++duplicateIndex >= size)
-				{
-					duplicateIndex = 0;
-					if (++colorIndex >= colorSequence.Length) colorIndex = 0;
-				}
-
-			}
-			frames[i] = new() { RgbRaw = buffer, Duration = delay };
-			if (direction == EffectDirection1D.Forward)
-			{
-				if ((uint)--startingDuplicateIndex >= size)
-				{
-					startingDuplicateIndex = size - 1;
-					if ((uint)--startingColorIndex >= colorSequence.Length) startingColorIndex = colorSequence.Length - 1;
-				}
-			}
-			else
-			{
-				if (++startingDuplicateIndex >= size)
-				{
-					startingDuplicateIndex = 0;
-					if (++startingColorIndex >= colorSequence.Length) startingColorIndex = 0;
-				}
-			}
-		}
-		return frames;
-	}
-
-	private static ElgatoLedStripFrame[] GenerateInterpolatedSlidingSceneFrames(ReadOnlySpan<RgbColor> colorSequence, PredeterminedEffectSpeed speed, EffectDirection1D direction, int ledCount, int size)
-	{
-		ArgumentOutOfRangeException.ThrowIfLessThan(size, 1);
-
-		if (colorSequence.Length < 2) return GenerateSlidingSceneFrames(colorSequence, speed, direction, ledCount, size);
-		if (size < 2) return GenerateSlidingSceneFrames(colorSequence, speed, direction, ledCount);
-
-		var colors = new RgbColor[colorSequence.Length * size];
-		int k = 0;
-		for (int i = 0; i < colorSequence.Length; i++)
-		{
-			var a = colorSequence[i];
-			int j = i + 1;
-			if (j >= colorSequence.Length) j = 0;
-			var b = colorSequence[j];
-			for (j = 0; j < size; j++)
-			{
-				colors[k++] = RgbColor.Lerp(a, b, (byte)(255 * j / (uint)size));
-			}
-		}
-		return GenerateSlidingSceneFrames(colors, speed, direction, ledCount);
-	}
-
-	private static ElgatoLedStripFrame[] GenerateSlidingSceneFrames(ReadOnlySpan<RgbColor> colorSequence, PredeterminedEffectSpeed speed, EffectDirection1D direction, int ledCount)
-	{
-		ArgumentOutOfRangeException.ThrowIfLessThan(ledCount, 1);
-
-		int frameCount = colorSequence.Length;
-		if (frameCount > MaximumFrameCount) throw new InvalidOperationException("Cannot generate the requested effect because of the frame limit.");
-		ushort delay = StandardFrameDelays[(byte)speed];
-		var frames = new ElgatoLedStripFrame[frameCount];
-		uint bufferLength = (uint)ledCount * 3;
-		var lastBuffer = GC.AllocateUninitializedArray<byte>((int)bufferLength);
-		var colors = MemoryMarshal.Cast<byte, RgbColor>(lastBuffer);
-		int rowOffset = colorSequence.Length > 1 ? colorSequence.Length - 1 : 0;
-		for (int i = 0; ;)
-		{
-			int count = colors.Length - i;
-			if (colorSequence.Length > count)
-			{
-				colorSequence[..count].CopyTo(colors[i..]);
-				if (direction != EffectDirection1D.Forward) rowOffset = count;
-				break;
-			}
-			else
-			{
-				colorSequence.CopyTo(colors[i..]);
-				if ((i += colorSequence.Length) >= colors.Length) break;
-			}
-		}
-		frames[0] = new() { RgbRaw = lastBuffer, Duration = delay };
-		for (int i = 1; i < frames.Length; i++)
-		{
-			var buffer = new byte[ledCount * 3];
-			if (direction == EffectDirection1D.Forward)
-			{
-				lastBuffer.AsSpan(0, lastBuffer.Length - 3).CopyTo(buffer.AsSpan(3));
-				Unsafe.As<byte, RgbColor>(ref buffer[0]) = colorSequence[rowOffset];
-				if ((uint)--rowOffset >= colorSequence.Length) rowOffset = colorSequence.Length - 1;
-			}
-			else
-			{
-				lastBuffer.AsSpan(3).CopyTo(buffer);
-				Unsafe.As<byte, RgbColor>(ref buffer[^3]) = colorSequence[rowOffset];
-				if (++rowOffset >= colorSequence.Length) rowOffset = 0;
-			}
-			frames[i] = new() { RgbRaw = buffer, Duration = delay };
-			lastBuffer = buffer;
-		}
-		return frames;
-	}
-
-	private static bool SequenceEquals(in FixedList10<RgbColor> a, in FixedList10<RgbColor> b)
-	{
-		if (a.Count != b.Count) return false;
-		for (int i = 0; i < a.Count; i++)
-		{
-			if (a[i] != b[i]) return false;
-		}
-		return true;
 	}
 
 	internal sealed class LedStripProLightState :
@@ -976,9 +790,7 @@ internal sealed class ElgatoLedStripProDriver :
 		ILightingDynamicEffectChanges,
 		ILightingZoneEffect<DisabledEffect>,
 		ILightingZoneEffect<StaticColorEffect>,
-		ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>,
-		ILightingZoneEffect<ReversibleVariableColorWaveEffect>,
-		ILightingZoneEffect<ReversibleVariableMultiColorWaveEffect>
+		IProgrammableAddressableLightingZone<RgbColor>
 	{
 		// Values are scaled up in the same ways as in HsvColor in order to preserve an accurate representation of colors and direct compatibility with HsvColor.
 		private ushort _hue;
@@ -986,6 +798,7 @@ internal sealed class ElgatoLedStripProDriver :
 		private byte _saturation;
 		private string? _effectId;
 		private ILightingEffect _effect;
+		private ExoEffectMetaData _effectMetaData;
 		private event EffectChangeHandler? EffectChanged;
 		private event BrightnessChangeHandler? BrightnessChanged;
 
@@ -1065,17 +878,17 @@ internal sealed class ElgatoLedStripProDriver :
 				isEffectChanged = true;
 				if (light.Id is not null)
 				{
-					_effect = ParseEffect(light.Id, light.MetaData);
+					_effect = ParseEffect(_effectMetaData = ParseEffectMetadata(light.Id, light.MetaData));
 					goto NotifyChanges;
 				}
 			}
 			else if (light.Id is not null)
 			{
-				var newEffect = ParseEffect(light.Id, light.MetaData);
-				// TODO: Implement equality comparison for effects. For now the code below will not work as expected.
-				if (newEffect != _effect)
+				var metaData = ParseEffectMetadata(light.Id, light.MetaData);
+				if (metaData != _effectMetaData)
 				{
-					_effect = newEffect;
+					_effectMetaData = metaData;
+					_effect = ParseEffect(metaData);
 					goto NotifyChanges;
 				}
 				else if (isBrightnessChanged)
@@ -1187,6 +1000,9 @@ internal sealed class ElgatoLedStripProDriver :
 		private void NotifyEffectChanged(ILightingZone zone, ILightingEffect effect)
 			=> EffectChanged?.Invoke(Driver, zone, effect);
 
+		// TODO: Refactor the ApplyEffect logic to better handle the metadata updates.
+		// We shouldn't regenerate effect metadata twice, which currently is the case.
+		// Since there are only a handful of scenarios, we should probably get rid of GenerateEffectUpdate.
 		private void ApplyEffect(ILightingEffect effect)
 			=> Driver.SendUpdateAsync(Index, GenerateEffectUpdate(_effect = effect, Driver._ledCount, HsvColor.GetStandardValueByte(_brightness)), default).GetAwaiter().GetResult();
 
@@ -1209,54 +1025,33 @@ internal sealed class ElgatoLedStripProDriver :
 				if (!IsOn) Switch(true);
 				return;
 			}
+			_effectMetaData = default;
 			ApplyEffect(effect);
 		}
 
-		void ILightingZoneEffect<ReversibleVariableColorWaveEffect>.ApplyEffect(in ReversibleVariableColorWaveEffect effect)
+		void IProgrammableAddressableLightingZone<RgbColor>.ApplyEffect(IProgrammableLightingEffect<RgbColor> effect)
 		{
-			if (_effect is ReversibleVariableColorWaveEffect oldEffect &&
-				oldEffect.Color == effect.Color &&
-				oldEffect.Speed == effect.Speed &&
-				oldEffect.Direction == effect.Direction)
+			if (ReferenceEquals(_effect, effect)) return;
+			if (effect.GetType() != _effect.GetType())
 			{
-				if (!IsOn) Switch(true);
-				return;
-			}
-			ApplyEffect(effect);
-		}
+				var effectMetaData = SerializeEffect(effect);
 
-		void ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.ApplyEffect(in ReversibleVariableSpectrumWaveEffect effect)
-		{
-			if (_effect is ReversibleVariableSpectrumWaveEffect oldEffect &&
-				oldEffect.Speed == effect.Speed &&
-				oldEffect.Direction == effect.Direction)
-			{
-				if (!IsOn) Switch(true);
-				return;
+				if (effectMetaData != _effectMetaData)
+				{
+					_effectMetaData = effectMetaData;
+					_effect = effect;
+					ApplyEffect(effect);
+				}
 			}
-			ApplyEffect(effect);
-		}
-
-		void ILightingZoneEffect<ReversibleVariableMultiColorWaveEffect>.ApplyEffect(in ReversibleVariableMultiColorWaveEffect effect)
-		{
-			if (_effect is ReversibleVariableMultiColorWaveEffect oldEffect &&
-				SequenceEquals(oldEffect.Colors, effect.Colors) &&
-				oldEffect.Speed == effect.Speed &&
-				oldEffect.Direction == effect.Direction &&
-				oldEffect.Size == effect.Size &&
-				oldEffect.Interpolate == effect.Interpolate)
-			{
-				if (!IsOn) Switch(true);
-				return;
-			}
-			ApplyEffect(effect);
 		}
 
 		bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => _effect.TryGetEffect(out effect);
 		bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => _effect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<ReversibleVariableSpectrumWaveEffect>.TryGetCurrentEffect(out ReversibleVariableSpectrumWaveEffect effect) => _effect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<ReversibleVariableColorWaveEffect>.TryGetCurrentEffect(out ReversibleVariableColorWaveEffect effect) => _effect.TryGetEffect(out effect);
-		bool ILightingZoneEffect<ReversibleVariableMultiColorWaveEffect>.TryGetCurrentEffect(out ReversibleVariableMultiColorWaveEffect effect) => _effect.TryGetEffect(out effect);
+
+		int IProgrammableAddressableLightingZone.MaximumFrameCount => MaximumFrameCount;
+		int IAddressableLightingZone.AddressableLightCount => Driver._ledCount;
+		AddressableLightingZoneCapabilities IAddressableLightingZone.Capabilities => AddressableLightingZoneCapabilities.Programmable;
+		Type IAddressableLightingZone.ColorType => typeof(RgbColor);
 	}
 }
 
@@ -1400,21 +1195,59 @@ internal readonly struct ElgatoLedStripProLightUpdate
 	public ElgatoLedStripFrame[]? SceneSet { get; init; }
 }
 
+[JsonConverter(typeof(JsonConverter))]
 internal readonly struct ElgatoLedStripFrame
 {
-	public required byte[] RgbRaw { get; init; }
-	public required ushort Duration { get; init; }
+	private readonly LightingEffectFrame<RgbColor> _frame;
+
+	public ElgatoLedStripFrame(LightingEffectFrame<RgbColor> frame) => _frame = frame;
+
+	// TODO: Retry that in the future when JsonConverter is supported on properties.
+	//[JsonConverter(typeof(RgbColorReadOnlyMemoryConverter))]
+	public ReadOnlyMemory<RgbColor> RgbRaw => _frame.Colors;
+
+	public ushort Duration => _frame.Duration;
+
+	public sealed class JsonConverter : JsonConverter<ElgatoLedStripFrame>
+	{
+		public override ElgatoLedStripFrame Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+			=> throw new NotImplementedException();
+
+		public override void Write(Utf8JsonWriter writer, ElgatoLedStripFrame value, JsonSerializerOptions options)
+		{
+			writer.WriteStartObject();
+			writer.WriteBase64String("rgbRaw", MemoryMarshal.Cast<RgbColor, byte>(value.RgbRaw.Span));
+			writer.WriteNumber("duration", value.Duration);
+			writer.WriteEndObject();
+		}
+	}
 }
+
+//internal sealed class RgbColorReadOnlyMemoryConverter : JsonConverter<ReadOnlyMemory<RgbColor>>
+//{
+//	public override ReadOnlyMemory<RgbColor> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+//		=> throw new NotImplementedException();
+
+//	public override void Write(Utf8JsonWriter writer, ReadOnlyMemory<RgbColor> value, JsonSerializerOptions options)
+//		=> writer.WriteBase64StringValue(MemoryMarshal.Cast<RgbColor, byte>(value.Span));
+//}
 
 // This will be used as the internal format for effects.
 // In order to fully support dynamic effects, we can proceed in a few different ways.
 // Either we update the whole effect system to serialize to JsonObject and provide custom string IDs in order to have a more "compatible" implementation of effects.
 // Or we set all effects using the same ID and store the raw effect data as serialized bytes using the default effect serializer.
 // The second approach is less "native" regarding as to how the device is supposed to work, but it will be much easier to work with on our side.
-internal readonly struct ExoEffectMetaData
+internal readonly struct ExoEffectMetaData : IEquatable<ExoEffectMetaData>
 {
 	public required Guid EffectId { get; init; }
 	public required byte[] EffectData { get; init; }
+
+	public override bool Equals(object? obj) => obj is ExoEffectMetaData data && Equals(data);
+	public bool Equals(ExoEffectMetaData other) => EffectId.Equals(other.EffectId) && EffectData.AsSpan().SequenceEqual(other.EffectData);
+	public override int GetHashCode() => HashCode.Combine(EffectId, EffectData.Length);
+
+	public static bool operator ==(ExoEffectMetaData left, ExoEffectMetaData right) => left.Equals(right);
+	public static bool operator !=(ExoEffectMetaData left, ExoEffectMetaData right) => !(left == right);
 }
 
 [JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, NumberHandling = JsonNumberHandling.AllowReadingFromString)]

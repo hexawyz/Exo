@@ -102,6 +102,7 @@ partial class UiPipeServerConnection
 		static void WriteLightingZone(ref BufferWriter writer, LightingZoneInformation lightingZone)
 		{
 			writer.Write(lightingZone.ZoneId);
+			writer.Write((byte)lightingZone.Capabilities);
 			if (lightingZone.SupportedEffectTypeIds.IsDefaultOrEmpty)
 			{
 				writer.Write((byte)0);

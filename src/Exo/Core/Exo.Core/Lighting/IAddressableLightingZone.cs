@@ -15,7 +15,7 @@ namespace Exo.Lighting;
 /// It does, however, allows enabling addressable lighting on a lighting zone that could support other effects. (Including the <see cref="DisabledEffect" />)
 /// </para>
 /// </remarks>
-public interface IAddressableLightingZone : ILightingZone, ILightingZoneEffect<AddressableEffect>
+public interface IAddressableLightingZone : ILightingZone
 {
 	/// <summary>Determines the number of individually addressable lights in this zone.</summary>
 	/// <remarks>
@@ -24,7 +24,8 @@ public interface IAddressableLightingZone : ILightingZone, ILightingZoneEffect<A
 	/// </remarks>
 	int AddressableLightCount { get; }
 
-	/// <summary>Gets a value indicating whether the capabilities of the zone.</summary>
+	/// <summary>Gets a value indicating the capabilities of the zone.</summary>
+	/// <remarks></remarks>
 	AddressableLightingZoneCapabilities Capabilities { get; }
 
 	/// <summary>Gets the type of color elements supported by the zone.</summary>

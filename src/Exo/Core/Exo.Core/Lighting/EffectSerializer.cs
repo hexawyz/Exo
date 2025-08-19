@@ -140,6 +140,30 @@ public static class EffectSerializer
 		return false;
 	}
 
+	// Compares two lighting effects in a generic way.
+	// In the long run, we probably want to enforce lighting effects implementing IEquatable.
+	public static bool Equals(ILightingEffect a, ILightingEffect b)
+	{
+		if (ReferenceEquals(a, b)) return true;
+		if (a.GetType() != b.GetType()) return false;
+		bool hasSize;
+		if (a.TryGetSize(out uint aSize) != (hasSize = b.TryGetSize(out uint bSize)) || aSize != bSize) return false;
+		// We will allocate here. This is not ideal, but it will do for now.
+		if (!hasSize)
+		{
+			if (aSize == 0) aSize = 256;
+			if (bSize == 0) bSize = 256;
+		}
+		var bufferA = new byte[aSize];
+		var bufferB = new byte[bSize];
+		var writerA = new BufferWriter(bufferA);
+		var writerB = new BufferWriter(bufferB);
+		a.Serialize(ref writerA);
+		b.Serialize(ref writerB);
+		if (writerA.Length != writerB.Length) return false;
+		return bufferA.AsSpan(0, (int)writerA.Length).SequenceEqual(bufferB.AsSpan(0, (int)writerB.Length));
+	}
+
 	// NB: For now, LightingEffect is a class, which kinda negates separating the Guid from the rest of the data, as we still have to allocate an object.
 	// Once lighting stuff is migrated out of protobuf, we should be able to change this to be a struct.
 	// Having LightingEffect be a struct would make all singleton lighting effects totally free.

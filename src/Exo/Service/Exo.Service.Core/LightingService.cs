@@ -98,17 +98,19 @@ internal sealed partial class LightingService :
 	private sealed class LightingZoneState
 	{
 		public ILightingZone? LightingZone;
+		public LightingZoneCapabilities Capabilities;
 		public ImmutableArray<Guid> SupportedEffectTypeIds;
 		public LightingEffect? SerializedCurrentEffect;
 	}
 
-	private static readonly ConditionalWeakTable<Type, Tuple<Type[], Guid[]>> SupportedEffectCache = new();
+	private static readonly ConditionalWeakTable<Type, Tuple<LightingZoneCapabilities, Type[], Guid[]>> SupportedEffectCache = new();
 
-	private static Tuple<Type[], Guid[]> GetSupportedEffects(Type lightingZoneType)
-		=> SupportedEffectCache.GetValue(lightingZoneType, GetNonCachedSupportedEffects);
+	private static Tuple<LightingZoneCapabilities, Type[], Guid[]> GetCapabilitiesAndSupportedEffects(Type lightingZoneType)
+		=> SupportedEffectCache.GetValue(lightingZoneType, GetNonCachedCapabilitiesAndSupportedEffects);
 
-	private static Tuple<Type[], Guid[]> GetNonCachedSupportedEffects(Type lightingZoneType)
+	private static Tuple<LightingZoneCapabilities, Type[], Guid[]> GetNonCachedCapabilitiesAndSupportedEffects(Type lightingZoneType)
 	{
+		var capabilities = LightingZoneCapabilities.None;
 		var supportedEffectList = new List<Type>();
 		foreach (var interfaceType in lightingZoneType.GetInterfaces())
 		{
@@ -118,14 +120,26 @@ internal sealed partial class LightingService :
 				t = t.BaseType;
 			}
 
-			if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(ILightingZoneEffect<>))
+			if (t.IsGenericType)
 			{
-				supportedEffectList.Add(t.GetGenericArguments()[0]);
+				var gtd = t.GetGenericTypeDefinition();
+				if (gtd == typeof(ILightingZoneEffect<>))
+				{
+					supportedEffectList.Add(t.GetGenericArguments()[0]);
+				}
+				else if (gtd == typeof(IProgrammableAddressableLightingZone<>))
+				{
+					capabilities |= LightingZoneCapabilities.Programmable;
+				}
+				else if (gtd == typeof(IDynamicAddressableLightingZone<>))
+				{
+					capabilities |= LightingZoneCapabilities.Dynamic;
+				}
 			}
 		}
 
 		var supportedEffects = supportedEffectList.ToArray();
-		return Tuple.Create(supportedEffects, Array.ConvertAll(supportedEffects, TypeId.Get));
+		return Tuple.Create(capabilities, supportedEffects, Array.ConvertAll(supportedEffects, TypeId.Get));
 	}
 
 	private const string LightingConfigurationContainerName = "lit";
@@ -526,7 +540,7 @@ internal sealed partial class LightingService :
 	}
 
 	private static LightingZoneInformation CreateLightingZoneInformation(Guid zoneId, LightingZoneState zoneState)
-		=> new(zoneId, zoneState.SupportedEffectTypeIds);
+		=> new(zoneId, zoneState.Capabilities, zoneState.SupportedEffectTypeIds);
 
 	private async ValueTask HandleArrivalAsync(DeviceWatchNotification notification, CancellationToken cancellationToken)
 	{
@@ -536,7 +550,7 @@ internal sealed partial class LightingService :
 		Guid unifiedLightingZoneId = default;
 		Guid lightingZoneId;
 		BrightnessCapabilities brightnessCapabilities = default;
-		Tuple<Type[], Guid[]>? supportedEffectsAndIds = null;
+		Tuple<LightingZoneCapabilities, Type[], Guid[]>? capabilitiesAndSupportedEffectsAndIds = null;
 		byte? brightness = null;
 		bool isUnifiedLightingEnabled = false;
 		LightingPersistenceMode persistenceMode = LightingPersistenceMode.NeverPersisted;
@@ -608,13 +622,14 @@ internal sealed partial class LightingService :
 			if (unifiedLightingFeature is not null)
 			{
 				changedLightingZones.Add(unifiedLightingZoneId);
-				supportedEffectsAndIds = GetSupportedEffects(unifiedLightingFeature.GetType());
+				capabilitiesAndSupportedEffectsAndIds = GetCapabilitiesAndSupportedEffects(unifiedLightingFeature.GetType());
 				lightingZoneStates.Add
 				(
 					unifiedLightingZoneId,
 					new()
 					{
-						SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(supportedEffectsAndIds.Item2),
+						Capabilities = capabilitiesAndSupportedEffectsAndIds.Item1,
+						SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(capabilitiesAndSupportedEffectsAndIds.Item3),
 						LightingZone = unifiedLightingFeature,
 						SerializedCurrentEffect = isUnifiedLightingEnabled ? EffectSerializer.GetEffect(unifiedLightingFeature) : null,
 					}
@@ -628,13 +643,14 @@ internal sealed partial class LightingService :
 				{
 					throw new InvalidOperationException($"Duplicate lighting zone ID: {lightingZoneId}.");
 				}
-				supportedEffectsAndIds = GetSupportedEffects(lightingZone.GetType());
+				capabilitiesAndSupportedEffectsAndIds = GetCapabilitiesAndSupportedEffects(lightingZone.GetType());
 				lightingZoneStates.Add
 				(
 					lightingZoneId,
 					new()
 					{
-						SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(supportedEffectsAndIds.Item2),
+						Capabilities = capabilitiesAndSupportedEffectsAndIds.Item1,
+						SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(capabilitiesAndSupportedEffectsAndIds.Item3),
 						LightingZone = lightingZone,
 						SerializedCurrentEffect = isUnifiedLightingEnabled ? null : EffectSerializer.GetEffect(lightingZone),
 					}
@@ -855,12 +871,14 @@ internal sealed partial class LightingService :
 						}
 						else
 						{
+							capabilitiesAndSupportedEffectsAndIds = GetCapabilitiesAndSupportedEffects(unifiedLightingFeature.GetType());
 							lightingZoneStates.Add
 							(
 								unifiedLightingZoneId,
 								new()
 								{
-									SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(GetSupportedEffects(unifiedLightingFeature.GetType()).Item2),
+									Capabilities = capabilitiesAndSupportedEffectsAndIds.Item1,
+									SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(capabilitiesAndSupportedEffectsAndIds.Item3),
 									LightingZone = unifiedLightingFeature,
 									SerializedCurrentEffect = EffectSerializer.GetEffect(unifiedLightingFeature)
 								}
@@ -926,12 +944,14 @@ internal sealed partial class LightingService :
 						}
 						else
 						{
+							capabilitiesAndSupportedEffectsAndIds = GetCapabilitiesAndSupportedEffects(lightingZone.GetType());
 							lightingZoneStates.Add
 							(
 								lightingZone.ZoneId,
 								new()
 								{
-									SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(GetSupportedEffects(lightingZone.GetType()).Item2),
+									Capabilities = capabilitiesAndSupportedEffectsAndIds.Item1,
+									SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(capabilitiesAndSupportedEffectsAndIds.Item3),
 									LightingZone = lightingZone,
 									SerializedCurrentEffect = EffectSerializer.GetEffect(lightingZone)
 								}
@@ -1031,17 +1051,18 @@ internal sealed partial class LightingService :
 
 	private static void UpdateSupportedEffects(Guid unifiedLightingZoneId, LightingZoneState lightingZoneState, Type lightingZoneType, HashSet<Guid> changedLightingZones)
 	{
-		var supportedEffectsAndIds = GetSupportedEffects(lightingZoneType);
+		var capabilitiesAndsupportedEffectsAndIds = GetCapabilitiesAndSupportedEffects(lightingZoneType);
 		// If the effects reference is exactly the same, we can skip everything and do nothing.
-		if (ReferenceEquals(ImmutableCollectionsMarshal.AsArray(lightingZoneState.SupportedEffectTypeIds), supportedEffectsAndIds.Item2)) return;
+		if (ReferenceEquals(ImmutableCollectionsMarshal.AsArray(lightingZoneState.SupportedEffectTypeIds), capabilitiesAndsupportedEffectsAndIds.Item2)) return;
 		// Otherwise, if the list of supported effects has changed, the lighting zone must be updated.
-		if (!lightingZoneState.SupportedEffectTypeIds.AsSpan().SequenceEqual(supportedEffectsAndIds.Item2))
+		if (lightingZoneState.Capabilities != capabilitiesAndsupportedEffectsAndIds.Item1 || !lightingZoneState.SupportedEffectTypeIds.AsSpan().SequenceEqual(capabilitiesAndsupportedEffectsAndIds.Item3))
 		{
 			// Mark that this lighting zone must be persisted again.
 			changedLightingZones.Add(unifiedLightingZoneId);
 		}
+		lightingZoneState.Capabilities = capabilitiesAndsupportedEffectsAndIds.Item1;
 		// Always update the effect reference. It the contents were equal, it will let us get rid of the old copy, and only keep the one that was retrieved from the cache.
-		lightingZoneState.SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(supportedEffectsAndIds.Item2);
+		lightingZoneState.SupportedEffectTypeIds = ImmutableCollectionsMarshal.AsImmutableArray(capabilitiesAndsupportedEffectsAndIds.Item3);
 	}
 
 	private async ValueTask ApplyRestoredChangesAsync(ILightingDeferredChangesFeature deferredChangesFeature, Guid deviceId)

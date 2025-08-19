@@ -5,14 +5,17 @@ namespace Exo.Service;
 [TypeId(0xB6677089, 0x77FE, 0x467A, 0x8C, 0x23, 0x87, 0x8C, 0x80, 0x71, 0x03, 0x19)]
 public readonly struct LightingZoneInformation : IEquatable<LightingZoneInformation>
 {
-	public LightingZoneInformation(Guid zoneId, ImmutableArray<Guid> supportedEffectTypeIds)
+	public LightingZoneInformation(Guid zoneId, LightingZoneCapabilities capabilities, ImmutableArray<Guid> supportedEffectTypeIds)
 	{
 		ZoneId = zoneId;
+		Capabilities = capabilities;
 		SupportedEffectTypeIds = supportedEffectTypeIds;
 	}
 
 	public Guid ZoneId { get; }
+	public LightingZoneCapabilities Capabilities { get; }
 	public ImmutableArray<Guid> SupportedEffectTypeIds { get; }
+	//TODO: public Guid AddressableColorTypeId { get; }
 
 	public override bool Equals(object? obj) => obj is LightingZoneInformation info && Equals(info);
 

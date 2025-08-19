@@ -92,7 +92,6 @@ internal sealed class UltraGearLightingFeatures :
 	void ILightingZoneEffect<StaticColorPreset4Effect>.ApplyEffect(in StaticColorPreset4Effect effect) => CurrentEffect = StaticColorPreset4Effect.SharedInstance;
 	void ILightingZoneEffect<SpectrumCycleEffect>.ApplyEffect(in SpectrumCycleEffect effect) => CurrentEffect = SpectrumCycleEffect.SharedInstance;
 	void ILightingZoneEffect<SpectrumWaveEffect>.ApplyEffect(in SpectrumWaveEffect effect) => CurrentEffect = SpectrumWaveEffect.SharedInstance;
-	void ILightingZoneEffect<AddressableEffect>.ApplyEffect(in AddressableEffect effect) => CurrentEffect = AddressableEffect.SharedInstance;
 
 	bool ILightingZoneEffect<DisabledEffect>.TryGetCurrentEffect(out DisabledEffect effect) => CurrentEffect.TryGetEffect(out effect);
 	//bool ILightingZoneEffect<StaticColorEffect>.TryGetCurrentEffect(out StaticColorEffect effect) => CurrentEffect.TryGetEffect(out effect);
@@ -102,7 +101,6 @@ internal sealed class UltraGearLightingFeatures :
 	bool ILightingZoneEffect<StaticColorPreset2Effect>.TryGetCurrentEffect(out StaticColorPreset2Effect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset3Effect>.TryGetCurrentEffect(out StaticColorPreset3Effect effect) => CurrentEffect.TryGetEffect(out effect);
 	bool ILightingZoneEffect<StaticColorPreset4Effect>.TryGetCurrentEffect(out StaticColorPreset4Effect effect) => CurrentEffect.TryGetEffect(out effect);
-	bool ILightingZoneEffect<AddressableEffect>.TryGetCurrentEffect(out AddressableEffect effect) => CurrentEffect.TryGetEffect(out effect);
 
 	int IAddressableLightingZone.AddressableLightCount => _ledCount;
 	AddressableLightingZoneCapabilities IAddressableLightingZone.Capabilities => AddressableLightingZoneCapabilities.Dynamic | AddressableLightingZoneCapabilities.AllowPartialUpdates;

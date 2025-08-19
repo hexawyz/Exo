@@ -1002,6 +1002,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IService
 		static LightingZoneInformation ReadLightingZone(ref BufferReader reader)
 		{
 			var zoneId = reader.ReadGuid();
+			var capabilities = (LightingZoneCapabilities)reader.ReadByte();
 			var count = reader.ReadVariableUInt32();
 			Guid[] effectIds;
 			if (count == 0)
@@ -1016,7 +1017,7 @@ internal sealed class ExoUiPipeClientConnection : PipeClientConnection, IService
 					effectIds[i] = reader.ReadGuid();
 				}
 			}
-			return new LightingZoneInformation(zoneId, ImmutableCollectionsMarshal.AsImmutableArray(effectIds));
+			return new LightingZoneInformation(zoneId, capabilities, ImmutableCollectionsMarshal.AsImmutableArray(effectIds));
 		}
 	}
 

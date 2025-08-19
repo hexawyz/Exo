@@ -67,6 +67,7 @@
 		<Compile Include="..\..\..\DeviceTools\DeviceTools.Core\PnpVendorId.cs" Link="Definitions\PnpVendorId.cs" />
 		<Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSource.cs" Link="Definitions\VendorIdSource.cs" />
 		<Compile Include="..\..\..\DeviceTools\DeviceTools.Core\VendorIdSourceExtensions.cs" Link="Definitions\VendorIdSourceExtensions.cs" />
+		<Compile Include="..\..\Core\Exo.Core\ArrayExtensions.cs" Link="ArrayExtensions.cs" />
 		<Compile Include="..\..\Core\Exo.Core\ColorFormats\ArgbColor.cs" Link="Definitions\ArgbColor.cs" />
 		<Compile Include="..\..\Core\Exo.Core\ColorFormats\IColor.cs" Link="Definitions\IColor.cs" />
 		<Compile Include="..\..\Core\Exo.Core\ColorFormats\RgbColor.cs" Link="Definitions\RgbColor.cs" />
@@ -127,6 +128,7 @@
 		<Compile Include="..\..\Service\Exo.Service.Core\LightingConfiguration.cs" Link="Definitions\LightingConfiguration.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\LightingDeviceConfiguration.cs" Link="Definitions\LightingDeviceConfiguration.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\LightingDeviceInformation.cs" Link="Definitions\LightingDeviceInformation.cs" />
+		<Compile Include="..\..\Service\Exo.Service.Core\LightingZoneCapabilities.cs" Link="Definitions\LightingZoneCapabilities.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\LightingZoneEffect.cs" Link="Definitions\LightingZoneEffect.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\LightingZoneInformation.cs" Link="Definitions\LightingZoneInformation.cs" />
 		<Compile Include="..\..\Service\Exo.Service.Core\LightingZoneNotFoundException.cs" Link="Definitions\LightingZoneNotFoundException.cs" />

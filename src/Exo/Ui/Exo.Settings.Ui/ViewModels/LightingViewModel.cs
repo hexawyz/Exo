@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows.Input;
 using Exo.Lighting;
@@ -26,7 +27,8 @@ internal sealed partial class LightingViewModel : ChangeableBindableObject, IAsy
 	private ILightingService? _lightingService;
 	private readonly ObservableCollection<LightingDeviceViewModel> _lightingDevices;
 	private readonly Dictionary<Guid, LightingDeviceViewModel> _lightingDeviceById;
-	private readonly ConcurrentDictionary<Guid, LightingEffectViewModel> _effectViewModelById;
+	private readonly Dictionary<Guid, LightingEffectViewModel> _effectViewModelById;
+	private LightingEffectViewModel[] _programmableEffects;
 	private readonly Dictionary<Guid, LightingDeviceConfiguration> _pendingConfigurationUpdates;
 	private readonly Dictionary<Guid, LightingDeviceInformation> _pendingDeviceInformations;
 	private readonly LightingZoneViewModel _centralizedLightingZone;
@@ -107,7 +109,8 @@ internal sealed partial class LightingViewModel : ChangeableBindableObject, IAsy
 		_lightingDevices = new();
 		_lightingDeviceById = new();
 		_effectViewModelById = new();
-		_centralizedLightingZone = new(this, null, new(default, []), "Centralized Lighting", 0, LightingZoneComponentType.Unknown, LightingZoneShape.Other);
+		_programmableEffects = [];
+		_centralizedLightingZone = new(this, null, new(default, LightingZoneCapabilities.None, []), "Centralized Lighting", 0, LightingZoneComponentType.Unknown, LightingZoneShape.Other);
 		_pendingConfigurationUpdates = new();
 		_pendingDeviceInformations = new();
 		_applyChangesCommand = new(this);
@@ -129,6 +132,7 @@ internal sealed partial class LightingViewModel : ChangeableBindableObject, IAsy
 		bool wasChanged = IsChanged;
 		_lightingDeviceById.Clear();
 		_effectViewModelById.Clear();
+		_programmableEffects = [];
 		_pendingConfigurationUpdates.Clear();
 		_pendingDeviceInformations.Clear();
 
@@ -274,7 +278,7 @@ internal sealed partial class LightingViewModel : ChangeableBindableObject, IAsy
 	// This method is only supposed to be called once shortly after the connection is established.
 	internal void OnLightingSupportedCentralizedEffectsUpdate(ImmutableArray<Guid> effectIds)
 	{
-		_centralizedLightingZone.UpdateInformation(new(default, effectIds));
+		_centralizedLightingZone.UpdateInformation(new(default, LightingZoneCapabilities.None, effectIds));
 	}
 
 	internal void OnLightingConfigurationUpdate(in Service.LightingConfiguration configuration)
@@ -305,6 +309,18 @@ internal sealed partial class LightingViewModel : ChangeableBindableObject, IAsy
 		{
 			// NB: This is imperfect. If an effect is currently selected, it won't recreate the properties.
 			vm.OnMetadataUpdated(effectInformation);
+
+			if ((vm.Capabilities & EffectCapabilities.Programmable) != 0)
+			{
+				if (Array.IndexOf(_programmableEffects, vm) < 0)
+				{
+					_programmableEffects = _programmableEffects.Add(vm);
+				}
+			}
+			else
+			{
+				_programmableEffects = _programmableEffects.Remove(vm) ?? [];
+			}
 		}
 		else
 		{
@@ -317,12 +333,22 @@ internal sealed partial class LightingViewModel : ChangeableBindableObject, IAsy
 			}
 			displayName ??= string.Create(CultureInfo.InvariantCulture, $"Effect {effectInformation.EffectId:B}.");
 
-			_effectViewModelById.TryAdd(effectInformation.EffectId, new(effectInformation, displayName, displayOrder));
+			vm = new LightingEffectViewModel(effectInformation, displayName, displayOrder);
+			_effectViewModelById.Add(effectInformation.EffectId, vm);
+
+			if ((vm.Capabilities & EffectCapabilities.Programmable) != 0)
+			{
+				_programmableEffects = _programmableEffects.Add(vm);
+			}
 		}
 	}
 
 	public LightingEffectViewModel GetEffect(Guid effectId)
 		=> _effectViewModelById.TryGetValue(effectId, out var effect) ? effect : throw new InvalidOperationException("Missing effect information.");
+
+	// TODO: We will need to handle the color formats at some point.
+	public ImmutableArray<LightingEffectViewModel> GetProgrammableEffects()
+		=> ImmutableCollectionsMarshal.AsImmutableArray(_programmableEffects);
 
 	public (string DisplayName, uint DisplayOrder, LightingZoneComponentType ComponentType, LightingZoneShape Shape) GetZoneMetadata(Guid zoneId)
 	{
