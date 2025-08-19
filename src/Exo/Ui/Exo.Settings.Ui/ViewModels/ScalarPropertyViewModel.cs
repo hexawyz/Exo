@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Exo.ColorFormats;
 using Exo.Lighting;
-using Exo.Lighting.Effects;
 
 namespace Exo.Settings.Ui.ViewModels;
 

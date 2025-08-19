@@ -64,6 +64,7 @@
     <Project Path="src/Exo/Core/Exo.Core.Tests/Exo.Core.Tests.csproj" />
     <Project Path="src/Exo/Core/Exo.Core/Exo.Core.csproj" />
     <Project Path="src/Exo/Core/Exo.Ipc/Exo.Ipc.csproj" Id="00a69efd-98b1-4e08-b440-c07f09137a66" />
+    <Project Path="src/Exo/Core/Exo.Lighting.Effects/Exo.Lighting.Effects.csproj" Id="af133318-5084-4320-aeed-d20beae50994" />
     <Project Path="src/Exo/Core/Exo.Memory/Exo.Memory.csproj" />
     <Project Path="src/Exo/Core/Exo.Metadata/Exo.Metadata.csproj" />
     <Project Path="src/Exo/Core/Exo.MetadataCompiler/Exo.MetadataCompiler.csproj" />

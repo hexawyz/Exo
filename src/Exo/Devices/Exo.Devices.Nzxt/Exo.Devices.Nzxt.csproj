@@ -10,7 +10,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\Core\Exo.Core\Exo.Core.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\Core\Exo.Lighting.Effects\Exo.Lighting.Effects.csproj" Private="false" ExcludeAssets="runtime" />
 	</ItemGroup>
 
 </Project>

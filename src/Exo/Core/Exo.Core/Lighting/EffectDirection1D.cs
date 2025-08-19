@@ -1,4 +1,4 @@
-namespace Exo.Lighting.Effects;
+namespace Exo.Lighting;
 
 public enum EffectDirection1D : byte
 {

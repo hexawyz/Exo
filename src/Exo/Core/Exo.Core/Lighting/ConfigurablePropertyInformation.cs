@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Exo.ColorFormats;
-using Exo.Lighting.Effects;
 
 namespace Exo.Lighting;
 

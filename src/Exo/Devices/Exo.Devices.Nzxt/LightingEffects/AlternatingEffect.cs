@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using Exo.ColorFormats;
+using Exo.Lighting;
 using Exo.Lighting.Effects;
 
 namespace Exo.Devices.Nzxt.LightingEffects;

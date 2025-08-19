@@ -48,6 +48,7 @@
 		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.WinUsb\DeviceTools.WinUsb.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Archive\Exo.Archive.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.Ipc\Exo.Ipc.csproj" />
+		<ProjectReference Include="..\..\Core\Exo.Lighting.Effects\Exo.Lighting.Effects.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.PawnIo\Exo.PawnIo.csproj" />
 		<ProjectReference Include="..\..\Core\Exo.PawnIo.SystemManagementBus\Exo.PawnIo.SystemManagementBus.csproj" />
 		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Root\Exo.Discovery.Root.csproj" />

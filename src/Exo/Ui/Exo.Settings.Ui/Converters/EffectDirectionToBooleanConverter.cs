@@ -1,4 +1,4 @@
-using Exo.Lighting.Effects;
+using Exo.Lighting;
 using Microsoft.UI.Xaml.Data;
 
 namespace Exo.Settings.Ui.Converters;

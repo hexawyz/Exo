@@ -15,7 +15,6 @@ using Exo.Features;
 using Exo.Images;
 using Exo.Ipc;
 using Exo.Lighting;
-using Exo.Lighting.Effects;
 using Exo.Monitors;
 using Exo.Primitives;
 using Exo.Programming;

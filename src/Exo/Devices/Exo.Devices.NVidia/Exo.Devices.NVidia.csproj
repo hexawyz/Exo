@@ -15,6 +15,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\Core\Exo.Core\Exo.Core.csproj" Private="false" ExcludeAssets="runtime" />
+		<ProjectReference Include="..\..\Core\Exo.Lighting.Effects\Exo.Lighting.Effects.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\..\..\DeviceTools\DeviceTools.Core\DeviceTools.Core.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\..\Discovery\Exo.Discovery.Pci\Exo.Discovery.Pci.csproj" Private="false" ExcludeAssets="runtime" />
 		<ProjectReference Include="..\..\Discovery\Exo.Discovery.System\Exo.Discovery.System.csproj" Private="false" ExcludeAssets="runtime" />
