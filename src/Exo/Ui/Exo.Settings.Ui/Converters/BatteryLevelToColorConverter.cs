@@ -13,9 +13,9 @@ internal sealed partial class BatteryLevelToColorConverter : IValueConverter
 	{
 		if (value is float f)
 		{
-			if (f < 0.2f)
+			if (f <= 0.2f)
 			{
-				if (f < 0.1f)
+				if (f <= 0.1f)
 				{
 					return Red;
 				}
