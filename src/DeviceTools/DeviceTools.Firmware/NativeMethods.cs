@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.Arm;
 using System.Security;
 
 namespace DeviceTools.Firmware;
@@ -80,9 +82,63 @@ internal static unsafe class NativeMethods
 		}
 	}
 
-	[DllImport("kernel32", ExactSpelling = true, PreserveSig = true, SetLastError = false)]
+	public enum SystemInformationClass : uint
+	{
+		SystemBasicInformation = 0,
+		SystemProcessorInformation = 1,
+		SystemPerformanceInformation = 2,
+		SystemTimeOfDayInformation = 3,
+		SystemPathInformation = 4,
+		SystemProcessInformation = 5,
+		SystemCallCountInformation = 6,
+		SystemDeviceInformation = 7,
+		SystemProcessorPerformanceInformation = 8,
+		SystemFlagsInformation = 9,
+		SystemCallTimeInformation = 10,
+		SystemModuleInformation = 11,
+		SystemLocksInformation = 12,
+		SystemStackTraceInformation = 13,
+		SystemPagedPoolInformation = 14,
+		SystemNonPagedPoolInformation = 15,
+		SystemHandleInformation = 16,
+		SystemObjectInformation = 17,
+		SystemPageFileInformation = 18,
+		SystemVdmInstemulInformation = 19,
+		SystemVdmBopInformation = 20,
+		SystemFileCacheInformation = 21,
+		SystemPoolTagInformation = 22,
+		SystemInterruptInformation = 23,
+		SystemExceptionInformation = 33,
+		SystemRegistryQuotaInformation = 37,
+		SystemLookasideInformation = 45,
+
+		SystemRegisterFirmwareTableInformationHandler = 75,
+		SystemFirmwareTableInformation = 76,
+	}
+
+	[DllImport("kernel32", ExactSpelling = true, PreserveSig = true, SetLastError = true)]
 	public static extern uint EnumSystemFirmwareTables(uint firmwareTableProviderSignature, void* pFirmwareTableEnumBuffer, uint bufferSize);
 
 	[DllImport("kernel32", ExactSpelling = true, PreserveSig = true, SetLastError = true)]
 	public static extern uint GetSystemFirmwareTable(uint firmwareTableProviderSignature, uint firmwareTableID, void* firmwareTableBuffer, uint bufferSize);
+
+	[DllImport("ntdll", ExactSpelling = true, PreserveSig = true, SetLastError = false)]
+	public static extern uint NtQuerySystemInformation
+	(
+		SystemInformationClass systemInformationClass,
+		void* systemInformation,
+		uint systemInformationLength,
+		uint* returnLength
+	);
+
+	//[DllImport("ntdll", ExactSpelling = true, PreserveSig = true, SetLastError = false)]
+	//public static extern uint NtQuerySystemInformationEx
+	//(
+	//	SystemInformationClass systemInformationClass,
+	//	void* inputBuffer,
+	//	uint inputBufferLength,
+	//	void* systemInformation,
+	//	uint systemInformationLength,
+	//	uint* returnLength
+	//);
 }

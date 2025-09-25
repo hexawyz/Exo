@@ -27,13 +27,13 @@ public sealed partial class SmBios
 
 	public static unsafe byte[] GetRawData()
 	{
-		uint signature = (((byte)'R' << 8 | (byte)'S') << 8 | (byte)'M') << 8 | (byte)'B';
-		uint length = NativeMethods.GetSystemFirmwareTable(signature, 0, null, 0);
+		const uint Signature = (((byte)'R' << 8 | (byte)'S') << 8 | (byte)'M') << 8 | (byte)'B';
+		uint length = NativeMethods.GetSystemFirmwareTable(Signature, 0, null, 0);
 		if (length == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
 		var data = new byte[length];
 		fixed (byte* dataPointer = data)
 		{
-			length = NativeMethods.GetSystemFirmwareTable(signature, 0, dataPointer, length);
+			length = NativeMethods.GetSystemFirmwareTable(Signature, 0, dataPointer, length);
 		}
 		if (length == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
 		else if (length != (uint)data.Length) throw new InvalidDataException();
