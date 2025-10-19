@@ -247,7 +247,7 @@ public static class Device
 			var buffer = ArrayPool<byte>.Shared.Rent(checked((int)(charCount * 2)));
 			try
 			{
-				var result = NativeMethods.ConfigurationManagerGetDeviceIdList(filter.Span.GetPinnableReference(), ref MemoryMarshal.Cast<byte, char>(buffer)[0], charCount, flags);
+				var result = NativeMethods.ConfigurationManagerGetDeviceIdList(filter.Span.GetPinnableReference(), ref MemoryMarshal.Cast<byte, char>(buffer.AsSpan())[0], charCount, flags);
 				if (result != 0)
 				{
 					throw new ConfigurationManagerException(result);
@@ -307,7 +307,7 @@ public static class Device
 		var buffer = ArrayPool<byte>.Shared.Rent(checked((int)(charCount * 2)));
 		try
 		{
-			var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceList(deviceInterfaceClassGuid, null, ref MemoryMarshal.Cast<byte, char>(buffer)[0], charCount, flag);
+			var result = NativeMethods.ConfigurationManagerGetDeviceInterfaceList(deviceInterfaceClassGuid, null, ref MemoryMarshal.Cast<byte, char>(buffer.AsSpan())[0], charCount, flag);
 			if (result != 0)
 			{
 				throw new ConfigurationManagerException(result);
