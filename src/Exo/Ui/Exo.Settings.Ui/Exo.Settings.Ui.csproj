@@ -184,7 +184,7 @@
 		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3537.50" IncludeAssets="None" />
 		<PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251003001" />
-		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.6584" />
+		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" />
 		<Manifest Include="$(ApplicationManifest)" />
 	</ItemGroup>
 
