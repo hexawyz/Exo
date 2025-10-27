@@ -41,10 +41,10 @@
 		<None Include="ExoService.xsl" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="WixToolset.Heat" Version="5.0.2" />
-		<PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
-		<PackageReference Include="WixToolset.Netfx.wixext" Version="5.0.2" />
-		<PackageReference Include="WixToolset.Bal.wixext" Version="5.0.2" />
+		<PackageReference Include="WixToolset.Heat" />
+		<PackageReference Include="WixToolset.Util.wixext" />
+		<PackageReference Include="WixToolset.Netfx.wixext" />
+		<PackageReference Include="WixToolset.Bal.wixext" />
 	</ItemGroup>
 	<Target Name="CollectSuggestedVisualStudioComponentIds" />
 </Project>
