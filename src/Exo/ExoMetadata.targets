@@ -56,7 +56,7 @@
 	</Target>
 	<Target Name="LocateExoMetadataCompiler">
 		<PropertyGroup>
-			<_ExoMetadataCompilerPath>$(MSBuildThisFileDirectory)Core\Exo.MetadataCompiler\bin\$(Configuration)\net9.0\Exo.MetadataCompiler.dll</_ExoMetadataCompilerPath>
+			<_ExoMetadataCompilerPath>$(MSBuildThisFileDirectory)Core\Exo.MetadataCompiler\bin\$(Configuration)\net10.0\Exo.MetadataCompiler.dll</_ExoMetadataCompilerPath>
 		</PropertyGroup>
 	</Target>
 	<Target Name="BuildStringsMetadata" DependsOnTargets="LocateExoMetadataCompiler;PrepareMetadata" Inputs="$(_ExoMetadataCompilerPath);%(_CollectedStringMetadata.Identity)" Outputs="$(IntermediateOutputPath)%(_CollectedStringMetadata.OutputName)" Condition="'@(_CollectedStringMetadata)' != ''">
