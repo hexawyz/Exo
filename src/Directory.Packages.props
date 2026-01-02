@@ -4,11 +4,11 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="CommunityToolkit.WinUI.Behaviors" Version="8.2.250402" />
-    <PackageVersion Include="CommunityToolkit.WinUI.Controls.ColorPicker" Version="8.2.250402" />
-    <PackageVersion Include="CommunityToolkit.WinUI.Controls.ImageCropper" Version="8.2.250402" />
-    <PackageVersion Include="CommunityToolkit.WinUI.Extensions" Version="8.2.250402" />
-    <PackageVersion Include="CommunityToolkit.WinUI.Converters" Version="8.2.250402" />
+    <PackageVersion Include="CommunityToolkit.WinUI.Behaviors" Version="8.2.251219" />
+    <PackageVersion Include="CommunityToolkit.WinUI.Controls.ColorPicker" Version="8.2.251219" />
+    <PackageVersion Include="CommunityToolkit.WinUI.Controls.ImageCropper" Version="8.2.251219" />
+    <PackageVersion Include="CommunityToolkit.WinUI.Extensions" Version="8.2.251219" />
+    <PackageVersion Include="CommunityToolkit.WinUI.Converters" Version="8.2.251219" />
     <PackageVersion Include="System.Buffers" Version="4.6.1" />
     <PackageVersion Include="System.CommandLine.DragonFruit" Version="0.3.0-alpha.21216.1" />
     <PackageVersion Include="System.Collections.Immutable" Version="$(CentralDotNetPackageVersion)" />
