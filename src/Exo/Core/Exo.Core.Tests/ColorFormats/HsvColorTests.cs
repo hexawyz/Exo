@@ -40,6 +40,16 @@ public class HsvColorTests
 	}
 
 	[Fact]
+	public void ShouldRoundTripFromRgb()
+	{
+		for (int i = 0; i < 256 * 256 * 256; i++)
+		{
+			var color = RgbColor.FromInt32(i);
+			Assert.Equal(color, HsvColor.FromRgb(color).ToRgb());
+		}
+	}
+
+	[Fact]
 	public void ShouldRoundTripValueFrom255()
 	{
 		for (int i = 0; i < 255; i++)

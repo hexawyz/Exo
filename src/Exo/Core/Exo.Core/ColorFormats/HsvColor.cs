@@ -25,11 +25,11 @@ namespace Exo.ColorFormats;
 /// </remarks>
 [DebuggerDisplay("H = {H}, S = {S}, V = {V}")]
 [StructLayout(LayoutKind.Sequential, Size = 4)]
-public struct HsvColor : IColor, IEquatable<HsvColor>
+public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 {
-	public ushort H;
-	public byte S;
-	public byte V;
+	public readonly ushort H;
+	public readonly byte S;
+	public readonly byte V;
 
 	public HsvColor(ushort h, byte s, byte b)
 	{
@@ -37,8 +37,6 @@ public struct HsvColor : IColor, IEquatable<HsvColor>
 		// so there are actually only 255 values per slice, and not 256. (One component is always 0 when another is 255)
 		// So, in total, we have 6 * 255 = 1530 values, starting at 0 and ending at 1529.
 		ArgumentOutOfRangeException.ThrowIfGreaterThan(h, 1529);
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(s, 255);
-		ArgumentOutOfRangeException.ThrowIfGreaterThan(b, 255);
 		(H, S, V) = (h, s, b);
 	}
 
