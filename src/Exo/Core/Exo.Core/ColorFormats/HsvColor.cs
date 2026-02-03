@@ -53,7 +53,7 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 		var maxComponent = Vector128.Create(255);
 		var shiftedHue = Vector128.Create((int)H) + Vector128.Create(0, 4 * 255, 2 * 255, 0);
 		var hueColor = Vector128.Clamp(Vector128.Abs(shiftedHue - Vector128.BitwiseAnd(Vector128.GreaterThanOrEqual(shiftedHue, twoPi), twoPi) - Vector128.Create(3 * 255)) - Vector128.Create(255), Vector128<int>.Zero, maxComponent);
-		var scaledSaturatedHueColor = (Vector128.Create((int)V) * (hueColor * Vector128.Create((int)S) + maxComponent * Vector128.Create((int)(byte)~S))).AsUInt32();
+		var scaledSaturatedHueColor = (hueColor * Vector128.Create(S * V) + Vector128.Create(255 * V * (byte)~S)).AsUInt32();
 		if (Avx2.IsSupported)
 		{
 			var scaledDownComponents = Vector256.ShiftRightLogical(Avx2.ConvertToVector256Int64(scaledSaturatedHueColor).AsUInt64() * 0x81018203, 0x2f);
@@ -69,8 +69,8 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 
 	public static HsvColor FromRgb(RgbColor rgb)
 	{
-		uint min;
-		uint max;
+		byte min;
+		byte max;
 		uint h;
 		uint baseHue;
 		byte componentA;
@@ -126,15 +126,72 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 		componentB = rgb.G;
 		goto ComputeHue;
 	ComputeHue:;
-		h = ComputeHue(baseHue, componentA - componentB, max - min);
+		h = ComputeHue(baseHue, componentA - componentB, (uint)(max - min));
 	ReturnColor:;
-		return new((ushort)h, max == 0 ? (byte)0 : (byte)(255 * (max - min) / max), (byte)max);
+		return new((ushort)h, ComputeSaturation(min, max), max);
 	}
 
 	private static uint ComputeHue(uint baseHue, int componentOffset, uint amplitude)
 		=> componentOffset >= 0 ?
-			baseHue + 255 * (uint)componentOffset / amplitude :
-			baseHue - 255 * (uint)-componentOffset / amplitude;
+			baseHue + ReversibleDivision((uint)componentOffset, amplitude) :
+			baseHue - ReversibleDivision((uint)-componentOffset, amplitude);
+
+	private static byte ComputeSaturation(byte minimumComponent, byte brightness)
+	{
+		// We are looking to find the S value so that C = B * ~S / 255
+		// 255 * C = B * ~S
+		// ~S = 255 * C / B
+		// S = ~(255 * C / B)
+		if (brightness == 0) return 0;
+		return (byte)ReversibleDivision2(minimumComponent, brightness);
+	}
+
+	// TODO: Make this suck less.
+	// It is probably possible to do better than this. I do hope that it is possible.
+	// Anyway, it will do for now.
+	private static uint ReversibleDivision(uint a, uint b)
+	{
+		uint result = 255 * a / b;
+		uint aa = b * result / 255;
+		if (aa == a) return result;
+		if (aa < a)
+		{
+			result++;
+			if (b * result / 255 == a) return result;
+			result++;
+			if (b * result / 255 == a) return result;
+		}
+		else
+		{
+			result--;
+			if (b * result / 255 == a) return result;
+			result--;
+			if (b * result / 255 == a) return result;
+		}
+		throw new InvalidOperationException();
+	}
+
+	private static uint ReversibleDivision2(uint a, uint b)
+	{
+		uint result = 255 * (b - a) / b;
+		uint aa = b * (byte)~result / 255;
+		if (aa == a) return result;
+		if (aa < a)
+		{
+			result--;
+			if (b * (byte)~result / 255 == a) return result;
+			result--;
+			if (b * (byte)~result / 255 == a) return result;
+		}
+		else
+		{
+			result++;
+			if (b * (byte)~result / 255 == a) return result;
+			result++;
+			if (b * (byte)~result / 255 == a) return result;
+		}
+		throw new InvalidOperationException();
+	}
 
 	public static ushort GetScaledHue(float hue)
 	{
