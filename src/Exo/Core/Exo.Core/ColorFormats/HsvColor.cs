@@ -72,52 +72,69 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 		uint min;
 		uint max;
 		uint h;
+		uint baseHue;
+		byte componentA;
+		byte componentB;
 		if (rgb.R >= rgb.G)
 		{
 			if (rgb.R >= rgb.B)
 			{
 				max = rgb.R;
+				componentA = rgb.G;
+				componentB = rgb.B;
 				if (rgb.G >= rgb.B)
 				{
 					min = rgb.B;
-					h = max == min ? 0 : 255 * ((uint)rgb.G - rgb.B) / (max - min);
+					if (max == min)
+					{
+						h = 0;
+						goto ReturnColor;
+					}
+					baseHue = 0;
 				}
 				else
 				{
 					min = rgb.G;
-					h = 1530 - 255 * ((uint)rgb.B - rgb.G) / (max - min);
+					baseHue = 1530;
 				}
+				goto ComputeHue;
 			}
 			else
 			{
-				max = rgb.B;
 				min = rgb.G;
-				h = 1020 + 255 * ((uint)rgb.R - rgb.G) / (max - min);
+				goto BaseHue1020;
 			}
 		}
 		else if (rgb.G >= rgb.B)
 		{
 			max = rgb.G;
-			if (rgb.B >= rgb.R)
-			{
-				min = rgb.R;
-				h = 510 + 255 * ((uint)rgb.B - rgb.R) / (max - min);
-			}
-			else
-			{
-				min = rgb.B;
-				h = 510 - 255 * ((uint)rgb.R - rgb.B) / (max - min);
-			}
+			baseHue = 510;
+			componentA = rgb.B;
+			componentB = rgb.R;
+			min = rgb.B >= rgb.R ? rgb.R : rgb.B;
+			goto ComputeHue;
 		}
 		else
 		{
-			max = rgb.B;
 			min = rgb.R;
-			h = 1020 - 255 * ((uint)rgb.G - rgb.R) / (max - min);
+			goto BaseHue1020;
 		}
-
+	BaseHue1020:;
+		max = rgb.B;
+		baseHue = 1020;
+		componentA = rgb.R;
+		componentB = rgb.G;
+		goto ComputeHue;
+	ComputeHue:;
+		h = ComputeHue(baseHue, componentA - componentB, max - min);
+	ReturnColor:;
 		return new((ushort)h, max == 0 ? (byte)0 : (byte)(255 * (max - min) / max), (byte)max);
 	}
+
+	private static uint ComputeHue(uint baseHue, int componentOffset, uint amplitude)
+		=> componentOffset >= 0 ?
+			baseHue + 255 * (uint)componentOffset / amplitude :
+			baseHue - 255 * (uint)-componentOffset / amplitude;
 
 	public static ushort GetScaledHue(float hue)
 	{
