@@ -69,32 +69,31 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 
 	public static HsvColor FromRgb(RgbColor rgb)
 	{
+		// Max is always directly brightness, other values are scaled relative to brightness and need to be rescaled to 255 in a way that round-trips.
+		// Min is inverse saturation. (i.e. if 0, S = 255 and if B, S = 0)
+		// Med is the hue offset. Positive or negative, relative to which components are Max and Med.
 		byte min;
+		byte med;
 		byte max;
-		uint h;
+		bool isPositiveOffset = false;
 		uint baseHue;
-		byte componentA;
-		byte componentB;
 		if (rgb.R >= rgb.G)
 		{
 			if (rgb.R >= rgb.B)
 			{
 				max = rgb.R;
-				componentA = rgb.G;
-				componentB = rgb.B;
-				if (rgb.G >= rgb.B)
+				if (isPositiveOffset = rgb.G >= rgb.B)
 				{
 					min = rgb.B;
-					if (max == min)
-					{
-						h = 0;
-						goto ReturnColor;
-					}
+					// Obvious special case when R = G = B, we have a grayscale.
+					if (max == min) return new(0, 0, max);
+					med = rgb.G;
 					baseHue = 0;
 				}
 				else
 				{
 					min = rgb.G;
+					med = rgb.B;
 					baseHue = 1530;
 				}
 				goto ComputeHue;
@@ -102,6 +101,8 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 			else
 			{
 				min = rgb.G;
+				med = rgb.R;
+				isPositiveOffset = true;
 				goto BaseHue1020;
 			}
 		}
@@ -109,41 +110,71 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 		{
 			max = rgb.G;
 			baseHue = 510;
-			componentA = rgb.B;
-			componentB = rgb.R;
-			min = rgb.B >= rgb.R ? rgb.R : rgb.B;
+			if (isPositiveOffset = rgb.B >= rgb.R)
+			{
+				min = rgb.R;
+				med = rgb.B;
+			}
+			else
+			{
+				min = rgb.B;
+				med = rgb.R;
+			}
 			goto ComputeHue;
 		}
 		else
 		{
 			min = rgb.R;
+			med = rgb.G;
 			goto BaseHue1020;
 		}
 	BaseHue1020:;
 		max = rgb.B;
 		baseHue = 1020;
-		componentA = rgb.R;
-		componentB = rgb.G;
-		goto ComputeHue;
 	ComputeHue:;
-		h = ComputeHue(baseHue, componentA - componentB, (uint)(max - min));
-	ReturnColor:;
-		return new((ushort)h, ComputeSaturation(min, max), max);
+		// Special case when the hue is "pure", we need only a single division.
+		if (min == med)
+		{
+			return new((ushort)baseHue, (byte)~ReversibleDivision(min, max), max);
+		}
+		// For now, to deal with the annoying integer division stuff, we'll deconstruct the RGB color one HSV component at a time.
+		// First, we rescale all three components before computing the rest. (This means that for all intents and purposes max is now 255)
+		// It does require 3 extra divisions, which is all but great, but at least it will make the computations perfect.
+		// (At the very best one of those divisions should simply go away, because one component is the max)
+		min = (byte)ReversibleDivision(min, max);
+		med = (byte)ReversibleDivision(med, max);
+		// Then, undo the effect from the saturation.
+		med = ReverseSaturation(med, min);
+		return new((ushort)(isPositiveOffset ? baseHue + med : baseHue - med), (byte)~min, max);
 	}
 
-	private static uint ComputeHue(uint baseHue, int componentOffset, uint amplitude)
-		=> componentOffset >= 0 ?
-			baseHue + ReversibleDivision((uint)componentOffset, amplitude) :
-			baseHue - ReversibleDivision((uint)-componentOffset, amplitude);
-
-	private static byte ComputeSaturation(byte minimumComponent, byte brightness)
+	// TODO: Similar logic to the reversible division. Hopefully possible to make it suck less.
+	private static byte ReverseSaturation(byte component, byte minimum)
 	{
-		// We are looking to find the S value so that C = B * ~S / 255
-		// 255 * C = B * ~S
-		// ~S = 255 * C / B
-		// S = ~(255 * C / B)
-		if (brightness == 0) return 0;
-		return (byte)ReversibleDivision2(minimumComponent, brightness);
+		// C = (c * S + 255 * ~S) / 255
+		// 255 * C = c * S + 255 * ~S
+		// 255 * (C - ~S) = c * S
+		// c = 255 * (C - ~S) / S
+		uint saturation = (byte)~minimum;
+		uint result = 255 * (uint)(component - minimum) / saturation;
+		uint complement = 255U * minimum;
+		uint c = (result * saturation + complement) / 255;
+		if (c == component) return (byte)result;
+		if (c < component)
+		{
+			result++;
+			if ((result * saturation + complement) / 255 == component) return (byte)result;
+			result++;
+			if ((result * saturation + complement) / 255 == component) return (byte)result;
+		}
+		else
+		{
+			result--;
+			if ((result * saturation + complement) / 255 == component) return (byte)result;
+			result--;
+			if ((result * saturation + complement) / 255 == component) return (byte)result;
+		}
+		throw new InvalidOperationException();
 	}
 
 	// TODO: Make this suck less.
@@ -151,6 +182,7 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 	// Anyway, it will do for now.
 	private static uint ReversibleDivision(uint a, uint b)
 	{
+		if (b == 255) return a;
 		uint result = 255 * a / b;
 		uint aa = b * result / 255;
 		if (aa == a) return result;
@@ -167,28 +199,6 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 			if (b * result / 255 == a) return result;
 			result--;
 			if (b * result / 255 == a) return result;
-		}
-		throw new InvalidOperationException();
-	}
-
-	private static uint ReversibleDivision2(uint a, uint b)
-	{
-		uint result = 255 * (b - a) / b;
-		uint aa = b * (byte)~result / 255;
-		if (aa == a) return result;
-		if (aa < a)
-		{
-			result--;
-			if (b * (byte)~result / 255 == a) return result;
-			result--;
-			if (b * (byte)~result / 255 == a) return result;
-		}
-		else
-		{
-			result++;
-			if (b * (byte)~result / 255 == a) return result;
-			result++;
-			if (b * (byte)~result / 255 == a) return result;
 		}
 		throw new InvalidOperationException();
 	}
