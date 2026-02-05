@@ -159,7 +159,7 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 		// Each integeger division that occurs in the HSL to RGB process has an error 0 ≤ e ≤ 1.
 		// Depending on which component, the error can be restricted by another component, but we don't have a way to compute the error itself.
 		// Therefore, we use annoying logic to verify and enforce that we find *one* of the values that properly compute the RGB color we want.
-		byte inverseSaturation = (byte)ReversibleDivision(min, max);
+		byte inverseSaturation = ReversibleDivision(min, max);
 		// X = 255 * (Y - Z) / (V - Z) <=> X = 255 * ((Y + eY) - Z) / (V - (Z + eZ))
 		uint result = 255 * (uint)(med - min) / (uint)(max - min);
 		// This is the formula to compute the final component value based on min and max,
@@ -167,51 +167,19 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 		// We need to use the saturation computed independently so that we can gaurantee everything to be computed as expected.
 		//uint c = (result * max + (255 - result) * min) / 255;
 		// Y = (X * V * S + 255 * V * (255 - S)) / (255 * 255)
-		uint c = (result * max * (byte)~inverseSaturation + 255U * max * inverseSaturation) / (255 * 255);
-		if (c == med) goto SuccessFull;
-		if (c < med)
-		{
-			result++;
-			if ((result * max * (byte)~inverseSaturation + 255U * max * inverseSaturation) / (255 * 255) == med) goto SuccessFull;
-			result++;
-			if ((result * max * (byte)~inverseSaturation + 255U * max * inverseSaturation) / (255 * 255) == med) goto SuccessFull;
-		}
-		else
-		{
-			result--;
-			if ((result * max * (byte)~inverseSaturation + 255U * max * inverseSaturation) / (255 * 255) == med) goto SuccessFull;
-			result--;
-			if ((result * max * (byte)~inverseSaturation + 255U * max * inverseSaturation) / (255 * 255) == med) goto SuccessFull;
-		}
-		throw new InvalidOperationException();
-	SuccessFull:;
+		if (max * (result * (byte)~inverseSaturation + 255U * inverseSaturation) / (255 * 255) != med) result++;
 		return ((byte)result, inverseSaturation);
 	}
 
-	// TODO: Make this suck less.
-	// It is probably possible to do better than this. I do hope that it is possible.
-	// Anyway, it will do for now.
-	private static uint ReversibleDivision(uint a, uint b)
+	// This is empirically verified to work for all values.
+	// Hopefully, there would be a less anoying way to compute this,
+	// but this version does not include too many extra operations, so it will do.
+	private static byte ReversibleDivision(byte a, byte b)
 	{
 		if (b == 255) return a;
-		uint result = 255 * a / b;
-		uint aa = b * result / 255;
-		if (aa == a) return result;
-		if (aa < a)
-		{
-			result++;
-			if (b * result / 255 == a) return result;
-			result++;
-			if (b * result / 255 == a) return result;
-		}
-		else
-		{
-			result--;
-			if (b * result / 255 == a) return result;
-			result--;
-			if (b * result / 255 == a) return result;
-		}
-		throw new InvalidOperationException();
+		uint result = 255U * a / b;
+		if (b * result / 255U  != a) ++result;
+		return (byte)result;
 	}
 
 	public static ushort GetScaledHue(float hue)
