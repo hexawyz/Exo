@@ -132,49 +132,60 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 		max = rgb.B;
 		baseHue = 1020;
 	ComputeHue:;
-		// Special case when the hue is "pure", we need only a single division.
+		// Special cases when the hue is "pure", we need only a single division.
 		if (min == med)
 		{
 			return new((ushort)baseHue, (byte)~ReversibleDivision(min, max), max);
+		}
+		else if (med == max)
+		{
+			return new((ushort)(isPositiveOffset ? baseHue + 255 : baseHue - 255), (byte)~ReversibleDivision(min, max), max);
 		}
 		// For now, to deal with the annoying integer division stuff, we'll deconstruct the RGB color one HSV component at a time.
 		// First, we rescale all three components before computing the rest. (This means that for all intents and purposes max is now 255)
 		// It does require 3 extra divisions, which is all but great, but at least it will make the computations perfect.
 		// (At the very best one of those divisions should simply go away, because one component is the max)
-		min = (byte)ReversibleDivision(min, max);
-		med = (byte)ReversibleDivision(med, max);
+		//med = (byte)ReversibleDivision(med, max);
 		// Then, undo the effect from the saturation.
-		med = ReverseSaturation(med, min);
+
+		// X = 255 * (Y - Z) / (V - Z)
+		(med, min) = ReverseSaturationAndHue(min, med, max);
+
 		return new((ushort)(isPositiveOffset ? baseHue + med : baseHue - med), (byte)~min, max);
 	}
 
-	// TODO: Similar logic to the reversible division. Hopefully possible to make it suck less.
-	private static byte ReverseSaturation(byte component, byte minimum)
+	private static (byte HueOffset, byte InverseSaturation) ReverseSaturationAndHue(byte min, byte med, byte max)
 	{
-		// C = (c * S + 255 * ~S) / 255
-		// 255 * C = c * S + 255 * ~S
-		// 255 * (C - ~S) = c * S
-		// c = 255 * (C - ~S) / S
-		uint saturation = (byte)~minimum;
-		uint result = 255 * (uint)(component - minimum) / saturation;
-		uint complement = 255U * minimum;
-		uint c = (result * saturation + complement) / 255;
-		if (c == component) return (byte)result;
-		if (c < component)
+		// Each integeger division that occurs in the HSL to RGB process has an error 0 ≤ e ≤ 1.
+		// Depending on which component, the error can be restricted by another component, but we don't have a way to compute the error itself.
+		// Therefore, we use annoying logic to verify and enforce that we find *one* of the values that properly compute the RGB color we want.
+		byte inverseSaturation = (byte)ReversibleDivision(min, max);
+		// X = 255 * (Y - Z) / (V - Z) <=> X = 255 * ((Y + eY) - Z) / (V - (Z + eZ))
+		uint result = 255 * (uint)(med - min) / (uint)(max - min);
+		// This is the formula to compute the final component value based on min and max,
+		// but it does not allow finding the hue value that we want.
+		// We need to use the saturation computed independently so that we can gaurantee everything to be computed as expected.
+		//uint c = (result * max + (255 - result) * min) / 255;
+		// Y = (X * V * S + 255 * V * (255 - S)) / (255 * 255)
+		uint c = (result * max * (byte)~inverseSaturation + 255U * max * inverseSaturation) / (255 * 255);
+		if (c == med) goto SuccessFull;
+		if (c < med)
 		{
 			result++;
-			if ((result * saturation + complement) / 255 == component) return (byte)result;
+			if ((result * max * (byte)~inverseSaturation + 255U * max * inverseSaturation) / (255 * 255) == med) goto SuccessFull;
 			result++;
-			if ((result * saturation + complement) / 255 == component) return (byte)result;
+			if ((result * max * (byte)~inverseSaturation + 255U * max * inverseSaturation) / (255 * 255) == med) goto SuccessFull;
 		}
 		else
 		{
 			result--;
-			if ((result * saturation + complement) / 255 == component) return (byte)result;
+			if ((result * max * (byte)~inverseSaturation + 255U * max * inverseSaturation) / (255 * 255) == med) goto SuccessFull;
 			result--;
-			if ((result * saturation + complement) / 255 == component) return (byte)result;
+			if ((result * max * (byte)~inverseSaturation + 255U * max * inverseSaturation) / (255 * 255) == med) goto SuccessFull;
 		}
 		throw new InvalidOperationException();
+	SuccessFull:;
+		return ((byte)result, inverseSaturation);
 	}
 
 	// TODO: Make this suck less.
