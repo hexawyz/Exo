@@ -132,24 +132,30 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 		max = rgb.B;
 		baseHue = 1020;
 	ComputeHue:;
-		// Special cases when the hue is "pure", we need only a single division.
-		if (min == med)
+		// Special case when the brightness is at 255
+		if (max == 255)
 		{
-			return new((ushort)baseHue, (byte)~ReversibleDivision(min, max), max);
+			if (min != 0) med = ReverseHue(min, med);
+		}
+		// Special cases when the hue is "pure", we need only a single division.
+		else if (min == med)
+		{
+			return new((ushort)baseHue, (byte)~ReverseMultiplication(min, max), max);
 		}
 		else if (med == max)
 		{
-			return new((ushort)(isPositiveOffset ? baseHue + 255 : baseHue - 255), (byte)~ReversibleDivision(min, max), max);
+			return new((ushort)(isPositiveOffset ? baseHue + 255 : baseHue - 255), (byte)~ReverseMultiplication(min, max), max);
 		}
-		// For now, to deal with the annoying integer division stuff, we'll deconstruct the RGB color one HSV component at a time.
-		// First, we rescale all three components before computing the rest. (This means that for all intents and purposes max is now 255)
-		// It does require 3 extra divisions, which is all but great, but at least it will make the computations perfect.
-		// (At the very best one of those divisions should simply go away, because one component is the max)
-		//med = (byte)ReversibleDivision(med, max);
-		// Then, undo the effect from the saturation.
-
-		// X = 255 * (Y - Z) / (V - Z)
-		(med, min) = ReverseSaturationAndHue(min, med, max);
+		else if (min == 0)
+		{
+			// We will always compute saturation to be at the maximum value when the minimum component is at zero.
+			// Therefore, the hue computation directly simplifies to the same division operation as used normally for saturation.
+			med = ReverseMultiplication(med, max);
+		}
+		else
+		{
+			(med, min) = ReverseSaturationAndHue(min, med, max);
+		}
 
 		return new((ushort)(isPositiveOffset ? baseHue + med : baseHue - med), (byte)~min, max);
 	}
@@ -159,24 +165,33 @@ public readonly struct HsvColor : IColor, IEquatable<HsvColor>
 		// Each integeger division that occurs in the HSL to RGB process has an error 0 ≤ e ≤ 1.
 		// Depending on which component, the error can be restricted by another component, but we don't have a way to compute the error itself.
 		// Therefore, we use annoying logic to verify and enforce that we find *one* of the values that properly compute the RGB color we want.
-		byte inverseSaturation = ReversibleDivision(min, max);
 		// X = 255 * (Y - Z) / (V - Z) <=> X = 255 * ((Y + eY) - Z) / (V - (Z + eZ))
 		uint result = 255 * (uint)(med - min) / (uint)(max - min);
 		// This is the formula to compute the final component value based on min and max,
 		// but it does not allow finding the hue value that we want.
 		// We need to use the saturation computed independently so that we can gaurantee everything to be computed as expected.
 		//uint c = (result * max + (255 - result) * min) / 255;
+		byte inverseSaturation = ReverseMultiplication(min, max);
 		// Y = (X * V * S + 255 * V * (255 - S)) / (255 * 255)
 		if (max * (result * (byte)~inverseSaturation + 255U * inverseSaturation) / (255 * 255) != med) result++;
 		return ((byte)result, inverseSaturation);
 	}
 
+	// Simplified version of the above algorithm for maximum brightness.
+	private static byte ReverseHue(byte min, byte med)
+	{
+		byte s = (byte)~min;
+		uint result = 255 * (uint)(med - min) / s;
+		if ((result * s + 255U * min) / 255 != med) result++;
+		return (byte)result;
+	}
+
 	// This is empirically verified to work for all values.
 	// Hopefully, there would be a less anoying way to compute this,
 	// but this version does not include too many extra operations, so it will do.
-	private static byte ReversibleDivision(byte a, byte b)
+	private static byte ReverseMultiplication(byte a, byte b)
 	{
-		if (b == 255) return a;
+		if (b == 255 || a == 0) return a;
 		uint result = 255U * a / b;
 		if (b * result / 255U  != a) ++result;
 		return (byte)result;
