@@ -55,10 +55,11 @@ jobs:
 
     # Publish the artifact containing the MSI installer
     - name: Upload MSI Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ env.MSI_ARTIFACT_NAME }}
         path: src\Exo\Exo.InstallerPackage\bin\x64\Release\en-US\${{ env.MSI_ARTIFACT_NAME }}.msi
+        archive: false
 
     # Publish the artifact containing the binaries
     - name: Upload Binaries Artifact
@@ -67,5 +68,4 @@ jobs:
         name: ${{ env.BINARIES_ARTIFACT_NAME }}
         path: src\Exo\Exo.InstallerPackage\obj\x64\Release\publish\
         compression-level: 9
-        archive: false
 
