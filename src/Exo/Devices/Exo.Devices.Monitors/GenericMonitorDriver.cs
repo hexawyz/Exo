@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections.Immutable;
 using DeviceTools;
 using DeviceTools.DisplayDevices;
@@ -5,6 +6,8 @@ using DeviceTools.DisplayDevices.Configuration;
 using Exo.Discovery;
 using Exo.Features;
 using Exo.I2C;
+using Exo.Metadata;
+using Exo.Monitors;
 using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Monitors;
@@ -19,6 +22,25 @@ public abstract partial class GenericMonitorDriver
 	public interface IMonitorFeatureSetBuilder
 	{
 		public IDeviceFeatureSet<IMonitorDeviceFeature> CreateFeatureSet(GenericMonitorDriver driver);
+	}
+
+	private static readonly ExoArchive MonitorDefinitionsDatabase = new((UnmanagedMemoryStream)typeof(MccsMonitorDriver).Assembly.GetManifestResourceStream("Definitions.xoa")!);
+
+	protected static bool TryGetMonitorDefinition(MonitorId deviceId, out MonitorDefinition definition)
+	{
+		Span<byte> key = stackalloc byte[4];
+		BinaryPrimitives.WriteUInt16LittleEndian(key, deviceId.VendorId.Value);
+		BinaryPrimitives.WriteUInt16LittleEndian(key[2..], deviceId.ProductId);
+		if (MonitorDefinitionsDatabase.TryGetFileEntry(key, out var file))
+		{
+			definition = MonitorDefinitionSerializer.Deserialize(file.DangerousGetSpan());
+			return true;
+		}
+		else
+		{
+			definition = default;
+			return false;
+		}
 	}
 
 	[DiscoverySubsystem<MonitorDiscoverySubsystem>]
@@ -36,18 +58,35 @@ public abstract partial class GenericMonitorDriver
 	)
 	{
 		var monitorId = new MonitorId(edid.VendorId, edid.ProductId);
-		return await MccsMonitorDriver.CreateAsync
-		(
-			logger,
-			keys,
-			friendlyName,
-			deviceId,
-			monitorId,
-			edid,
-			i2cBus,
-			topLevelDeviceName,
-			cancellationToken
-		).ConfigureAwait(false);
+		try
+		{
+			return await MccsMonitorDriver.CreateAsync
+			(
+				logger,
+				keys,
+				friendlyName,
+				deviceId,
+				monitorId,
+				edid,
+				i2cBus, 
+				topLevelDeviceName,
+				cancellationToken
+			).ConfigureAwait(false);
+		}
+		catch (MonitorHasNoCapabilitiesException)
+		{
+			return await WmiMonitorDriver.CreateAsync
+			(
+				logger,
+				keys,
+				friendlyName,
+				deviceId,
+				monitorId,
+				edid,
+				topLevelDeviceName,
+				cancellationToken
+			).ConfigureAwait(false);
+		}
 	}
 
 	public override DeviceCategory DeviceCategory => DeviceCategory.Monitor;

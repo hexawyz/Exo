@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Buffers.Binary;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -10,7 +9,6 @@ using DeviceTools.DisplayDevices.Mccs;
 using Exo.Discovery;
 using Exo.Features.Monitors;
 using Exo.I2C;
-using Exo.Metadata;
 using Exo.Monitors;
 using Microsoft.Extensions.Logging;
 
@@ -22,26 +20,7 @@ public partial class MccsMonitorDriver
 	IMonitorRawCapabilitiesFeature,
 	IMonitorRawVcpFeature
 {
-	private static readonly ExoArchive MonitorDefinitionsDatabase = new((UnmanagedMemoryStream)typeof(MccsMonitorDriver).Assembly.GetManifestResourceStream("Definitions.xoa")!);
-
-	protected static bool TryGetMonitorDefinition(MonitorId deviceId, out MonitorDefinition definition)
-	{
-		Span<byte> key = stackalloc byte[4];
-		BinaryPrimitives.WriteUInt16LittleEndian(key, deviceId.VendorId.Value);
-		BinaryPrimitives.WriteUInt16LittleEndian(key[2..], deviceId.ProductId);
-		if (MonitorDefinitionsDatabase.TryGetFileEntry(key, out var file))
-		{
-			definition = MonitorDefinitionSerializer.Deserialize(file.DangerousGetSpan());
-			return true;
-		}
-		else
-		{
-			definition = default;
-			return false;
-		}
-	}
-
-	internal static new async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
+	internal static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
 		ILogger<MccsMonitorDriver> logger,
 		ImmutableArray<SystemDevicePath> keys,
