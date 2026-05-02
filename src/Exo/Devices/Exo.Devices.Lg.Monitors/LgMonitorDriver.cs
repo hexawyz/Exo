@@ -20,7 +20,7 @@ using Microsoft.Extensions.Logging;
 namespace Exo.Devices.Lg.Monitors;
 
 public class LgMonitorDriver :
-	GenericMonitorDriver,
+	MccsMonitorDriver,
 	IDeviceDriver<ILgMonitorDeviceFeature>,
 	IDeviceDriver<ILightingDeviceFeature>,
 	IDeviceIdsFeature,

@@ -8,7 +8,6 @@ using DeviceTools.DisplayDevices;
 using DeviceTools.DisplayDevices.Configuration;
 using DeviceTools.DisplayDevices.Mccs;
 using Exo.Discovery;
-using Exo.Features;
 using Exo.Features.Monitors;
 using Exo.I2C;
 using Exo.Metadata;
@@ -17,17 +16,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Exo.Devices.Monitors;
 
-public partial class GenericMonitorDriver
-	: Driver,
-	IDeviceDriver<IGenericDeviceFeature>,
-	IDeviceDriver<IMonitorDeviceFeature>,
-	IDeviceIdFeature,
-	IDeviceSerialNumberFeature,
+public partial class MccsMonitorDriver
+	: GenericMonitorDriver,
 	IMonitorCapabilitiesFeature,
 	IMonitorRawCapabilitiesFeature,
 	IMonitorRawVcpFeature
 {
-	private static readonly ExoArchive MonitorDefinitionsDatabase = new((UnmanagedMemoryStream)typeof(GenericMonitorDriver).Assembly.GetManifestResourceStream("Definitions.xoa")!);
+	private static readonly ExoArchive MonitorDefinitionsDatabase = new((UnmanagedMemoryStream)typeof(MccsMonitorDriver).Assembly.GetManifestResourceStream("Definitions.xoa")!);
 
 	protected static bool TryGetMonitorDefinition(MonitorId deviceId, out MonitorDefinition definition)
 	{
@@ -46,14 +41,13 @@ public partial class GenericMonitorDriver
 		}
 	}
 
-	[DiscoverySubsystem<MonitorDiscoverySubsystem>]
-	[DeviceInterfaceClass(DeviceInterfaceClass.Monitor)]
-	public static async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
+	internal static new async ValueTask<DriverCreationResult<SystemDevicePath>?> CreateAsync
 	(
-		ILogger<GenericMonitorDriver> logger,
+		ILogger<MccsMonitorDriver> logger,
 		ImmutableArray<SystemDevicePath> keys,
 		string friendlyName,
 		DeviceId deviceId,
+		MonitorId monitorId,
 		Edid edid,
 		II2cBus i2cBus,
 		string topLevelDeviceName,
@@ -61,9 +55,17 @@ public partial class GenericMonitorDriver
 	)
 	{
 		var ddc = new DisplayDataChannel(i2cBus, true);
-		var monitorId = new MonitorId(edid.VendorId, edid.ProductId);
 		var featureSetBuilder = new MonitorFeatureSetBuilder();
-		var info = await PrepareMonitorFeaturesAsync(logger, featureSetBuilder, ddc, monitorId, cancellationToken).ConfigureAwait(false);
+		ConsolidatedMonitorInformation info;
+		try
+		{
+			info = await PrepareMonitorFeaturesAsync(logger, featureSetBuilder, ddc, monitorId, cancellationToken).ConfigureAwait(false);
+		}
+		catch
+		{
+			await ddc.DisposeAsync().ConfigureAwait(false);
+			throw;
+		}
 
 		if (info.Definition.Name is not null) friendlyName = info.Definition.Name;
 
@@ -74,7 +76,7 @@ public partial class GenericMonitorDriver
 		return new DriverCreationResult<SystemDevicePath>
 		(
 			keys,
-			new GenericMonitorDriver
+			new MccsMonitorDriver
 			(
 				ddc,
 				featureSetBuilder,
@@ -104,7 +106,7 @@ public partial class GenericMonitorDriver
 
 	/// <summary>Applies the standard setup procedure to retrieve monitor information and configure monitor features.</summary>
 	/// <remarks>
-	/// Calling this method is the simplest way to implement a factory for a custom driver based on <see cref="GenericMonitorDriver"/>.
+	/// Calling this method is the simplest way to implement a factory for a custom driver based on <see cref="MccsMonitorDriver"/>.
 	/// In cases where this method is not granular enough, one of the other methods with the proper degree of granularity can be called.
 	/// </remarks>
 	/// <param name="logger">The logger.</param>
@@ -169,7 +171,7 @@ public partial class GenericMonitorDriver
 	/// </para>
 	/// <para>
 	/// Depending on the level of customization desired, callers may want to call one of
-	/// <see cref="PrepareMonitorFeaturesAsync(ILogger{GenericMonitorDriver}, MonitorFeatureSetBuilder, DisplayDataChannel, MonitorId, CancellationToken)"/>,
+	/// <see cref="PrepareMonitorFeaturesAsync(ILogger{MccsMonitorDriver}, MonitorFeatureSetBuilder, DisplayDataChannel, MonitorId, CancellationToken)"/>,
 	/// <see cref="PrepareMonitorFeatures(MonitorFeatureSetBuilder, ImmutableArray{byte}, MonitorId)"/> or
 	/// <see cref="PrepareMonitorFeatures(MonitorFeatureSetBuilder, ImmutableArray{byte}, MonitorDefinition)"/> instead.
 	/// </para>
@@ -184,7 +186,7 @@ public partial class GenericMonitorDriver
 		ushort onValue;
 
 		if (capabilities is not null)
-		{ 
+		{
 			builder.AddCapabilitiesFeature();
 
 			if (!definition.IgnoreAllCapabilitiesVcpCodes)
@@ -461,23 +463,10 @@ public partial class GenericMonitorDriver
 	private readonly DisplayDataChannel _ddc;
 	private readonly ReadOnlyMemory<byte> _rawCapabilities;
 	private readonly MonitorCapabilities? _capabilities;
-	private readonly DeviceId _deviceId;
-
-	private readonly IDeviceFeatureSet<IGenericDeviceFeature> _genericFeatures;
-	private readonly IDeviceFeatureSet<IMonitorDeviceFeature> _monitorFeatures;
 
 	protected DisplayDataChannel DisplayDataChannel => _ddc;
-	protected IDeviceFeatureSet<IGenericDeviceFeature> GenericFeatures => _genericFeatures;
-	protected IDeviceFeatureSet<IMonitorDeviceFeature> MonitorFeatures => _monitorFeatures;
 
-	IDeviceFeatureSet<IGenericDeviceFeature> IDeviceDriver<IGenericDeviceFeature>.Features => _genericFeatures;
-	IDeviceFeatureSet<IMonitorDeviceFeature> IDeviceDriver<IMonitorDeviceFeature>.Features => _monitorFeatures;
-
-	DeviceId IDeviceIdFeature.DeviceId => _deviceId;
-
-	string IDeviceSerialNumberFeature.SerialNumber => ConfigurationKey.UniqueId!;
-
-	protected GenericMonitorDriver
+	protected MccsMonitorDriver
 	(
 		DisplayDataChannel ddc,
 		MonitorFeatureSetBuilder featureSetBuilder,
@@ -487,22 +476,12 @@ public partial class GenericMonitorDriver
 		string friendlyName,
 		DeviceConfigurationKey configurationKey
 	)
-		: base(friendlyName, configurationKey)
+		: base(featureSetBuilder, deviceId, friendlyName, configurationKey)
 	{
 		_ddc = ddc;
 		_rawCapabilities = rawCapabilities;
 		_capabilities = capabilities;
-		_deviceId = deviceId;
-
-		_genericFeatures = CreateGenericFeatures(configurationKey);
-
-		_monitorFeatures = featureSetBuilder.CreateFeatureSet(this);
 	}
-
-	protected virtual IDeviceFeatureSet<IGenericDeviceFeature> CreateGenericFeatures(DeviceConfigurationKey configurationKey)
-		=> configurationKey.UniqueId is not null ?
-			FeatureSet.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature, IDeviceSerialNumberFeature>(this) :
-			FeatureSet.Create<IGenericDeviceFeature, GenericMonitorDriver, IDeviceIdFeature>(this);
 
 	public override ValueTask DisposeAsync() => _ddc.DisposeAsync();
 

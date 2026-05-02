@@ -1,6 +1,6 @@
 {
     "Exo.Devices.Monitors": {
-        "GenericMonitorDriver": {
+        "MccsMonitorDriver": {
             "OnStringId": "4d2b3404-1cb1-4536-918c-80facc124cf9",
             "OffStringId": "a9f9a2e6-2091-4bd9-b135-a4a5d6d4009e",
             "LanguageIds": [
