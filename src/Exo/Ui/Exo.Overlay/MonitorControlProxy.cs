@@ -110,6 +110,10 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 					{
 						response = new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.InvalidVcpCode);
 					}
+					catch (MonitorHasNoCapabilitiesException)
+					{
+						response = new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.Unsupported);
+					}
 					catch
 					{
 						response = new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.Error);
@@ -263,6 +267,10 @@ internal sealed class MonitorControlProxy : IAsyncDisposable
 						retryCount--;
 						Thread.Sleep(retryDelay);
 						retryDelay = (int)Math.Min((uint)retryDelay * 2, (uint)MaxRetryDelay);
+					}
+					catch (MonitorHasNoCapabilitiesException)
+					{
+						return new MonitorControlProxyErrorResponse(request.RequestId, MonitorControlResponseStatus.Unsupported);
 					}
 				}
 				utf8Capabilities = physicalMonitor.GetCapabilitiesUtf8String(InitialRetryCount, InitialRetryDelay, MaxRetryDelay).Span.ToImmutableArray();

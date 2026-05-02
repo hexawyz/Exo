@@ -217,6 +217,9 @@ internal class MonitorControlProxyService : IMonitorControlService
 			case MonitorControlResponseStatus.InvalidVcpCode:
 				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new VcpCodeNotSupportedException()));
 				break;
+			case MonitorControlResponseStatus.Unsupported:
+				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new MonitorHasNoCapabilitiesException()));
+				break;
 			default:
 				tcs.TrySetException(ExceptionDispatchInfo.SetCurrentStackTrace(new Exception("An error occurred with an unknown status.")));
 				break;

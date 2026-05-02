@@ -8,6 +8,7 @@ public enum MonitorControlResponseStatus : byte
 	NotFound = 1,
 	Error = 2,
 	InvalidVcpCode = 3,
+	Unsupported = 4,
 }
 
 public enum MonitorControlProxyRequestResponseOneOfCase
