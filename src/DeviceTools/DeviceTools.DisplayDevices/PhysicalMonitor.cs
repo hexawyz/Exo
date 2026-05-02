@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using DeviceTools.DisplayDevices.Mccs;
 
@@ -28,17 +29,22 @@ public sealed class PhysicalMonitor : IDisposable
 	{
 		switch (errorCode)
 		{
-		case NativeMethods.ErrorGraphicsI2cNotSupported: throw new I2cNotSupportedException();
-		case NativeMethods.ErrorGraphicsI2cDeviceDoesNotExist: throw new I2cDeviceNotFoundException();
-		case NativeMethods.ErrorGraphicsI2cErrorTransmittingData: throw new I2cTransmissionException();
-		case NativeMethods.ErrorGraphicsI2cErrorReceivingData: throw new I2cReceptionException();
-		case NativeMethods.ErrorGraphicsDdcCiInvalidMessageCommand: throw new InvalidDdcCiMessageCommandException();
-		case NativeMethods.ErrorGraphicsDdcCiInvalidMessageLength: throw new InvalidDdcCiMessageLengthException();
-		case NativeMethods.ErrorGraphicsDdcCiInvalidMessageChecksum: throw new InvalidDdcCiMessageChecksumException();
-		case NativeMethods.ErrorGraphicsMonitorNoLongerExists: throw new MonitorNoLongerExistsException();
-		default: throw new Win32Exception(errorCode);
+		case NativeMethods.ErrorGraphicsI2cNotSupported: return new I2cNotSupportedException();
+		case NativeMethods.ErrorGraphicsI2cDeviceDoesNotExist: return new I2cDeviceNotFoundException();
+		case NativeMethods.ErrorGraphicsI2cErrorTransmittingData: return new I2cTransmissionException();
+		case NativeMethods.ErrorGraphicsI2cErrorReceivingData: return new I2cReceptionException();
+		case NativeMethods.ErrorGraphicsDdcCiInvalidMessageCommand: return new InvalidDdcCiMessageCommandException();
+		case NativeMethods.ErrorGraphicsDdcCiInvalidMessageLength: return new InvalidDdcCiMessageLengthException();
+		case NativeMethods.ErrorGraphicsDdcCiInvalidMessageChecksum: return new InvalidDdcCiMessageChecksumException();
+		case NativeMethods.ErrorGraphicsMonitorNoLongerExists: return new MonitorNoLongerExistsException();
+		default: return new Win32Exception(errorCode);
 		}
 	}
+
+	private static Exception GetExceptionForCapabilitiesRetrievalError(int errorCode)
+		=> errorCode == NativeMethods.ErrorGeneralFailure ?
+			new MonitorHasNoCapabilitiesException() :
+			GetExceptionForError(errorCode);
 
 	private static byte[] GetNullTerminatedBytes(ReadOnlySpan<byte> buffer)
 	{
@@ -62,6 +68,7 @@ public sealed class PhysicalMonitor : IDisposable
 	/// <exception cref="InvalidDdcCiMessageLengthException">Can occur if there are conflicting requests on the monitor's DDC/CI channel, or in case of a problem with the monitor.</exception>
 	/// <exception cref="InvalidDdcCiMessageChecksumException">Can occur if there are conflicting requests on the monitor's DDC/CI channel, or in case of a problem with the monitor.</exception>
 	/// <exception cref="MonitorNoLongerExistsException">This physical monitor is not valid anymore.</exception>
+	/// <exception cref="MonitorHasNoCapabilitiesException">This physical monitor does not expose MCCS capabilities.</exception>
 	/// <exception cref="Win32Exception"></exception>
 	public unsafe bool TryGetCapabilitiesUtf8String(Memory<byte> buffer)
 	{
@@ -72,7 +79,7 @@ public sealed class PhysicalMonitor : IDisposable
 			var errorCode = Marshal.GetLastWin32Error();
 			if (errorCode == NativeMethods.ErrorInsufficientBuffer) return false;
 
-			throw GetExceptionForError(errorCode);
+			throw GetExceptionForCapabilitiesRetrievalError(errorCode);
 		}
 	}
 
@@ -92,6 +99,7 @@ public sealed class PhysicalMonitor : IDisposable
 	/// <exception cref="InvalidDdcCiMessageLengthException">Can occur if there are conflicting requests on the monitor's DDC/CI channel, or in case of a problem with the monitor.</exception>
 	/// <exception cref="InvalidDdcCiMessageChecksumException">Can occur if there are conflicting requests on the monitor's DDC/CI channel, or in case of a problem with the monitor.</exception>
 	/// <exception cref="MonitorNoLongerExistsException">This physical monitor is not valid anymore.</exception>
+	/// <exception cref="MonitorHasNoCapabilitiesException">This physical monitor does not expose MCCS capabilities.</exception>
 	/// <exception cref="Win32Exception"></exception>
 	public unsafe byte[]? TryGetCapabilitiesUtf8String()
 	{
@@ -103,8 +111,7 @@ public sealed class PhysicalMonitor : IDisposable
 		var errorCode = Marshal.GetLastWin32Error();
 		if (errorCode == NativeMethods.ErrorInsufficientBuffer) return null;
 
-		GetExceptionForError(errorCode);
-		return null;
+		throw GetExceptionForCapabilitiesRetrievalError(errorCode);
 	}
 
 

@@ -21,6 +21,7 @@ internal static partial class NativeMethods
 	public const int ErrorGraphicsDdcCiInvalidMessageChecksum = unchecked((int)0xC026258B);
 	public const int ErrorGraphicsInvalidPhysicalMonitorHandle = unchecked((int)0xC026258C);
 	public const int ErrorGraphicsMonitorNoLongerExists = unchecked((int)0xC026258D);
+	public const int ErrorGeneralFailure = 31;
 	public const int ErrorInsufficientBuffer = 122;
 	public const int ErrorInvalidParameter = 0x57;
 

@@ -191,3 +191,21 @@ public class MonitorNoLongerExistsException : MonitorControlCommunicationExcepti
 		HResult = NativeMethods.ErrorGraphicsDdcCiVcpNotSupported;
 	}
 }
+
+public class MonitorHasNoCapabilitiesException : MonitorControlException
+{
+	public MonitorHasNoCapabilitiesException()
+		: this("The specified monitor does not seem to expose MCCS capabilities.", null)
+	{
+	}
+
+	public MonitorHasNoCapabilitiesException(string? message)
+		: this(message, null)
+	{
+	}
+
+	public MonitorHasNoCapabilitiesException(string? message, Exception? innerException) : base(message, innerException)
+	{
+		HResult = unchecked((int)(0x80070000U | NativeMethods.ErrorGeneralFailure));
+	}
+}
