@@ -135,14 +135,16 @@ public class GuidsGenerator : IIncrementalGenerator
 				guidIndices.Add(guid, index = guids.Count);
 				guids.Add(guid);
 			}
-			return new(name, index);
+			return new(name, index, guid);
 		}
 
 		GuidInfo ProcessGuidArray(string name, JsonArray array)
 		{
 			int index = guids.Count;
-			foreach (var value in array)
+			var parsedGuids = new Guid[array.Count];
+			for (int i = 0; i < array.Count; i++)
 			{
+				var value = array[i];
 				var valueKind = value?.GetValueKind() ?? JsonValueKind.Undefined;
 				if (valueKind != JsonValueKind.String)
 				{
@@ -156,10 +158,11 @@ public class GuidsGenerator : IIncrementalGenerator
 					throw new ProcessingCanceledException();
 				}
 				if (!guidIndices.ContainsKey(guid)) guidIndices.Add(guid, guids.Count);
+				parsedGuids[i] = guid;
 				guids.Add(guid);
 			}
 			hasArray = true;
-			return new(name, index, array.Count);
+			return new(name, index, parsedGuids);
 		}
 
 		var sb = new StringBuilder(1024);
@@ -289,9 +292,13 @@ public class GuidsGenerator : IIncrementalGenerator
 					accessibility = "private protected";
 					name = name.Substring(18);
 				}
-				if (g.GuidCount == 0)
+				if (g.Guids.Length == 1)
 				{
 					sb.Append(indent2)
+						.Append("/// <summary>")
+						.Append(g.Guids[0].ToString("B"))
+						.AppendLine("</summary>")
+						.Append(indent2)
 						.Append(accessibility)
 						.Append(" static Guid ")
 						.Append(name)
@@ -300,10 +307,14 @@ public class GuidsGenerator : IIncrementalGenerator
 				else
 				{
 					sb.Append(indent2)
+						.Append("/// <summary>")
+						.Append(string.Join(", ", Array.ConvertAll(g.Guids, g => g.ToString("B"))))
+						.AppendLine("</summary>")
+						.Append(indent2)
 						.Append(accessibility)
 						.Append(" static global::").Append(RootNamespace).Append(".ImmutableGuidArray ")
 						.Append(name)
-						.Append(" => new(").Append(g.GuidIndex).Append(", ").Append(g.GuidCount).AppendLine(");");
+						.Append(" => new(").Append(g.GuidIndex).Append(", ").Append(g.Guids.Length).AppendLine(");");
 				}
 			}
 			foreach (var c2 in c.Classes)
@@ -342,11 +353,11 @@ public class GuidsGenerator : IIncrementalGenerator
 		public List<GuidInfo> Guids { get; } = new();
 	}
 
-	private sealed class GuidInfo(string name, int guidIndex, int guidCount = 0)
+	private sealed class GuidInfo(string name, int guidIndex, params Guid[] guids)
 	{
 		public string Name { get; } = name;
 		public int GuidIndex { get; } = guidIndex;
-		public int GuidCount { get; } = guidCount;
+		public Guid[] Guids { get; } = guids;
 	}
 
 	private sealed class ProcessingCanceledException : Exception
