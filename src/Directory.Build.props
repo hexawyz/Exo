@@ -3,5 +3,6 @@
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>
 		<WarningsAsErrors>nullable</WarningsAsErrors>
+		<Features>runtime-async=on</Features>
 	</PropertyGroup>
 </Project>
