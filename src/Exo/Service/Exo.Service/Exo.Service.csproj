@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net11.0-windows</TargetFramework>
@@ -113,7 +113,7 @@
 
 	<Target Name="AddPluginFilesToPublishList" BeforeTargets="ComputeResolvedFilesToPublishList">
 		<!-- ;RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=$(SelfContained) -->
-		<MSBuild Projects="%(PluginProjectReference.Identity)" Targets="GetTargetPath" Properties="Configuration=$(Configuration);RuntimeIdentifier=;SelfContained=$(SelfContained)">
+		<MSBuild Projects="%(PluginProjectReference.Identity)" Targets="GetTargetPath" Properties="Configuration=$(Configuration);RuntimeIdentifier=;SelfContained=$(SelfContained)" RemoveProperties="TargetPlatform">
 			<Output TaskParameter="TargetOutputs" ItemName="PluginPrimaryAssembly" />
 		</MSBuild>
 
