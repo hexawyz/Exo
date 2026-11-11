@@ -17,11 +17,7 @@ namespace ABI.Microsoft.UI.Content;
 [SuppressMessage("", "IDE1006")]
 internal static class IContentExternalBackdropLinkMethods
 {
-	public static ref readonly Guid IID
-	{
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		get => ref MemoryMarshal.AsRef<Guid>([0x83, 0xBF, 0x54, 0x10, 0x5B, 0xB3, 0xDE, 0x5F, 0x8D, 0xD7, 0xAC, 0x3B, 0xB3, 0xE6, 0xCE, 0x27]);
-	}
+	public static Guid IID => new(0x1054bf83, 0xb35b, 0x5fde, 0x8D, 0xD7, 0xAC, 0x3B, 0xB3, 0xE6, 0xCE, 0x27);
 
 	internal static unsafe global::Microsoft.UI.Dispatching.DispatcherQueue get_DispatcherQueue(IObjectReference obj)
 	{
